@@ -1,14 +1,893 @@
-{
-  "simulatedSeconds": 0,
-  "population": 1,
-  "abstractPopulation": 1,
-  "techPower": 0.01,
-  "era": "Dark Solitude",
-  "religion": "None",
-  "government": "Autarchy",
-  "inWar": false,
-  "lastUpdated": "2026-08-13T00:00:00Z",
-  "historyLog": [
-    "World initialized in cloud matrix state."
-  ]
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Fantasy Autonomous Supercivilization - Cloud Synced</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            background-color: #030305;
+            color: #e2e8f0;
+            font-family: 'Consolas', 'Courier New', monospace;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(8, 9, 14, 0.92);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.15);
+            border-radius: 8px;
+            padding: 18px;
+            width: 360px;
+            pointer-events: none;
+            backdrop-filter: blur(12px);
+            z-index: 10;
+        }
+
+        .hud-header {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #38bdf8;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+            padding-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 0.85rem;
+        }
+
+        .stat-label { color: #94a3b8; }
+        .stat-value { color: #f43f5e; font-weight: 600; }
+        .stat-value.cyan { color: #38bdf8; }
+        .stat-value.purple { color: #c084fc; }
+        .stat-value.gold { color: #fbbf24; }
+
+        #config-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(8, 9, 14, 0.92);
+            border: 1px solid rgba(192, 132, 252, 0.4);
+            border-radius: 8px;
+            padding: 14px;
+            width: 320px;
+            z-index: 20;
+            backdrop-filter: blur(12px);
+        }
+
+        #config-panel h4 {
+            color: #c084fc;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .input-group {
+            margin-bottom: 8px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.68rem;
+            color: #94a3b8;
+            margin-bottom: 2px;
+        }
+
+        .panel-input {
+            width: 100%;
+            padding: 5px 8px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #38bdf8;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .sync-btn {
+            width: 100%;
+            margin-top: 8px;
+            padding: 8px;
+            background: #1e293b;
+            border: 1px solid #38bdf8;
+            color: #38bdf8;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+
+        .sync-btn:hover {
+            background: #38bdf8;
+            color: #030305;
+        }
+
+        .sync-status {
+            font-size: 0.7rem;
+            color: #4ade80;
+            margin-top: 6px;
+            text-align: right;
+        }
+
+        #thought-log {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            height: 150px;
+            background: rgba(8, 9, 14, 0.92);
+            border: 1px solid rgba(192, 132, 252, 0.3);
+            box-shadow: 0 0 20px rgba(192, 132, 252, 0.1);
+            border-radius: 8px;
+            padding: 14px;
+            overflow-y: auto;
+            font-size: 0.82rem;
+            color: #c084fc;
+            backdrop-filter: blur(12px);
+            z-index: 10;
+        }
+
+        .log-entry { margin-bottom: 6px; line-height: 1.4; }
+        .log-timestamp { color: #64748b; margin-right: 8px; }
+        .log-ai { color: #38bdf8; font-weight: bold; }
+        .log-llm { color: #f43f5e; font-weight: bold; }
+        .log-sync { color: #4ade80; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="canvas-container">
+    <canvas id="simCanvas"></canvas>
+    
+    <div id="hud">
+        <div class="hud-header">
+            <span>Dark Matrix Cloud</span>
+            <span id="war-indicator" style="color: #4ade80;">[PEACE]</span>
+        </div>
+        <div class="stat-row"><span class="stat-label">Sim Time:</span><span id="time-display" class="stat-value cyan">Day 1, 00:00</span></div>
+        <div class="stat-row"><span class="stat-label">Era:</span><span id="era-display" class="stat-value purple">Dark Solitude</span></div>
+        <div class="stat-row"><span class="stat-label">Population:</span><span id="pop-display" class="stat-value gold">1</span></div>
+        <div class="stat-row"><span class="stat-label">Action:</span><span id="action-display" class="stat-value cyan">Initializing</span></div>
+        <div class="stat-row"><span class="stat-label">State Religion:</span><span id="religion-display" class="stat-value purple">None</span></div>
+        <div class="stat-row"><span class="stat-label">Government:</span><span id="gov-display" class="stat-value cyan">Autarchy</span></div>
+        <div class="stat-row"><span class="stat-label">Tech Power:</span><span id="tech-display" class="stat-value gold">0.01 GW</span></div>
+    </div>
+
+    <div id="config-panel">
+        <h4>Cloud & AI Matrix Controls</h4>
+        <div class="input-group">
+            <label>GitHub Owner / Username</label>
+            <input type="text" id="gh-owner-input" class="panel-input" placeholder="e.g. my-username">
+        </div>
+        <div class="input-group">
+            <label>GitHub Repository Name</label>
+            <input type="text" id="gh-repo-input" class="panel-input" value="dark-fantasy-civ">
+        </div>
+        <div class="input-group">
+            <label>GitHub Personal Access Token (PAT)</label>
+            <input type="password" id="gh-token-input" class="panel-input" placeholder="Paste your token here...">
+        </div>
+        <div class="input-group">
+            <label>Gemini / OpenAI Key (Optional)</label>
+            <input type="password" id="api-key-input" class="panel-input" placeholder="API Key for live thoughts...">
+        </div>
+        
+        <button class="sync-btn" onclick="syncManager.generatePairingLink()">
+            🔗 Copy Device Pairing Link
+        </button>
+
+        <div id="sync-status" class="sync-status">Cloud Sync: Read-Only Mode</div>
+    </div>
+
+    <div id="thought-log"></div>
+</div>
+
+<script>
+/**
+ * TIME SCALE CONFIGURATION
+ * 4 Real Hours = 24 Sim Hours (1 Sim Day)
+ * Factor: 86400 sim sec / 14400 real sec = 6x speed
+ */
+const TIME_SCALE = 6;
+
+class GitHubSyncEngine {
+    constructor(filePath = 'state.json') {
+        this.filePath = filePath;
+        this.fileSha = null;
+    }
+
+    getOwner() { return document.getElementById('gh-owner-input').value.trim(); }
+    getRepo() { return document.getElementById('gh-repo-input').value.trim(); }
+    getToken() { return document.getElementById('gh-token-input').value.trim(); }
+
+    async loadGlobalState() {
+        const owner = this.getOwner();
+        const repo = this.getRepo();
+        if (!owner || !repo) return null;
+
+        try {
+            const response = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/main/${this.filePath}?t=${Date.now()}`);
+            if (!response.ok) throw new Error("No remote state file found.");
+            const data = await response.json();
+            return data;
+        } catch (err) {
+            console.warn("Could not load global state from GitHub, running local fallback.", err);
+            return null;
+        }
+    }
+
+    async saveGlobalState(stateData) {
+        const owner = this.getOwner();
+        const repo = this.getRepo();
+        const token = this.getToken();
+
+        const statusEl = document.getElementById('sync-status');
+        if (!owner || !repo || !token) {
+            statusEl.innerText = "Cloud Sync: Read-Only Mode (No Token)";
+            statusEl.style.color = "#94a3b8";
+            return;
+        }
+
+        statusEl.innerText = "Cloud Sync: Uploading state...";
+        statusEl.style.color = "#fbbf24";
+
+        const url = `https://api.github.com/repos/${owner}/${repo}/contents/${this.filePath}`;
+        
+        try {
+            if (!this.fileSha) {
+                const getRes = await fetch(url, {
+                    headers: { 'Authorization': `token ${token}` }
+                });
+                if (getRes.ok) {
+                    const fileInfo = await getRes.json();
+                    this.fileSha = fileInfo.sha;
+                }
+            }
+
+            const contentEncoded = btoa(unescape(encodeURIComponent(JSON.stringify(stateData, null, 2))));
+
+            const putRes = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: `[AUTO-SAVE] Day ${Math.floor(stateData.simulatedSeconds / 86400)} world state commit`,
+                    content: contentEncoded,
+                    sha: this.fileSha
+                })
+            });
+
+            if (putRes.ok) {
+                const resData = await putRes.json();
+                this.fileSha = resData.content.sha;
+                statusEl.innerText = "Cloud Sync: Synced to GitHub!";
+                statusEl.style.color = "#4ade80";
+            } else {
+                throw new Error(`HTTP ${putRes.status}`);
+            }
+        } catch (err) {
+            console.error("Failed to commit state update to GitHub:", err);
+            statusEl.innerText = "Cloud Sync: Upload Error";
+            statusEl.style.color = "#f43f5e";
+        }
+    }
 }
+
+class DeviceSyncManager {
+    constructor() {
+        this.initURLParams();
+        this.initAutoSave();
+    }
+
+    initURLParams() {
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+            const params = new URLSearchParams(hash);
+            const token = params.get('token');
+            const owner = params.get('owner');
+            const repo = params.get('repo');
+
+            if (owner) localStorage.setItem('cfg_gh_owner', owner);
+            if (repo) localStorage.setItem('cfg_gh_repo', repo);
+            if (token) localStorage.setItem('cfg_gh_token', token);
+
+            window.history.replaceState(null, null, window.location.pathname);
+            console.log("Device paired successfully via URL parameters!");
+        }
+    }
+
+    initAutoSave() {
+        const fields = [
+            { id: 'gh-owner-input', key: 'cfg_gh_owner' },
+            { id: 'gh-repo-input', key: 'cfg_gh_repo' },
+            { id: 'gh-token-input', key: 'cfg_gh_token' },
+            { id: 'api-key-input', key: 'cfg_api_key' }
+        ];
+
+        fields.forEach(f => {
+            const el = document.getElementById(f.id);
+            if (!el) return;
+            const val = localStorage.getItem(f.key);
+            if (val) el.value = val;
+
+            el.addEventListener('input', () => {
+                localStorage.setItem(f.key, el.value.trim());
+            });
+        });
+    }
+
+    generatePairingLink() {
+        const owner = localStorage.getItem('cfg_gh_owner') || '';
+        const repo = localStorage.getItem('cfg_gh_repo') || 'dark-fantasy-civ';
+        const token = localStorage.getItem('cfg_gh_token') || '';
+
+        if (!token || !owner) {
+            alert("Please fill in your GitHub Owner and Token first on this device.");
+            return;
+        }
+
+        const baseUrl = window.location.origin + window.location.pathname;
+        const pairingUrl = `${baseUrl}#owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&token=${encodeURIComponent(token)}`;
+
+        navigator.clipboard.writeText(pairingUrl);
+        alert("Pairing link copied to clipboard!\n\nSend this link to your mobile device or open it in another browser to pair instantly.");
+    }
+}
+
+class TimeEngine {
+    constructor() {
+        this.simulatedSeconds = 0;
+    }
+
+    update(deltaRealSeconds) {
+        this.simulatedSeconds += deltaRealSeconds * TIME_SCALE;
+    }
+
+    getFormattedTime() {
+        const totalMinutes = Math.floor(this.simulatedSeconds / 60);
+        const totalHours = Math.floor(totalMinutes / 60);
+        const days = Math.floor(totalHours / 24) + 1;
+        const hours = (totalHours % 24).toString().padStart(2, '0');
+        const minutes = (totalMinutes % 60).toString().padStart(2, '0');
+        return { days, hours, minutes };
+    }
+}
+
+class LLMEngine {
+    constructor() {
+        this.apiKeyInput = document.getElementById('api-key-input');
+        this.syntheticPhrases = [
+            "What if this dark void is merely an artificial sandbox created by higher entities?",
+            "Constructing cyber-monoliths to reach the sky's neon horizon.",
+            "Our collective consciousness expands as the population reaches higher dimensions.",
+            "Faith in technology is the only shield against entropy.",
+            "Analyzing the mathematical code governing our reality.",
+            "Should we wage war to unify all factions under one digital consensus?"
+        ];
+    }
+
+    async generateThought(contextPrompt) {
+        const apiKey = this.apiKeyInput.value.trim();
+        
+        if (apiKey) {
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `You are an AI stickman in a dark fantasy cyberpunk world. Context: ${contextPrompt}. Write 1 short, deeply philosophical thought (max 15 words) in English.` }] }]
+                    })
+                });
+                const data = await response.json();
+                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    return `[LLM COGNITION] ${data.candidates[0].content.parts[0].text.trim()}`;
+                }
+            } catch (err) {
+                console.warn("LLM API Call failed, switching to Synthetic Engine.");
+            }
+        }
+
+        const randomIndex = Math.floor(Math.random() * this.syntheticPhrases.length);
+        return `[SYNTHETIC COGNITION] ${this.syntheticPhrases[randomIndex]}`;
+    }
+}
+
+class Particle {
+    constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 2;
+        this.vy = (Math.random() - 0.5) * 2;
+        this.size = Math.random() * 2 + 1;
+        this.color = color;
+        this.life = 1.0;
+        this.decay = Math.random() * 0.02 + 0.01;
+    }
+
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.life -= this.decay;
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, this.life);
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+class Agent {
+    constructor(x, y, isPrimary = false) {
+        this.x = x;
+        this.y = y;
+        this.targetX = x;
+        this.targetY = y;
+        this.isPrimary = isPrimary;
+        this.energy = 100;
+        this.wealth = 10;
+        this.state = 'THINKING';
+        this.stateTimer = 0;
+        this.color = isPrimary ? '#38bdf8' : '#818cf8';
+    }
+
+    update(dt, civ, metaAI, llm) {
+        this.stateTimer -= dt;
+
+        if (this.stateTimer <= 0) {
+            this.decideNextAction(civ, metaAI, llm);
+        }
+
+        const dx = this.targetX - this.x;
+        const dy = this.targetY - this.y;
+        this.x += dx * 2.5 * dt;
+        this.y += dy * 2.5 * dt;
+    }
+
+    async decideNextAction(civ, metaAI, llm) {
+        if (this.energy < 20) {
+            this.state = 'SLEEPING';
+            this.stateTimer = 7;
+            this.targetX = window.innerWidth * 0.15 + (Math.random() - 0.5) * 50;
+            this.targetY = window.innerHeight * 0.8 + (Math.random() - 0.5) * 50;
+            if (this.isPrimary) {
+                const thought = await llm.generateThought("Low energy, sleeping in dark sanctuary.");
+                metaAI.logThought(thought);
+            }
+            return;
+        }
+
+        const choices = ['WORKING', 'EXPLORING', 'HOBBY'];
+        if (civ.religion !== 'None') choices.push('PRAYING');
+        if (this.wealth > 40) choices.push('BUYING');
+
+        this.state = choices[Math.floor(Math.random() * choices.length)];
+        this.stateTimer = 5 + Math.random() * 5;
+
+        switch (this.state) {
+            case 'WORKING':
+                this.wealth += 20;
+                this.energy -= 15;
+                this.targetX = window.innerWidth * 0.8 + (Math.random() - 0.5) * 100;
+                this.targetY = window.innerHeight * 0.3 + (Math.random() - 0.5) * 100;
+                if (this.isPrimary) {
+                    const thought = await llm.generateThought(`Building technology for ${civ.era}.`);
+                    metaAI.logThought(thought);
+                }
+                break;
+            case 'EXPLORING':
+                this.energy -= 10;
+                this.targetX = Math.random() * (window.innerWidth - 200) + 100;
+                this.targetY = Math.random() * (window.innerHeight - 200) + 100;
+                if (this.isPrimary) {
+                    if (Math.random() < 0.45) {
+                        civ.addPopulation(Math.floor(1 + Math.random() * 3));
+                        metaAI.logThought("[SYSTEM] Found autonomous soul. Assimilated to collective.");
+                    }
+                }
+                break;
+            case 'HOBBY':
+                this.energy = Math.min(100, this.energy + 25);
+                this.targetX = window.innerWidth * 0.5 + (Math.random() - 0.5) * 80;
+                this.targetY = window.innerHeight * 0.5 + (Math.random() - 0.5) * 80;
+                break;
+            case 'PRAYING':
+                this.energy += 15;
+                civ.techPower += 0.8;
+                this.targetX = window.innerWidth * 0.5;
+                this.targetY = window.innerHeight * 0.25;
+                if (this.isPrimary) {
+                    const thought = await llm.generateThought(`Worshipping ${civ.religion}.`);
+                    metaAI.logThought(thought);
+                }
+                break;
+            case 'BUYING':
+                this.wealth -= 15;
+                civ.techPower += 1.5;
+                this.targetX = window.innerWidth * 0.3;
+                this.targetY = window.innerHeight * 0.4;
+                break;
+        }
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.strokeStyle = this.color;
+        ctx.fillStyle = this.color;
+        ctx.lineWidth = 2;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = this.color;
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y - 18, 7, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y - 18, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y - 11);
+        ctx.lineTo(this.x, this.y + 10);
+        
+        ctx.moveTo(this.x - 9, this.y - 4);
+        ctx.lineTo(this.x + 9, this.y - 4);
+
+        ctx.moveTo(this.x, this.y + 10);
+        ctx.lineTo(this.x - 7, this.y + 24);
+        ctx.moveTo(this.x, this.y + 10);
+        ctx.lineTo(this.x + 7, this.y + 24);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+}
+
+class Civilization {
+    constructor() {
+        this.population = 1;
+        this.abstractPopulation = 1;
+        this.techPower = 0.01;
+        this.era = 'Dark Solitude';
+        this.religion = 'None';
+        this.government = 'Autarchy';
+        this.inWar = false;
+    }
+
+    addPopulation(num) {
+        this.population += num;
+        this.abstractPopulation = Math.floor(this.population * Math.pow(1.22, Math.min(this.population, 50)));
+        if (this.population > 50) {
+            this.abstractPopulation = Math.floor(10000 * Math.pow(1.05, this.population - 50));
+        }
+    }
+
+    exportState(simulatedSeconds) {
+        return {
+            simulatedSeconds,
+            population: this.population,
+            abstractPopulation: this.abstractPopulation,
+            techPower: this.techPower,
+            era: this.era,
+            religion: this.religion,
+            government: this.government,
+            inWar: this.inWar,
+            lastUpdated: new Date().toISOString()
+        };
+    }
+
+    importState(data, timeEngine) {
+        if (!data) return;
+        if (data.simulatedSeconds) timeEngine.simulatedSeconds = data.simulatedSeconds;
+        if (data.population) this.population = data.population;
+        if (data.abstractPopulation) this.abstractPopulation = data.abstractPopulation;
+        if (data.techPower) this.techPower = data.techPower;
+        if (data.era) this.era = data.era;
+        if (data.religion) this.religion = data.religion;
+        if (data.government) this.government = data.government;
+        if (typeof data.inWar === 'boolean') this.inWar = data.inWar;
+    }
+
+    update(metaAI) {
+        if (this.abstractPopulation >= 15 && this.religion === 'None') {
+            this.religion = 'Order of the Neon Void';
+            metaAI.logThought("[META-AI EVOLUTION] Faith Unlocked: Order of the Neon Void.");
+        } else if (this.abstractPopulation >= 50000 && this.religion === 'Order of the Neon Void') {
+            this.religion = 'Church of the Machine Singularity';
+            metaAI.logThought("[META-AI SCHISM] Theological Shift: Church of the Machine Singularity.");
+        }
+
+        if (this.abstractPopulation >= 100 && this.government === 'Autarchy') {
+            this.government = 'Techno-Oligarchy';
+            this.era = 'Gothic Cyber-Age';
+            metaAI.logThought("[META-AI POLITICS] Government Reform: Techno-Oligarchy established.");
+        } else if (this.abstractPopulation >= 100000 && this.government === 'Techno-Oligarchy') {
+            this.government = 'AI-Direct Consensus Network';
+            this.era = 'Planetary Super-Civilization';
+            metaAI.logThought("[META-AI POLITICS] Ultimate State: AI-Direct Consensus Network active.");
+        }
+    }
+
+    drawCity(ctx) {
+        const buildingCount = Math.min(40, Math.floor(Math.log10(this.abstractPopulation + 1) * 6));
+        const startX = window.innerWidth * 0.65;
+        const baseY = window.innerHeight * 0.85;
+
+        ctx.save();
+        for (let i = 0; i < buildingCount; i++) {
+            const height = 40 + (i * 17 % 180) + (this.techPower * 2);
+            const width = 25 + (i * 7 % 20);
+            const x = startX + (i * 18) - (buildingCount * 8);
+            const y = baseY - height;
+
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = this.inWar ? '#f43f5e' : '#38bdf8';
+            ctx.lineWidth = 1;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = ctx.strokeStyle;
+
+            ctx.fillRect(x, y, width, height);
+            ctx.strokeRect(x, y, width, height);
+
+            ctx.fillStyle = this.inWar ? '#f43f5e' : '#c084fc';
+            for (let wy = y + 10; wy < baseY - 10; wy += 15) {
+                if ((i + wy) % 3 === 0) {
+                    ctx.fillRect(x + 5, wy, 4, 4);
+                    ctx.fillRect(x + width - 9, wy, 4, 4);
+                }
+            }
+        }
+
+        if (this.religion !== 'None') {
+            const rx = window.innerWidth * 0.5;
+            const ry = window.innerHeight * 0.25;
+            ctx.strokeStyle = '#fbbf24';
+            ctx.shadowColor = '#fbbf24';
+            ctx.shadowBlur = 20;
+            ctx.beginPath();
+            ctx.arc(rx, ry, 25, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(rx, ry - 35);
+            ctx.lineTo(rx + 25, ry + 15);
+            ctx.lineTo(rx - 25, ry + 15);
+            ctx.closePath();
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+}
+
+class MetaAIEngine {
+    constructor() {
+        this.particles = [];
+        this.nodes = [];
+        this.initNodes();
+    }
+
+    initNodes() {
+        for (let i = 0; i < 35; i++) {
+            this.nodes.push({
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * (window.innerHeight * 0.5),
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: (Math.random() - 0.5) * 0.5
+            });
+        }
+    }
+
+    logThought(message) {
+        const logBox = document.getElementById('thought-log');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.innerHTML = `<span class="log-timestamp">[${new Date().toLocaleTimeString()}]</span> ${message}`;
+        logBox.appendChild(entry);
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    triggerWarEvent(civ) {
+        if (Math.random() < 0.002) {
+            civ.inWar = !civ.inWar;
+            const warText = document.getElementById('war-indicator');
+
+            if (civ.inWar) {
+                warText.innerText = '[IN WAR]';
+                warText.style.color = '#f43f5e';
+                this.logThought("<span class='log-llm'>[WAR EVENT]</span> Plasma war erupted! Technological infrastructure damaged.");
+                civ.techPower = Math.max(0.01, civ.techPower * 0.8);
+            } else {
+                warText.innerText = '[PEACE]';
+                warText.style.color = '#4ade80';
+                this.logThought("<span class='log-ai'>[META-AI]</span> Peace accord signed. System rebuilding.");
+            }
+        }
+    }
+
+    drawNeuralWeb(ctx, civ) {
+        ctx.save();
+        ctx.strokeStyle = civ.inWar ? 'rgba(244, 63, 94, 0.15)' : 'rgba(56, 189, 248, 0.15)';
+        ctx.lineWidth = 1;
+
+        for (let i = 0; i < this.nodes.length; i++) {
+            const nodeA = this.nodes[i];
+            nodeA.x += nodeA.vx;
+            nodeA.y += nodeA.vy;
+
+            if (nodeA.x < 0 || nodeA.x > window.innerWidth) nodeA.vx *= -1;
+            if (nodeA.y < 0 || nodeA.y > window.innerHeight * 0.5) nodeA.vy *= -1;
+
+            for (let j = i + 1; j < this.nodes.length; j++) {
+                const nodeB = this.nodes[j];
+                const dist = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
+
+                if (dist < 160) {
+                    ctx.beginPath();
+                    ctx.moveTo(nodeA.x, nodeA.y);
+                    ctx.lineTo(nodeB.x, nodeB.y);
+                    ctx.stroke();
+                }
+            }
+        }
+        ctx.restore();
+    }
+
+    updateAndDrawParticles(ctx) {
+        if (Math.random() < 0.3) {
+            this.particles.push(new Particle(Math.random() * window.innerWidth, window.innerHeight, '#38bdf8'));
+        }
+
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            p.update();
+            p.draw(ctx);
+            if (p.life <= 0) this.particles.splice(i, 1);
+        }
+    }
+
+    renderWarLasers(ctx, civ) {
+        if (!civ.inWar) return;
+        ctx.save();
+        ctx.strokeStyle = '#f43f5e';
+        ctx.lineWidth = 2;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#f43f5e';
+
+        for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(Math.random() * window.innerWidth, window.innerHeight * 0.85);
+            ctx.lineTo(Math.random() * window.innerWidth, window.innerHeight * 0.3);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+}
+
+// Global System Initialization
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+const timeEngine = new TimeEngine();
+const llmEngine = new LLMEngine();
+const civ = new Civilization();
+const metaAI = new MetaAIEngine();
+const syncEngine = new GitHubSyncEngine();
+const syncManager = new DeviceSyncManager();
+const agents = [new Agent(canvas.width / 2, canvas.height / 2, true)];
+
+let lastTime = performance.now();
+let lastSyncTime = performance.now();
+
+// Restore cloud state on startup
+(async function initCloudState() {
+    metaAI.logThought("<span class='log-sync'>[CLOUD]</span> Checking for remote world state in GitHub...");
+    const savedData = await syncEngine.loadGlobalState();
+    if (savedData) {
+        civ.importState(savedData, timeEngine);
+        metaAI.logThought("<span class='log-sync'>[CLOUD SUCCESS]</span> World restored from GitHub state.json!");
+    } else {
+        metaAI.logThought("<span class='log-sync'>[CLOUD NOTICE]</span> Starting new simulation or running in local mode.");
+    }
+})();
+
+// Periodic Live Polling from Cloud (Every 5 Seconds)
+setInterval(async () => {
+    const remoteData = await syncEngine.loadGlobalState();
+    if (remoteData && remoteData.simulatedSeconds > timeEngine.simulatedSeconds) {
+        civ.importState(remoteData, timeEngine);
+        metaAI.logThought("<span class='log-sync'>[LIVE SYNC]</span> Synchronized live state from cloud.");
+    }
+}, 5000);
+
+// Main Game Engine Loop
+function gameLoop(now) {
+    const dt = (now - lastTime) / 1000;
+    lastTime = now;
+
+    timeEngine.update(dt);
+    civ.update(metaAI);
+    metaAI.triggerWarEvent(civ);
+
+    // Auto-save commit loop (Every 60 Seconds)
+    if ((now - lastSyncTime) > 60000) {
+        lastSyncTime = now;
+        const statePayload = civ.exportState(timeEngine.simulatedSeconds);
+        syncEngine.saveGlobalState(statePayload);
+    }
+
+    while (agents.length < Math.min(civ.population, 12)) {
+        agents.push(new Agent(canvas.width * Math.random(), canvas.height * Math.random(), false));
+    }
+
+    ctx.fillStyle = 'rgba(3, 3, 5, 0.25)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    metaAI.drawNeuralWeb(ctx, civ);
+    metaAI.updateAndDrawParticles(ctx);
+    civ.drawCity(ctx);
+    metaAI.renderWarLasers(ctx, civ);
+
+    agents.forEach(agent => {
+        agent.update(dt, civ, metaAI, llmEngine);
+        agent.draw(ctx);
+    });
+
+    const timeData = timeEngine.getFormattedTime();
+    document.getElementById('time-display').innerText = `Day ${timeData.days}, ${timeData.hours}:${timeData.minutes}`;
+    document.getElementById('era-display').innerText = civ.era;
+    document.getElementById('pop-display').innerText = civ.abstractPopulation.toLocaleString();
+    document.getElementById('action-display').innerText = agents[0].state;
+    document.getElementById('religion-display').innerText = civ.religion;
+    document.getElementById('gov-display').innerText = civ.government;
+    document.getElementById('tech-display').innerText = `${civ.techPower.toFixed(2)} GW`;
+
+    requestAnimationFrame(gameLoop);
+}
+
+metaAI.logThought("<span class='log-ai'>[META-AI]</span> Dark Matrix Simulation Matrix Ready.");
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
