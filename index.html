@@ -77,7 +77,7 @@
             border: 1px solid rgba(192, 132, 252, 0.4);
             border-radius: 8px;
             padding: 14px;
-            width: 300px;
+            width: 320px;
             z-index: 20;
             backdrop-filter: blur(12px);
         }
@@ -109,6 +109,25 @@
             color: #38bdf8;
             border-radius: 4px;
             font-size: 0.75rem;
+        }
+
+        .sync-btn {
+            width: 100%;
+            margin-top: 8px;
+            padding: 8px;
+            background: #1e293b;
+            border: 1px solid #38bdf8;
+            color: #38bdf8;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+
+        .sync-btn:hover {
+            background: #38bdf8;
+            color: #030305;
         }
 
         .sync-status {
@@ -174,12 +193,17 @@
         </div>
         <div class="input-group">
             <label>GitHub Personal Access Token (PAT)</label>
-            <input type="password" id="gh-token-input" class="panel-input" placeholder="ghp_xxxxxxxxxxxx">
+            <input type="password" id="gh-token-input" class="panel-input" placeholder="Paste your token here...">
         </div>
         <div class="input-group">
             <label>Gemini / OpenAI Key (Optional)</label>
             <input type="password" id="api-key-input" class="panel-input" placeholder="API Key for live thoughts...">
         </div>
+        
+        <button class="sync-btn" onclick="syncManager.generatePairingLink()">
+            🔗 Copy Device Pairing Link
+        </button>
+
         <div id="sync-status" class="sync-status">Cloud Sync: Read-Only Mode</div>
     </div>
 
@@ -276,6 +300,67 @@ class GitHubSyncEngine {
             statusEl.innerText = "Cloud Sync: Upload Error";
             statusEl.style.color = "#f43f5e";
         }
+    }
+}
+
+class DeviceSyncManager {
+    constructor() {
+        this.initURLParams();
+        this.initAutoSave();
+    }
+
+    initURLParams() {
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+            const params = new URLSearchParams(hash);
+            const token = params.get('token');
+            const owner = params.get('owner');
+            const repo = params.get('repo');
+
+            if (owner) localStorage.setItem('cfg_gh_owner', owner);
+            if (repo) localStorage.setItem('cfg_gh_repo', repo);
+            if (token) localStorage.setItem('cfg_gh_token', token);
+
+            window.history.replaceState(null, null, window.location.pathname);
+            console.log("Device paired successfully via URL parameters!");
+        }
+    }
+
+    initAutoSave() {
+        const fields = [
+            { id: 'gh-owner-input', key: 'cfg_gh_owner' },
+            { id: 'gh-repo-input', key: 'cfg_gh_repo' },
+            { id: 'gh-token-input', key: 'cfg_gh_token' },
+            { id: 'api-key-input', key: 'cfg_api_key' }
+        ];
+
+        fields.forEach(f => {
+            const el = document.getElementById(f.id);
+            if (!el) return;
+            const val = localStorage.getItem(f.key);
+            if (val) el.value = val;
+
+            el.addEventListener('input', () => {
+                localStorage.setItem(f.key, el.value.trim());
+            });
+        });
+    }
+
+    generatePairingLink() {
+        const owner = localStorage.getItem('cfg_gh_owner') || '';
+        const repo = localStorage.getItem('cfg_gh_repo') || 'dark-fantasy-civ';
+        const token = localStorage.getItem('cfg_gh_token') || '';
+
+        if (!token || !owner) {
+            alert("Please fill in your GitHub Owner and Token first on this device.");
+            return;
+        }
+
+        const baseUrl = window.location.origin + window.location.pathname;
+        const pairingUrl = `${baseUrl}#owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&token=${encodeURIComponent(token)}`;
+
+        navigator.clipboard.writeText(pairingUrl);
+        alert("Pairing link copied to clipboard!\n\nSend this link to your mobile device or open it in another browser to pair instantly.");
     }
 }
 
@@ -713,7 +798,7 @@ class MetaAIEngine {
     }
 }
 
-// Initialization
+// Global System Initialization
 const canvas = document.getElementById('simCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -729,6 +814,7 @@ const llmEngine = new LLMEngine();
 const civ = new Civilization();
 const metaAI = new MetaAIEngine();
 const syncEngine = new GitHubSyncEngine();
+const syncManager = new DeviceSyncManager();
 const agents = [new Agent(canvas.width / 2, canvas.height / 2, true)];
 
 let lastTime = performance.now();
@@ -746,6 +832,16 @@ let lastSyncTime = performance.now();
     }
 })();
 
+// Periodic Live Polling from Cloud (Every 5 Seconds)
+setInterval(async () => {
+    const remoteData = await syncEngine.loadGlobalState();
+    if (remoteData && remoteData.simulatedSeconds > timeEngine.simulatedSeconds) {
+        civ.importState(remoteData, timeEngine);
+        metaAI.logThought("<span class='log-sync'>[LIVE SYNC]</span> Synchronized live state from cloud.");
+    }
+}, 5000);
+
+// Main Game Engine Loop
 function gameLoop(now) {
     const dt = (now - lastTime) / 1000;
     lastTime = now;
@@ -754,7 +850,7 @@ function gameLoop(now) {
     civ.update(metaAI);
     metaAI.triggerWarEvent(civ);
 
-    // Auto-save loop (every 60 seconds)
+    // Auto-save commit loop (Every 60 Seconds)
     if ((now - lastSyncTime) > 60000) {
         lastSyncTime = now;
         const statePayload = civ.exportState(timeEngine.simulatedSeconds);
