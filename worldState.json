@@ -1,0 +1,16 @@
+{
+  "day": 1,
+  "era": "Aetheric Civilization Era 1",
+  "ruler": "Autonomous AI Sovereign",
+  "dominantParty": "Arcane Council",
+  "population": 12,
+  "tanks": 0,
+  "treasury": 500,
+  "techPower": 0.5,
+  "buildingsCount": 3,
+  "engineBuild": "v1.0.0-AI-Cloud",
+  "inWar": false,
+  "logs": [
+    "[12:00:00] Autonomous Cloud Server Initialized. World tick active 24/7."
+  ]
+}
