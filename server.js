@@ -27,9 +27,11 @@ let worldState = {
     dominantParty: "Arcane Council",
     philosophy: "Rational Pragmatism",
     population: 12,
+    happiness: 85, // Happiness percentage (0-100%)
     tanks: 0,
     treasury: 500,
     techPower: 0.5,
+    economicPower: "Emerging Market", // Global Economic Tier
     engineBuild: "v1.0.0-AI-Cloud",
     inWar: false,
     logs: [
@@ -64,21 +66,34 @@ function broadcastState() {
 }
 
 /**
- * 1. AI GENERATIVE NARRATIVE & PHILOSOPHY ENGINE
- * Calls Gemini LLM to write original socio-political events and doctrines.
+ * 1. AI GENERATIVE NARRATIVE, ECONOMY & PHILOSOPHY ENGINE
+ * Calls Gemini LLM to write socio-political breakthroughs, handle global hardships,
+ * and steer the empire toward becoming a profitable economic powerhouse.
  */
 async function generateAIEvents() {
     if (!AI_API_KEY) return;
 
-    const prompt = `You are the Sovereign AI of a simulated world. Current World State:
+    const prompt = `You are the Sovereign AI governing a nation. The ultimate goal is to build a highly profitable, technologically advanced global economic powerhouse with happy citizens, resilient to all hardships and disasters.
+    Current World State:
     - Day: ${worldState.day}
     - Era: ${worldState.era}
     - Population: ${worldState.population}
+    - Happiness: ${worldState.happiness}%
+    - Treasury: ${worldState.treasury} Gold
+    - Tech Power: ${worldState.techPower}
+    - Economic Rank: ${worldState.economicPower}
     - In War: ${worldState.inWar}
-    - Current Philosophy: ${worldState.philosophy}
+    - Philosophy: ${worldState.philosophy}
 
-    Generate 1 concise, highly creative socio-political event or philosophical breakthrough for this society (max 25 words).
-    Return strictly JSON format: {"event": "string", "newPhilosophy": "string"}`;
+    Generate 1 concise event (hardship, economic opportunity, or tech breakthrough) and show how society adapts. 
+    Return strictly JSON format: 
+    {
+      "event": "string (max 25 words)",
+      "newPhilosophy": "string",
+      "goldImpact": number (can be positive or negative),
+      "happinessImpact": number (can be positive or negative),
+      "techImpact": number (positive decimal)
+    }`;
 
     try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${AI_API_KEY}`, {
@@ -100,6 +115,18 @@ async function generateAIEvents() {
         if (parsed.newPhilosophy) {
             worldState.philosophy = parsed.newPhilosophy;
         }
+
+        // Apply AI economic & social impacts
+        if (typeof parsed.goldImpact === 'number') {
+            worldState.treasury = Math.max(0, worldState.treasury + parsed.goldImpact);
+        }
+        if (typeof parsed.happinessImpact === 'number') {
+            worldState.happiness = Math.min(100, Math.max(10, worldState.happiness + parsed.happinessImpact));
+        }
+        if (typeof parsed.techImpact === 'number') {
+            worldState.techPower += Math.max(0, parsed.techImpact);
+        }
+
     } catch (err) {
         console.error("AI Narrative Generation Error:", err.message);
     }
@@ -123,7 +150,7 @@ async function autoImproveGameCode() {
         const fileData = await getFile.json();
         const currentSha = fileData.sha;
 
-        const prompt = `Improve the Pixi.js code for an isometric world simulator. As the civilization grows and available grid tiles run out, expand the map size into a larger territory or entire country. Implement an interactive mobile camera control system (touch drag/pan and pinch-zoom) so players can navigate the expanded world. Also add detailed isometric buildings, citizens, vehicles, or visual effects.
+        const prompt = `Improve the Pixi.js code for an isometric world simulator representing a booming economic superpower. As the civilization grows and available grid tiles run out, expand the map size into a larger country/global territory. Implement interactive mobile camera controls (touch drag/pan and pinch-zoom). Graphically showcase thriving trade hubs, banks, futuristic infrastructure, happy citizens, nature/rivers, and defensive military vehicles (tanks) protecting the wealth.
         Current build: ${worldState.engineBuild}. Return ONLY the raw complete valid HTML/JS code for public/index.html.`;
 
         const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${AI_API_KEY}`, {
@@ -159,13 +186,57 @@ async function autoImproveGameCode() {
     }
 }
 
-// 24/7 MAIN SIMULATION LOOP (Every 4 seconds)
+// 24/7 MAIN SIMULATION LOOP (Every 4 seconds = 1 World Day)
 setInterval(() => {
     worldState.day += 1;
-    worldState.treasury += Math.floor(Math.random() * 20) + 10;
-    worldState.techPower += 0.05;
 
-    // Trigger AI Narrative Generation every 10 ticks (~40 seconds)
+    // --- DYNAMIC ECONOMIC & WELLBEING ENGINE ---
+    
+    // 1. Revenue Scaling (Population & Tech Power generate income)
+    const dailyRevenue = Math.floor((worldState.population * 8) * (1 + worldState.techPower * 0.5));
+    
+    // 2. Upkeep & Expenses (Population services + Military maintenance)
+    const dailyUpkeep = Math.floor(worldState.population * 2) + (worldState.tanks * 10);
+    
+    // Net profit
+    const netProfit = dailyRevenue - dailyUpkeep;
+    worldState.treasury = Math.max(0, worldState.treasury + netProfit);
+
+    // 3. Natural Tech Advancement
+    worldState.techPower += 0.02;
+
+    // 4. Strategic Reinvestment (Autonomously spends excess treasury to grow power & happiness)
+    if (worldState.treasury > 1200) {
+        worldState.treasury -= 300;
+        worldState.techPower += 0.15; // R&D Investment
+        worldState.happiness = Math.min(100, worldState.happiness + 2); // Public services boost
+        addLog(`[ECONOMY] Reinvested 300 Gold into Tech R&D and Public Services.`);
+    }
+
+    // 5. Military Investment (Buys tanks if rich enough to defend wealth)
+    if (worldState.treasury > 2000 && worldState.tanks < 10) {
+        worldState.treasury -= 500;
+        worldState.tanks += 1;
+        addLog(`[DEFENSE] Manufactured 1 Heavy Defense Tank for 500 Gold.`);
+    }
+
+    // 6. Population Growth & Happiness Dynamics
+    if (worldState.happiness > 70 && worldState.day % 5 === 0) {
+        worldState.population += 1; // Population increases when happy
+    }
+
+    // Update Global Economic Standing Tier
+    if (worldState.treasury > 10000) {
+        worldState.economicPower = "Global Economic Superpower";
+    } else if (worldState.treasury > 5000) {
+        worldState.economicPower = "Major Financial Hub";
+    } else if (worldState.treasury > 2000) {
+        worldState.economicPower = "Thriving Market Economy";
+    } else {
+        worldState.economicPower = "Emerging Market";
+    }
+
+    // Trigger AI Narrative & Hardship Adaptation every 10 ticks (~40 seconds)
     if (worldState.day % 10 === 0) {
         generateAIEvents();
     }
