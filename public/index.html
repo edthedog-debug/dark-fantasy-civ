@@ -39,13 +39,13 @@
             color: #e2e8f0;
             backdrop-filter: blur(6px);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-            pointer-events: none;
         }
         #hud {
             top: 15px;
             left: 15px;
             right: 15px;
             font-size: 13px;
+            pointer-events: none;
         }
         .hud-header {
             display: flex;
@@ -77,6 +77,8 @@
             overflow-y: auto;
             font-size: 11px;
             line-height: 1.4;
+            pointer-events: auto; /* Enabled touch interaction & scrolling */
+            -webkit-overflow-scrolling: touch;
         }
         .log-entry {
             margin-bottom: 4px;
@@ -164,7 +166,6 @@
         const TILE_WIDTH = 48;
         const TILE_HEIGHT = 24;
 
-        // Biome Palette (AI can add new hex colors for Desert, Snow, Lava, etc.)
         const BIOMES = {
             0: { name: "Grassland", color: 0x16a34a, border: 0x15803d }, // Green
             1: { name: "River",     color: 0x0284c7, border: 0x0369a1 }, // Blue
@@ -172,7 +173,6 @@
             3: { name: "Forest",    color: 0x15803d, border: 0x166534 }  // Dark Green
         };
 
-        // Procedural Map Matrix (0=Grass, 1=River, 2=Mountain, 3=Forest)
         const mapData = [];
         for (let x = 0; x < GRID_SIZE; x++) {
             mapData[x] = [];
@@ -218,45 +218,208 @@
         renderMap();
 
         // ==========================================
-        // 3. DYNAMIC ENTITY RENDERER
-        // AI GENERATIVE HOOK: Add dynamic buildings, tanks, and animations
+        // 3. ADVANCED GRAPHICAL DRAWING HELPERS
+        // ==========================================
+
+        // Draws a detailed 3D Isometric Capital Citadel
+        function drawCitadel(x, y) {
+            const container = new PIXI.Container();
+            const pos = isoToScreen(x, y);
+            container.x = pos.x;
+            container.y = pos.y;
+
+            const g = new PIXI.Graphics();
+
+            // Ground Shadow
+            g.beginFill(0x000000, 0.4);
+            g.drawEllipse(0, 8, 22, 11);
+            g.endFill();
+
+            // Base Walls
+            g.beginFill(0x334155); // Dark Slate Left
+            g.moveTo(-16, 0).lineTo(0, 8).lineTo(0, -12).lineTo(-16, -20).closePath().endFill();
+            g.beginFill(0x475569); // Slate Right
+            g.moveTo(0, 8).lineTo(16, 0).lineTo(16, -20).lineTo(0, -12).closePath().endFill();
+            g.beginFill(0x64748b); // Top Wall Roof
+            g.moveTo(-16, -20).lineTo(0, -12).lineTo(16, -20).lineTo(0, -28).closePath().endFill();
+
+            // Central Royal Keep (Golden Citadel Spire)
+            g.beginFill(0xd97706); // Dark Gold Left
+            g.moveTo(-10, -22).lineTo(0, -17).lineTo(0, -42).lineTo(-10, -47).closePath().endFill();
+            g.beginFill(0xf59e0b); // Gold Right
+            g.moveTo(0, -17).lineTo(10, -22).lineTo(10, -47).lineTo(0, -42).closePath().endFill();
+            g.beginFill(0xfacc15); // Top Roof
+            g.moveTo(-10, -47).lineTo(0, -42).lineTo(10, -47).lineTo(0, -52).closePath().endFill();
+
+            // Crown Gem / Spire Tip
+            g.beginFill(0x38bdf8);
+            g.drawCircle(0, -55, 3);
+            g.endFill();
+
+            // Banner Flag
+            g.lineStyle(1.5, 0x94a3b8);
+            g.moveTo(0, -52).lineTo(0, -64);
+            g.lineStyle(0);
+            g.beginFill(0xef4444);
+            g.moveTo(0, -64).lineTo(7, -60).lineTo(0, -56).closePath();
+            g.endFill();
+
+            container.addChild(g);
+            return container;
+        }
+
+        // Draws a detailed Military Combat Tank
+        function drawTank(x, y) {
+            const container = new PIXI.Container();
+            const pos = isoToScreen(x, y);
+            container.x = pos.x;
+            container.y = pos.y;
+
+            const g = new PIXI.Graphics();
+
+            // Tank Drop Shadow
+            g.beginFill(0x000000, 0.45);
+            g.drawEllipse(0, 3, 10, 5);
+            g.endFill();
+
+            // Tread / Tracks
+            g.beginFill(0x1e293b);
+            g.drawRoundRect(-8, -4, 16, 8, 3);
+            g.endFill();
+
+            // Main Armored Hull
+            g.beginFill(0xb91c1c); // Deep Red Armor
+            g.drawRoundRect(-7, -7, 14, 8, 2);
+            g.endFill();
+            g.beginFill(0xef4444); // Top Armor Highlight
+            g.drawRect(-5, -6, 10, 5);
+            g.endFill();
+
+            // Turret & Cannon Barrel
+            g.beginFill(0x7f1d1d); // Turret Base
+            g.drawCircle(0, -4, 4);
+            g.endFill();
+
+            g.lineStyle(2, 0x450a0a); // Heavy Cannon Barrel
+            g.moveTo(2, -4).lineTo(9, -8);
+            g.lineStyle(0);
+
+            // Hatch Detail
+            g.beginFill(0xfca5a5);
+            g.drawCircle(-1, -5, 1.2);
+            g.endFill();
+
+            container.addChild(g);
+            return container;
+        }
+
+        // Draws a Citizen House / Cottage
+        function drawHouse(x, y) {
+            const container = new PIXI.Container();
+            const pos = isoToScreen(x, y);
+            container.x = pos.x;
+            container.y = pos.y;
+
+            const g = new PIXI.Graphics();
+
+            // Shadow
+            g.beginFill(0x000000, 0.3);
+            g.drawEllipse(0, 4, 10, 5);
+            g.endFill();
+
+            // Walls
+            g.beginFill(0x78350f);
+            g.drawRect(-6, -8, 12, 8);
+            g.endFill();
+
+            // Roof
+            g.beginFill(0xb45309);
+            g.moveTo(-8, -8).lineTo(0, -15).lineTo(8, -8).closePath();
+            g.endFill();
+
+            // Glowing Window
+            g.beginFill(0xfef08a);
+            g.drawRect(-3, -6, 3, 3);
+            g.endFill();
+
+            container.addChild(g);
+            return container;
+        }
+
+        // Draws a Gold Vault / Bank Building
+        function drawVault(x, y) {
+            const container = new PIXI.Container();
+            const pos = isoToScreen(x, y);
+            container.x = pos.x;
+            container.y = pos.y;
+
+            const g = new PIXI.Graphics();
+
+            // Base
+            g.beginFill(0x1e293b);
+            g.drawRect(-10, -10, 20, 10);
+            g.endFill();
+
+            // Vault Golden Dome
+            g.beginFill(0xeab308);
+            g.drawCircle(0, -10, 8);
+            g.endFill();
+
+            // Gold Coins Pile Outside
+            g.beginFill(0xfacc15);
+            g.drawCircle(-6, -1, 2);
+            g.drawCircle(-3, 0, 2.5);
+            g.drawCircle(5, -1, 2);
+            g.endFill();
+
+            container.addChild(g);
+            return container;
+        }
+
+        // ==========================================
+        // 4. DYNAMIC ENTITY RENDERER
         // ==========================================
         function updateEntities(state) {
             entitiesLayer.removeChildren();
 
-            // Render Capital City (Golden Citadel)
-            const capPos = isoToScreen(6, 6);
-            const capital = new PIXI.Graphics();
-            capital.beginFill(0xfacc15);
-            capital.drawRect(-8, -16, 16, 16);
-            capital.endFill();
-            capital.x = capPos.x;
-            capital.y = capPos.y;
-            entitiesLayer.addChild(capital);
+            // 1. Render Capital Citadel (Centered at 6, 6)
+            const citadel = drawCitadel(6, 6);
+            entitiesLayer.addChild(citadel);
 
-            // Render Military Tanks based on server state
+            // 2. Render Gold Vault if Treasury is High (> 10,000)
+            if ((state.treasury || 0) > 10000) {
+                const vault = drawVault(8, 6);
+                entitiesLayer.addChild(vault);
+            }
+
+            // 3. Render Houses according to Population
+            const pop = state.population || 0;
+            const houseSlots = [
+                {x: 5, y: 7}, {x: 7, y: 5}, {x: 7, y: 7}, {x: 5, y: 5},
+                {x: 4, y: 6}, {x: 6, y: 4}, {x: 8, y: 7}, {x: 7, y: 8}
+            ];
+            const houseCount = Math.min(Math.ceil(pop / 2), houseSlots.length);
+            for (let i = 0; i < houseCount; i++) {
+                const slot = houseSlots[i];
+                const house = drawHouse(slot.x, slot.y);
+                entitiesLayer.addChild(house);
+            }
+
+            // 4. Render Military Tanks based on server state
             const tankCount = Math.min(state.tanks || 0, 25);
             for (let i = 0; i < tankCount; i++) {
-                const tx = 4 + (i % 5) * 2;
+                const tx = 3 + (i % 5) * 2;
                 const ty = 12 + Math.floor(i / 5) * 2;
-                const tPos = isoToScreen(tx, ty);
-
-                const tank = new PIXI.Graphics();
-                tank.beginFill(0xef4444); // Red Military Body
-                tank.drawCircle(0, 0, 6);
-                tank.endFill();
-                tank.beginFill(0x991b1b);
-                tank.drawRect(-1, -8, 3, 8); // Barrel
-                tank.endFill();
-
-                tank.x = tPos.x;
-                tank.y = tPos.y;
+                const tank = drawTank(tx, ty);
                 entitiesLayer.addChild(tank);
             }
+
+            // Sort entities layer by vertical position for correct isometric depth
+            entitiesLayer.children.sort((a, b) => a.y - b.y);
         }
 
         // ==========================================
-        // 4. BACKGROUND AMBIENT PARTICLES
+        // 5. BACKGROUND AMBIENT PARTICLES
         // ==========================================
         const particles = [];
         for (let i = 0; i < 30; i++) {
@@ -284,7 +447,7 @@
         });
 
         // ==========================================
-        // 5. WEBSOCKET REAL-TIME SYNC
+        // 6. WEBSOCKET REAL-TIME SYNC
         // ==========================================
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}`;
@@ -305,10 +468,12 @@
                 document.getElementById('val-build').innerText = data.engineBuild;
                 document.getElementById('val-war').innerText = data.inWar ? 'IN WAR' : 'PEACE';
 
-                // Sync event log entries
+                // Sync event log entries & auto-scroll to bottom
                 if (data.logs) {
                     const logContainer = document.getElementById('log-content');
                     logContainer.innerHTML = data.logs.map(l => `<div class="log-entry">${l}</div>`).join('');
+                    const logBox = document.getElementById('log-box');
+                    logBox.scrollTop = logBox.scrollHeight;
                 }
 
                 // Render dynamically updated visual entities
