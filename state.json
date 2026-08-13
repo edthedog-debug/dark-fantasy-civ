@@ -1,11 +1,11 @@
 {
-  "simulatedSeconds": 4450.703999999147,
-  "population": 7,
-  "abstractPopulation": 28,
-  "techPower": 9.313295775917673,
+  "simulatedSeconds": 4851.215999998573,
+  "population": 8,
+  "abstractPopulation": 39,
+  "techPower": 11.445021407882168,
   "era": "Dark Solitude",
   "religion": "Order of the Neon Void",
   "government": "Autarchy",
   "inWar": true,
-  "lastUpdated": "2026-08-13T03:20:58.682Z"
+  "lastUpdated": "2026-08-13T03:22:05.434Z"
 }
