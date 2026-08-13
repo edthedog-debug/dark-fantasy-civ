@@ -96,7 +96,8 @@ async function generateAIEvents() {
     }`;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${AI_API_KEY}`, {
+        // Updated model to gemini-1.5-flash to fix 404 error
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AI_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -105,8 +106,16 @@ async function generateAIEvents() {
         });
 
         const data = await response.json();
-        const rawText = data.candidates[0].content.parts[0].text;
-        const cleanedText = rawText.replace(/```json|```/g, '').trim();
+        
+        if (!response.ok) {
+            console.error(`Gemini API Error (${response.status}):`, data.error?.message || JSON.stringify(data));
+            return;
+        }
+
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!rawText) return;
+
+        const cleanedText = rawText.replace(/```(?:json)?/gi, '').trim();
         const parsed = JSON.parse(cleanedText);
 
         if (parsed.event) {
@@ -143,7 +152,7 @@ async function autoImproveGameCode() {
     addLog(`[AI AUTO-CODING] Analyzing frontend engine to improve rendering & feature set...`);
 
     try {
-        const fileUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/public/index.html`;
+        const fileUrl = `[https://api.github.com/repos/$](https://api.github.com/repos/$){GITHUB_REPO}/contents/public/index.html`;
         const getFile = await fetch(fileUrl, {
             headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'User-Agent': 'Node-AI-Server' }
         });
@@ -153,15 +162,24 @@ async function autoImproveGameCode() {
         const prompt = `Improve the Pixi.js code for an isometric world simulator representing a booming economic superpower. As the civilization grows and available grid tiles run out, expand the map size into a larger country/global territory. Implement interactive mobile camera controls (touch drag/pan and pinch-zoom). Graphically showcase thriving trade hubs, banks, futuristic infrastructure, happy citizens, nature/rivers, and defensive military vehicles (tanks) protecting the wealth.
         Current build: ${worldState.engineBuild}. Return ONLY the raw complete valid HTML/JS code for public/index.html.`;
 
-        const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${AI_API_KEY}`, {
+        // Updated model to gemini-1.5-flash to fix 404 error
+        const aiResponse = await fetch(`[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$){AI_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
 
         const aiData = await aiResponse.json();
-        let newCode = aiData.candidates[0].content.parts[0].text;
-        newCode = newCode.replace(/```html|```/g, '').trim();
+
+        if (!aiResponse.ok) {
+            console.error(`Gemini Code API Error (${aiResponse.status}):`, aiData.error?.message || JSON.stringify(aiData));
+            return;
+        }
+
+        let newCode = aiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!newCode) return;
+
+        newCode = newCode.replace(/```(?:html)?/gi, '').trim();
 
         const updatedContentBase64 = Buffer.from(newCode).toString('base64');
         const commitResponse = await fetch(fileUrl, {
@@ -180,6 +198,9 @@ async function autoImproveGameCode() {
 
         if (commitResponse.ok) {
             addLog(`[AI COMMIT SUCCESS] Pushed new graphics & feature code to GitHub! Auto-deploying...`);
+        } else {
+            const commitErr = await commitResponse.json();
+            console.error("GitHub Commit Error:", commitErr.message);
         }
     } catch (err) {
         console.error("Auto-code commit error:", err.message);
