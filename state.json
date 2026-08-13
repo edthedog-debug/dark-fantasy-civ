@@ -1,11 +1,11 @@
 {
-  "simulatedSeconds": 817.7039999999718,
+  "simulatedSeconds": 2010.4019999999655,
   "population": 2,
   "abstractPopulation": 2,
   "techPower": 1.51,
   "era": "Dark Solitude",
   "religion": "None",
   "government": "Autarchy",
-  "inWar": true,
-  "lastUpdated": "2026-08-13T03:10:53.182Z"
+  "inWar": false,
+  "lastUpdated": "2026-08-13T03:14:11.965Z"
 }
