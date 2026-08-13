@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Age of Empires AI Autonomous Matrix</title>
-    <!-- Advanced Graphics Library from GitHub (Pixi.js v7) -->
+    <title>Age of Empires AI Autonomous Civilisation Simulator</title>
+    <!-- Pixi.js v7 for High-Performance Isometric Graphics -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
     <style>
         * {
@@ -22,20 +22,24 @@
             position: relative;
             width: 100vw;
             height: 100vh;
+            cursor: grab;
+        }
+        #canvas-container:active {
+            cursor: grabbing;
         }
 
         #hud {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(8, 9, 14, 0.92);
+            top: 15px;
+            left: 15px;
+            background: rgba(8, 9, 14, 0.94);
             border: 1px solid rgba(56, 189, 248, 0.4);
-            box-shadow: 0 0 25px rgba(0, 0, 0, 0.7);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.85);
             border-radius: 8px;
-            padding: 18px;
-            width: 360px;
+            padding: 16px;
+            width: 380px;
             pointer-events: none;
-            backdrop-filter: blur(12px);
+            backdrop-filter: blur(14px);
             z-index: 10;
         }
 
@@ -46,21 +50,26 @@
             margin-bottom: 10px;
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+            border-bottom: 1px solid rgba(56, 189, 248, 0.25);
             padding-bottom: 6px;
             display: flex;
             justify-content: space-between;
         }
 
-        .stat-row {
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        .stat-item {
             display: flex;
             justify-content: space-between;
-            margin: 5px 0;
-            font-size: 0.85rem;
         }
 
         .stat-label { color: #94a3b8; }
-        .stat-value { color: #f43f5e; font-weight: 600; }
+        .stat-value { font-weight: 600; color: #f43f5e; }
         .stat-value.cyan { color: #38bdf8; }
         .stat-value.purple { color: #c084fc; }
         .stat-value.gold { color: #fbbf24; }
@@ -68,15 +77,15 @@
 
         #config-panel {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(8, 9, 14, 0.92);
+            top: 15px;
+            right: 15px;
+            background: rgba(8, 9, 14, 0.94);
             border: 1px solid rgba(192, 132, 252, 0.4);
             border-radius: 8px;
             padding: 14px;
             width: 320px;
             z-index: 20;
-            backdrop-filter: blur(12px);
+            backdrop-filter: blur(14px);
         }
 
         #config-panel h4 {
@@ -116,28 +125,42 @@
 
         #thought-log {
             position: absolute;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            height: 150px;
-            background: rgba(8, 9, 14, 0.92);
-            border: 1px solid rgba(192, 132, 252, 0.3);
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            bottom: 15px;
+            left: 15px;
+            right: 15px;
+            height: 160px;
+            background: rgba(8, 9, 14, 0.94);
+            border: 1px solid rgba(192, 132, 252, 0.35);
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.6);
             border-radius: 8px;
-            padding: 14px;
+            padding: 12px 16px;
             overflow-y: auto;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             color: #c084fc;
-            backdrop-filter: blur(12px);
+            backdrop-filter: blur(14px);
             z-index: 10;
         }
 
-        .log-entry { margin-bottom: 6px; line-height: 1.4; }
-        .log-timestamp { color: #64748b; margin-right: 8px; }
+        .log-entry { margin-bottom: 5px; line-height: 1.35; }
+        .log-timestamp { color: #64748b; margin-right: 6px; }
         .log-ai { color: #38bdf8; font-weight: bold; }
         .log-war { color: #f43f5e; font-weight: bold; }
+        .log-politics { color: #fbbf24; font-weight: bold; }
+        .log-family { color: #f472b6; font-weight: bold; }
         .log-sync { color: #4ade80; font-weight: bold; }
-        .log-dead { color: #e11d48; font-weight: bold; }
+        
+        .camera-hint {
+            position: absolute;
+            bottom: 185px;
+            right: 15px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            color: #94a3b8;
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
@@ -145,64 +168,71 @@
 <div id="canvas-container">
     <div id="hud">
         <div class="hud-header">
-            <span>Isometric Realm</span>
+            <span>Isometric Empire</span>
             <span id="war-indicator" style="color: #4ade80;">[PEACE]</span>
         </div>
-        <div class="stat-row"><span class="stat-label">Sim Time:</span><span id="time-display" class="stat-value cyan">Day 1, 00:00</span></div>
-        <div class="stat-row"><span class="stat-label">Era:</span><span id="era-display" class="stat-value purple">Dark Age</span></div>
-        <div class="stat-row"><span class="stat-label">Population:</span><span id="pop-display" class="stat-value gold">1</span></div>
-        <div class="stat-row"><span class="stat-label">Active Action:</span><span id="action-display" class="stat-value cyan">Initializing</span></div>
-        <div class="stat-row"><span class="stat-label">State Religion:</span><span id="religion-display" class="stat-value purple">None</span></div>
-        <div class="stat-row"><span class="stat-label">Government:</span><span id="gov-display" class="stat-value cyan">Autarchy</span></div>
-        <div class="stat-row"><span class="stat-label">Tech Power:</span><span id="tech-display" class="stat-value gold">0.01 GW</span></div>
-        <div class="stat-row"><span class="stat-label">Buildings Built:</span><span id="buildings-display" class="stat-value green">1</span></div>
+        <div class="stat-grid">
+            <div class="stat-item"><span class="stat-label">Sim Time:</span><span id="time-display" class="stat-value cyan">Day 1</span></div>
+            <div class="stat-item"><span class="stat-label">Era:</span><span id="era-display" class="stat-value purple">Dark Age</span></div>
+            <div class="stat-item"><span class="stat-label">Ruler:</span><span id="ruler-display" class="stat-value gold">None</span></div>
+            <div class="stat-item"><span class="stat-label">Dominant Party:</span><span id="party-display" class="stat-value cyan">None</span></div>
+            <div class="stat-item"><span class="stat-label">Population:</span><span id="pop-display" class="stat-value gold">0</span></div>
+            <div class="stat-item"><span class="stat-label">Families:</span><span id="families-display" class="stat-value green">0</span></div>
+            <div class="stat-item"><span class="stat-label">Treasury:</span><span id="treasury-display" class="stat-value gold">0 Gold</span></div>
+            <div class="stat-item"><span class="stat-label">Tech Knowledge:</span><span id="tech-display" class="stat-value cyan">0.0</span></div>
+            <div class="stat-item"><span class="stat-label">Structures:</span><span id="buildings-display" class="stat-value green">0</span></div>
+            <div class="stat-item"><span class="stat-label">Siege Engines:</span><span id="siege-display" class="stat-value">0</span></div>
+        </div>
     </div>
 
     <div id="config-panel">
-        <h4>Keyless Cloud & AI Network</h4>
-        <p style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 8px;">Direct cloud saving & public AI thoughts enabled automatically.</p>
+        <h4>Autonomous Empire AI</h4>
+        <p style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 8px;">Keyless cloud synchronization & AI political thought network.</p>
 
         <button class="sync-btn" onclick="syncManager.copyCrossDeviceLink()">
             🔗 Copy Device Sync Link
         </button>
 
-        <div id="sync-status" class="sync-status">Cloud Status: Initializing keyless storage...</div>
+        <div id="sync-status" class="sync-status">Cloud Status: Initializing storage...</div>
     </div>
 
+    <div class="camera-hint">🖱️ Drag mouse to pan map</div>
     <div id="thought-log"></div>
 </div>
 
 <script>
 /**
- * ENGINE CONFIGURATION & ISOMETRIC CONSTANTS
+ * CONSTANTS & ISOMETRIC GRAPHICS ENGINE CONFIGURATION
  */
-const TIME_SCALE = 6;
+const TIME_SCALE = 8;
 const TILE_WIDTH = 64;
 const TILE_HEIGHT = 32;
-const MAP_SIZE = 24;
+const MAP_SIZE = 36; // Expanded map size
 
-// Convert Grid Coordinates to Isometric Screen Coordinates
+let cameraOffset = { x: window.innerWidth / 2, y: 140 };
+let isDragging = false;
+let dragStart = { x: 0, y: 0 };
+
 function gridToIso(gx, gy) {
-    const screenX = (gx - gy) * (TILE_WIDTH / 2) + (window.innerWidth / 2);
-    const screenY = (gx + gy) * (TILE_HEIGHT / 2) + 120;
+    const screenX = (gx - gy) * (TILE_WIDTH / 2) + cameraOffset.x;
+    const screenY = (gx + gy) * (TILE_HEIGHT / 2) + cameraOffset.y;
     return { x: screenX, y: screenY };
 }
 
 /**
  * KEYLESS CLOUD SYNC ENGINE
- * Automatically synchronizes game progression across devices using a public keyless storage endpoint.
  */
 class DirectCloudSync {
     constructor() {
         this.worldId = this.obtainWorldId();
         this.apiUrl = `https://api.restful-api.dev/objects`;
-        this.objectId = localStorage.getItem('cloud_obj_id') || null;
+        this.objectId = localStorage.getItem('aoe_cloud_obj_id') || null;
     }
 
     obtainWorldId() {
         let hash = window.location.hash.replace('#world=', '');
         if (!hash) {
-            hash = 'world_' + Math.random().toString(36).substring(2, 10);
+            hash = 'empire_' + Math.random().toString(36).substring(2, 10);
             window.location.hash = `world=${hash}`;
         }
         return hash;
@@ -216,14 +246,14 @@ class DirectCloudSync {
             const payload = await res.json();
             return payload.data;
         } catch (err) {
-            console.warn("Cloud load error, running local fallback:", err);
+            console.warn("Cloud storage fallback to local:", err);
             return null;
         }
     }
 
     async saveState(stateData) {
         const statusEl = document.getElementById('sync-status');
-        statusEl.innerText = "Cloud Sync: Saving progression...";
+        statusEl.innerText = "Cloud Sync: Saving empire...";
         statusEl.style.color = "#fbbf24";
 
         try {
@@ -242,7 +272,7 @@ class DirectCloudSync {
                 const resData = await res.json();
                 if (resData.id) {
                     this.objectId = resData.id;
-                    localStorage.setItem('cloud_obj_id', resData.id);
+                    localStorage.setItem('aoe_cloud_obj_id', resData.id);
                 }
             }
             statusEl.innerText = `Cloud Status: Synced (${this.worldId})`;
@@ -262,7 +292,7 @@ class DeviceSyncManager {
     copyCrossDeviceLink() {
         const link = `${window.location.origin}${window.location.pathname}#world=${this.cloudSync.worldId}`;
         navigator.clipboard.writeText(link);
-        alert(`Direct pairing link copied!\n\nOpen this URL on any device to continue this civilization:\n${link}`);
+        alert(`Empire sync link copied!\n\nUse this URL on any device to continue managing this realm:\n${link}`);
     }
 }
 
@@ -280,28 +310,27 @@ class TimeEngine {
         const totalHours = Math.floor(totalMinutes / 60);
         const days = Math.floor(totalHours / 24) + 1;
         const hours = (totalHours % 24).toString().padStart(2, '0');
-        const minutes = (totalMinutes % 60).toString().padStart(2, '0');
-        return { days, hours, minutes };
+        return { days, hours };
     }
 }
 
 /**
  * DIRECT KEYLESS AI ENGINE
- * Generates thoughts without requiring API keys or user tokens.
  */
 class DirectAIEngine {
     constructor() {
-        this.phrases = [
-            "Laying isometric foundations for future generations.",
-            "Analyzing terrain efficiency and resource paths.",
-            "Our architectural structures grow stronger every day.",
-            "Observing the horizon for unexpected threats.",
-            "Contemplating the connection between our minds and the world."
+        this.fallbackThoughts = [
+            "We must expand our borders and build institutional power.",
+            "The throne requires a strong leader to command obedience.",
+            "Education in our schools will drive scientific progress.",
+            "Taxes must be raised to fund national defense and siege weapons.",
+            "Trade in the market flourishes while citizens relax at the tavern.",
+            "A political party must rally support to challenge the ruling faction."
         ];
     }
 
-    async generateThought(agentName, personality, context) {
-        const prompt = `You are ${agentName}, an autonomous citizen (${personality}) in an Age of Empires II style isometric world. Context: ${context}. State 1 short philosophical thought (max 12 words) in English.`;
+    async generateThought(agentName, role, party, ambition, context) {
+        const prompt = `You are ${agentName}, a citizen in a medieval-cyber Age of Empires simulator. Role: ${role}, Political Party: ${party}, Ambition to Rule: ${ambition}%. Context: ${context}. State 1 short strategic thought (max 12 words) in English.`;
         
         try {
             const controller = new AbortController();
@@ -318,17 +347,15 @@ class DirectAIEngine {
                     return `[AI THOUGHT - ${agentName}] ${text.trim()}`;
                 }
             }
-        } catch (e) {
-            // Fallback gracefully on timeout/network issue
-        }
+        } catch (e) {}
 
-        const fallback = this.phrases[Math.floor(Math.random() * this.phrases.length)];
+        const fallback = this.fallbackThoughts[Math.floor(Math.random() * this.fallbackThoughts.length)];
         return `[AI THOUGHT - ${agentName}] ${fallback}`;
     }
 }
 
 /**
- * ISOMETRIC BUILDING STRUCTURES
+ * DETAILED ISOMETRIC BUILDING STRUCTURES
  */
 class IsometricBuilding {
     constructor(gx, gy, type = 'house') {
@@ -362,31 +389,89 @@ class IsometricBuilding {
         this.container.x = pos.x;
         this.container.y = pos.y;
 
-        const w = TILE_WIDTH * 0.8;
-        const h = TILE_HEIGHT * 0.8;
-        const height3D = this.type === 'town_center' ? 45 : (this.type === 'tower' ? 60 : 30);
+        const w = TILE_WIDTH * 0.85;
+        const h = TILE_HEIGHT * 0.85;
 
         if (this.isDestroyed) {
-            // Render Destroyed Rubble
-            g.beginFill(0x334155);
+            // Scorched Rubble & Ash
+            g.beginFill(0x1e293b);
             g.moveTo(0, -h / 4);
             g.lineTo(w / 2, 0);
             g.lineTo(0, h / 4);
             g.lineTo(-w / 2, 0);
             g.endFill();
 
-            g.beginFill(0x1e293b);
-            g.drawRect(-w / 4, -5, w / 2, 8);
+            g.beginFill(0x0f172a);
+            g.drawRect(-w / 4, -4, w / 2, 6);
+            g.drawRect(-6, -10, 12, 10);
             g.endFill();
             return;
         }
 
-        // Isometric Roof / Top
-        const roofColor = this.type === 'town_center' ? 0x0284c7 : (this.type === 'tower' ? 0x9333ea : 0xb45309);
-        const wallColor = 0x475569;
-        const sideColor = 0x1e293b;
+        let height3D = 35;
+        let roofColor = 0xb45309;
+        let wallColor = 0x64748b;
+        let sideColor = 0x334155;
+        let trimColor = 0xfbbf24;
 
-        // Front Left Wall
+        switch (this.type) {
+            case 'senate':
+            case 'palace':
+                height3D = 65;
+                roofColor = 0x0284c7;
+                wallColor = 0xe2e8f0;
+                sideColor = 0x94a3b8;
+                break;
+            case 'town_hall':
+                height3D = 55;
+                roofColor = 0xd97706;
+                wallColor = 0x475569;
+                sideColor = 0x1e293b;
+                break;
+            case 'school':
+                height3D = 45;
+                roofColor = 0x16a34a;
+                wallColor = 0x64748b;
+                sideColor = 0x334155;
+                break;
+            case 'tavern':
+            case 'bar':
+                height3D = 38;
+                roofColor = 0x7c2d12;
+                wallColor = 0x78350f;
+                sideColor = 0x451a03;
+                break;
+            case 'casino':
+            case 'brothel':
+                height3D = 42;
+                roofColor = 0x9333ea;
+                wallColor = 0x581c87;
+                sideColor = 0x3b0764;
+                break;
+            case 'shop':
+                height3D = 30;
+                roofColor = 0x059669;
+                wallColor = 0x475569;
+                sideColor = 0x1e293b;
+                break;
+            case 'siege_workshop':
+            case 'barracks':
+                height3D = 40;
+                roofColor = 0xd97706;
+                wallColor = 0x334155;
+                sideColor = 0x0f172a;
+                break;
+        }
+
+        // Drop Shadow
+        g.beginFill(0x000000, 0.4);
+        g.moveTo(-w / 2, h / 2);
+        g.lineTo(0, h);
+        g.lineTo(w / 2 + 10, h / 2 + 10);
+        g.lineTo(0, 0);
+        g.endFill();
+
+        // Left Outer Wall
         g.beginFill(wallColor);
         g.moveTo(-w / 2, 0);
         g.lineTo(0, h / 2);
@@ -394,7 +479,7 @@ class IsometricBuilding {
         g.lineTo(-w / 2, -height3D);
         g.endFill();
 
-        // Front Right Wall
+        // Right Outer Wall
         g.beginFill(sideColor);
         g.moveTo(0, h / 2);
         g.lineTo(w / 2, 0);
@@ -402,7 +487,18 @@ class IsometricBuilding {
         g.lineTo(0, h / 2 - height3D);
         g.endFill();
 
-        // Isometric Roof
+        // Architectural Wall Windows & Details
+        g.beginFill(0xfef08a, 0.8);
+        g.drawRect(-w / 4, -height3D / 2, 6, 10);
+        g.drawRect(w / 6, -height3D / 2, 6, 10);
+        g.endFill();
+
+        // Main Entrance Door
+        g.beginFill(0x1e293b);
+        g.drawRect(-5, h / 2 - height3D / 3, 10, height3D / 3);
+        g.endFill();
+
+        // Detailed Roof Top Structure
         g.beginFill(roofColor);
         g.moveTo(0, -h / 2 - height3D);
         g.lineTo(w / 2, -height3D);
@@ -410,36 +506,149 @@ class IsometricBuilding {
         g.lineTo(-w / 2, -height3D);
         g.endFill();
 
-        // Damage bar if injured
+        // Roof Trim Line
+        g.lineStyle(1.5, trimColor, 0.6);
+        g.moveTo(0, -h / 2 - height3D);
+        g.lineTo(w / 2, -height3D);
+        g.lineTo(0, h / 2 - height3D);
+        g.lineTo(-w / 2, -height3D);
+        g.lineTo(0, -h / 2 - height3D);
+        g.lineStyle(0);
+
+        // Tower or Dome Feature for Senate / Palace
+        if (this.type === 'senate' || this.type === 'palace') {
+            g.beginFill(0xfbbf24);
+            g.drawCircle(0, -height3D - 15, 8);
+            g.endFill();
+            g.beginFill(0xef4444);
+            g.drawPolygon([0, -height3D - 28, 6, -height3D - 20, -6, -height3D - 20]);
+            g.endFill();
+        }
+
+        // Damage Status Bar
         if (this.hp < this.maxHp) {
+            g.beginFill(0x0f172a);
+            g.drawRect(-18, -height3D - 16, 36, 5);
             g.beginFill(0xf43f5e);
-            g.drawRect(-15, -height3D - 12, 30, 4);
+            g.drawRect(-17, -height3D - 15, 34, 3);
             g.beginFill(0x4ade80);
-            g.drawRect(-15, -height3D - 12, 30 * (this.hp / this.maxHp), 4);
+            g.drawRect(-17, -height3D - 15, 34 * (this.hp / this.maxHp), 3);
             g.endFill();
         }
     }
 }
 
 /**
- * GROUND-BOUND ISOMETRIC AI AGENT
+ * SIEGE WEAPONS ENGINE (Catapults & Battering Rams)
  */
-class IsometricAgent {
-    constructor(id, gx, gy, isPrimary = false) {
+class SiegeEngineUnit {
+    constructor(id, gx, gy, party) {
         this.id = id;
-        this.name = `Citizen-${id}`;
         this.gx = gx;
         this.gy = gy;
         this.targetGx = gx;
         this.targetGy = gy;
-        this.isPrimary = isPrimary;
+        this.party = party;
+        this.hp = 150;
+        this.isDestroyed = false;
+
+        this.container = new PIXI.Container();
+        this.graphics = new PIXI.Graphics();
+        this.container.addChild(this.graphics);
+        this.render();
+    }
+
+    update(dt, civ, metaAI) {
+        if (this.isDestroyed) return;
+
+        const dx = this.targetGx - this.gx;
+        const dy = this.targetGy - this.gy;
+        this.gx += dx * 0.8 * dt;
+        this.gy += dy * 0.8 * dt;
+
+        this.container.zIndex = (this.gx + this.gy) * 100 + 15;
+        const pos = gridToIso(this.gx, this.gy);
+        this.container.x = pos.x;
+        this.container.y = pos.y;
+
+        // Auto Attack Hostile Target Buildings during War
+        if (civ.inWar && Math.random() < 0.05) {
+            const targetBld = civ.buildings.find(b => !b.isDestroyed && Math.abs(b.gx - this.gx) < 3 && Math.abs(b.gy - this.gy) < 3);
+            if (targetBld) {
+                targetBld.takeDamage(35);
+                metaAI.createExplosionEffect(targetBld.gx, targetBld.gy);
+                metaAI.logThought(`<span class='log-war'>[SIEGE ENGINE]</span> Catapult bombarded structure at (${targetBld.gx}, ${targetBld.gy})!`);
+            }
+        }
+    }
+
+    render() {
+        const g = this.graphics;
+        g.clear();
+
+        // Shadow
+        g.beginFill(0x000000, 0.4);
+        g.drawEllipse(0, 0, 12, 6);
+        g.endFill();
+
+        // Wooden Frame
+        g.beginFill(0x78350f);
+        g.drawRect(-10, -8, 20, 10);
+        g.endFill();
+
+        // Wheels
+        g.beginFill(0x1e293b);
+        g.drawCircle(-8, 2, 4);
+        g.drawCircle(8, 2, 4);
+        g.endFill();
+
+        // Catapult Throwing Arm
+        g.lineStyle(2, 0xd97706);
+        g.moveTo(0, -4);
+        g.lineTo(-12, -18);
+        g.lineStyle(0);
+
+        // Counterweight
+        g.beginFill(0xf43f5e);
+        g.drawCircle(-12, -18, 4);
+        g.endFill();
+    }
+}
+
+/**
+ * CITIZEN / AGENT REALISM ENGINE
+ */
+class IsometricAgent {
+    constructor(id, gx, gy, gender = null) {
+        this.id = id;
+        this.name = gender === 'Female' ? `Lady-${id}` : `Lord-${id}`;
+        this.gender = gender || (Math.random() < 0.5 ? 'Male' : 'Female');
+        this.age = 18 + Math.floor(Math.random() * 15);
+        this.gx = gx;
+        this.gy = gy;
+        this.targetGx = gx;
+        this.targetGy = gy;
+        
         this.hp = 100;
         this.energy = 100;
         this.isDead = false;
-        
-        const personalities = ['Architect', 'Explorer', 'Philosopher', 'Gatherer', 'Guard'];
-        this.personality = personalities[Math.floor(Math.random() * personalities.length)];
-        
+
+        // Family System
+        this.partner = null;
+        this.children = 0;
+
+        // Political Realism & Ambition
+        this.ambition = Math.floor(Math.random() * 100); // 0-100 ambition to become Emperor
+        const parties = ['Monarchist Imperialists', 'Populist Council', 'Merchant Guild', 'Technocratic Union'];
+        this.party = parties[Math.floor(Math.random() * parties.length)];
+
+        // Weapon Equipment
+        const weapons = ['None', 'Iron Sword', 'Crossbow', 'Halberd'];
+        this.weapon = weapons[Math.floor(Math.random() * weapons.length)];
+
+        const roles = ['Politician', 'Scholar', 'Merchant', 'Guard', 'Laborer', 'Aristocrat'];
+        this.role = roles[Math.floor(Math.random() * roles.length)];
+
         this.state = 'IDLE';
         this.stateTimer = 0;
 
@@ -453,16 +662,15 @@ class IsometricAgent {
         if (this.isDead) return;
 
         this.stateTimer -= dt;
+        this.age += dt * 0.005; // Aging process
 
-        // Ground-bound Movement Interpolation across Isometric Grid
+        // Smooth Movement
         const dx = this.targetGx - this.gx;
         const dy = this.targetGy - this.gy;
-        this.gx += dx * 1.5 * dt;
-        this.gy += dy * 1.5 * dt;
+        this.gx += dx * 1.8 * dt;
+        this.gy += dy * 1.8 * dt;
 
-        // Depth sorting key based on isometric ground position
         this.container.zIndex = (this.gx + this.gy) * 100 + 10;
-
         const pos = gridToIso(this.gx, this.gy);
         this.container.x = pos.x;
         this.container.y = pos.y;
@@ -475,40 +683,85 @@ class IsometricAgent {
     async decideNextAction(civ, metaAI, aiEngine) {
         if (this.isDead) return;
 
-        if (this.energy < 20) {
-            this.state = 'RESTING';
+        // Rest / Leisure Activity
+        if (this.energy < 25) {
+            const leisureSpot = civ.buildings.find(b => !b.isDestroyed && (b.type === 'tavern' || b.type === 'casino' || b.type === 'brothel'));
+            if (leisureSpot) {
+                this.targetGx = leisureSpot.gx;
+                this.targetGy = leisureSpot.gy;
+                this.state = 'LEISURE_AND_ENTERTAINMENT';
+            } else {
+                this.state = 'RESTING';
+            }
             this.stateTimer = 6;
             this.energy = 100;
-            this.targetGx = Math.floor(Math.random() * 4);
-            this.targetGy = Math.floor(Math.random() * 4);
             return;
         }
 
-        const choices = ['BUILDING', 'EXPLORING', 'FARMING'];
+        // Marriage & Family Logic
+        if (!this.partner && this.age >= 18 && Math.random() < 0.2) {
+            const potentialPartner = civ.agents.find(a => !a.isDead && !a.partner && a.gender !== this.gender && a.id !== this.id);
+            if (potentialPartner) {
+                this.partner = potentialPartner.id;
+                potentialPartner.partner = this.id;
+                civ.familyCount++;
+                metaAI.logThought(`<span class='log-family'>[MARRIAGE]</span> ${this.name} and ${potentialPartner.name} formed a new family!`);
+            }
+        }
+
+        // Reproduction / Having Children
+        if (this.partner && this.children < 3 && Math.random() < 0.15) {
+            this.children++;
+            civ.addPopulation(1);
+            metaAI.logThought(`<span class='log-family'>[CHILD BORN]</span> ${this.name} and their partner had a child! Family expanded.`);
+        }
+
+        // Political Ambition: Claiming the Throne / Campaigning
+        if (this.ambition > 75 && Math.random() < 0.1) {
+            this.state = 'CAMPAIGNING_FOR_EMPEROR';
+            this.stateTimer = 7;
+            civ.registerEmperorCandidate(this, metaAI);
+            const thought = await aiEngine.generateThought(this.name, this.role, this.party, this.ambition, "Attempting to claim the Throne as Emperor");
+            metaAI.logThought(`<span class='log-politics'>${thought}</span>`);
+            return;
+        }
+
+        // Normal Daily Life Activities
+        const choices = ['WORKING', 'POLITICAL_DEBATE', 'EDUCATION', 'PATROLLING', 'CONSTRUCTING'];
         this.state = choices[Math.floor(Math.random() * choices.length)];
         this.stateTimer = 5 + Math.random() * 5;
         this.energy -= 15;
 
         switch (this.state) {
-            case 'BUILDING':
-                this.targetGx = Math.floor(Math.random() * (MAP_SIZE - 2));
-                this.targetGy = Math.floor(Math.random() * (MAP_SIZE - 2));
-                civ.constructBuilding(this.targetGx, this.targetGy, metaAI);
+            case 'WORKING':
+                civ.treasuryGold += 12;
+                civ.techPower += 0.02;
                 break;
-            case 'EXPLORING':
-                this.targetGx = Math.floor(Math.random() * MAP_SIZE);
-                this.targetGy = Math.floor(Math.random() * MAP_SIZE);
-                if (Math.random() < 0.25) {
-                    civ.addPopulation(1);
+            case 'EDUCATION':
+                const school = civ.buildings.find(b => b.type === 'school' && !b.isDestroyed);
+                if (school) {
+                    this.targetGx = school.gx;
+                    this.targetGy = school.gy;
+                    civ.techPower += 0.08;
                 }
                 break;
-            case 'FARMING':
-                civ.techPower += 0.05;
+            case 'POLITICAL_DEBATE':
+                const senate = civ.buildings.find(b => (b.type === 'senate' || b.type === 'town_hall') && !b.isDestroyed);
+                if (senate) {
+                    this.targetGx = senate.gx;
+                    this.targetGy = senate.gy;
+                }
+                civ.politicalPower[this.party] = (civ.politicalPower[this.party] || 0) + 1;
+                break;
+            case 'CONSTRUCTING':
+                this.targetGx = Math.floor(Math.random() * (MAP_SIZE - 4)) + 2;
+                this.targetGy = Math.floor(Math.random() * (MAP_SIZE - 4)) + 2;
+                civ.constructBuilding(this.targetGx, this.targetGy, metaAI);
                 break;
         }
 
-        if (this.isPrimary || Math.random() < 0.3) {
-            const thought = await aiEngine.generateThought(this.name, this.personality, `Performing ${this.state} action`);
+        if (Math.random() < 0.2) {
+            const thought = await aiEngine.generateThought(this.name, this.role, this.party, this.ambition, `Performing ${this.state}`);
             metaAI.logThought(thought);
         }
     }
@@ -520,7 +773,7 @@ class IsometricAgent {
             this.isDead = true;
             this.container.visible = false;
             civ.population = Math.max(1, civ.population - 1);
-            metaAI.logThought(`<span class='log-dead'>[CASUALTY]</span> ${this.name} died in combat! Population lost.`);
+            metaAI.logThought(`<span class='log-war'>[CASUALTY]</span> ${this.name} fell in combat!`);
         }
     }
 
@@ -528,47 +781,80 @@ class IsometricAgent {
         const g = this.graphics;
         g.clear();
 
-        // Shadow strictly on ground plane
-        g.beginFill(0x000000, 0.4);
-        g.drawEllipse(0, 0, 8, 4);
+        // Shadow
+        g.beginFill(0x000000, 0.35);
+        g.drawEllipse(0, 0, 7, 3.5);
         g.endFill();
 
-        // Citizen Body (AoE style ground sprite)
-        const color = this.isPrimary ? 0x38bdf8 : 0xfbbf24;
-        g.beginFill(color);
-        g.drawRect(-3, -16, 6, 12);
+        // Body Color Coding by Political Party
+        let bodyColor = 0x38bdf8;
+        if (this.party === 'Monarchist Imperialists') bodyColor = 0xef4444;
+        if (this.party === 'Populist Council') bodyColor = 0x22c55e;
+        if (this.party === 'Merchant Guild') bodyColor = 0xeab308;
+        if (this.party === 'Technocratic Union') bodyColor = 0xa855f7;
+
+        // Citizen Tunic
+        g.beginFill(bodyColor);
+        g.drawRect(-3, -15, 6, 11);
         g.endFill();
 
         // Head
-        g.beginFill(0xf8fafc);
-        g.drawCircle(0, -18, 3);
+        g.beginFill(0xfde047);
+        g.drawCircle(0, -17, 3);
         g.endFill();
+
+        // Weapon Render Details
+        if (this.weapon !== 'None') {
+            g.lineStyle(1, 0x94a3b8);
+            g.moveTo(3, -10);
+            g.lineTo(7, -16);
+            g.lineStyle(0);
+        }
     }
 }
 
 /**
- * CIVILIZATION & ISOMETRIC WORLD ENGINE
+ * CIVILIZATION & EMPIRE MANAGEMENT ENGINE
  */
 class IsometricCivilization {
     constructor(app) {
         this.app = app;
-        this.population = 1;
-        this.abstractPopulation = 1;
-        this.techPower = 0.01;
+        this.population = 0;
+        this.familyCount = 0;
+        this.treasuryGold = 150;
+        this.techPower = 0.05;
         this.era = 'Dark Age';
-        this.religion = 'None';
-        this.government = 'Autarchy';
+        this.currentRuler = null;
+        this.dominantParty = 'Monarchist Imperialists';
         this.inWar = false;
+
+        this.politicalPower = {
+            'Monarchist Imperialists': 10,
+            'Populist Council': 5,
+            'Merchant Guild': 5,
+            'Technocratic Union': 2
+        };
 
         this.worldContainer = new PIXI.Container();
         this.worldContainer.sortableChildren = true;
         this.app.stage.addChild(this.worldContainer);
 
         this.buildings = [];
+        this.agents = [];
+        this.siegeEngines = [];
         this.grid = Array(MAP_SIZE).fill(null).map(() => Array(MAP_SIZE).fill(false));
 
         this.renderTerrain();
-        this.constructBuilding(1, 1, null, 'town_center');
+        
+        // Initial City Infrastructure
+        this.constructBuilding(3, 3, null, 'town_hall');
+        this.constructBuilding(5, 3, null, 'senate');
+        this.constructBuilding(3, 6, null, 'school');
+        this.constructBuilding(7, 3, null, 'tavern');
+        this.constructBuilding(7, 6, null, 'casino');
+        this.constructBuilding(5, 8, null, 'brothel');
+        this.constructBuilding(9, 3, null, 'shop');
+        this.constructBuilding(9, 7, null, 'siege_workshop');
     }
 
     renderTerrain() {
@@ -581,7 +867,10 @@ class IsometricCivilization {
                 const pos = gridToIso(x, y);
 
                 const isEven = (x + y) % 2 === 0;
-                const tileColor = isEven ? 0x1e293b : 0x0f172a;
+                let tileColor = isEven ? 0x1e293b : 0x0f172a;
+
+                // Subtle Cobblestone/Grass Terrain Variation
+                if ((x * 7 + y * 3) % 5 === 0) tileColor = 0x334155;
 
                 tile.beginFill(tileColor);
                 tile.moveTo(0, -TILE_HEIGHT / 2);
@@ -590,7 +879,7 @@ class IsometricCivilization {
                 tile.lineTo(-TILE_WIDTH / 2, 0);
                 tile.endFill();
 
-                tile.lineStyle(1, 0x334155, 0.2);
+                tile.lineStyle(1, 0x475569, 0.15);
                 tile.moveTo(0, -TILE_HEIGHT / 2);
                 tile.lineTo(TILE_WIDTH / 2, 0);
                 tile.lineTo(0, TILE_HEIGHT / 2);
@@ -608,9 +897,9 @@ class IsometricCivilization {
         if (gx < 0 || gy < 0 || gx >= MAP_SIZE || gy >= MAP_SIZE) return;
         if (this.grid[gx][gy]) return;
 
-        const types = ['house', 'tower'];
+        const types = ['house', 'shop', 'tavern', 'school', 'casino', 'barracks', 'siege_workshop'];
         const type = forcedType || types[Math.floor(Math.random() * types.length)];
-        
+
         const b = new IsometricBuilding(gx, gy, type);
         b.container.zIndex = (gx + gy) * 100 + 5;
         this.grid[gx][gy] = true;
@@ -618,29 +907,53 @@ class IsometricCivilization {
         this.worldContainer.addChild(b.container);
 
         if (metaAI) {
-            metaAI.logThought(`[INFRASTRUCTURE] Constructed new Age of Empires style structure: ${type.toUpperCase()} at grid (${gx}, ${gy}).`);
+            metaAI.logThought(`[REALM EXPANSION] Built new institutional building: ${type.toUpperCase()} at grid (${gx}, ${gy}).`);
         }
     }
 
     addPopulation(num) {
         this.population += num;
-        this.abstractPopulation = Math.floor(this.population * Math.pow(1.25, Math.min(this.population, 40)));
+    }
+
+    registerEmperorCandidate(agent, metaAI) {
+        if (!this.currentRuler || this.currentRuler.isDead) {
+            this.currentRuler = agent;
+            metaAI.logThought(`<span class='log-politics'>[CROWNED EMPEROR]</span> ${agent.name} from the ${agent.party} declared Emperor!`);
+        } else if (this.currentRuler.party !== agent.party && Math.random() < 0.25) {
+            // Political Rivalry Power Struggle -> Sparks Civil War!
+            this.inWar = true;
+            metaAI.logThought(`<span class='log-war'>[POWER STRUGGLE CIVIL WAR]</span> ${agent.name} launched a political coup against Emperor ${this.currentRuler.name}!`);
+            
+            // Spawn Siege Engines for War
+            this.spawnSiegeEngine(agent.gx, agent.gy, agent.party);
+        }
+    }
+
+    spawnSiegeEngine(gx, gy, party) {
+        const siege = new SiegeEngineUnit(this.siegeEngines.length + 1, gx, gy, party);
+        this.siegeEngines.push(siege);
+        this.worldContainer.addChild(siege.container);
     }
 
     update(metaAI) {
-        if (this.abstractPopulation >= 15 && this.religion === 'None') {
-            this.religion = 'Order of the Isometric Grid';
-            metaAI.logThought("[FAITH] Religion unlocked: Order of the Isometric Grid.");
+        // Evaluate Dominant Political Party
+        let topParty = this.dominantParty;
+        let maxPower = -1;
+        for (const [party, power] of Object.entries(this.politicalPower)) {
+            if (power > maxPower) {
+                maxPower = power;
+                topParty = party;
+            }
         }
+        this.dominantParty = topParty;
 
-        if (this.abstractPopulation >= 50 && this.era === 'Dark Age') {
-            this.era = 'Feudal Cyber-Age';
-            this.government = 'Feudal Council';
-            metaAI.logThought("[ERA ADVANCEMENT] Reached the Feudal Cyber-Age.");
-        } else if (this.abstractPopulation >= 250 && this.era === 'Feudal Cyber-Age') {
+        // Technological Era Evolution
+        if (this.techPower >= 2.0 && this.era === 'Dark Age') {
+            this.era = 'Feudal Cyber-Era';
+            metaAI.logThought("[CIVILISATION ERA] Advanced to the Feudal Cyber-Era!");
+        } else if (this.techPower >= 8.0 && this.era === 'Feudal Cyber-Era') {
             this.era = 'Imperial Singularity';
-            this.government = 'AI Oligarchy';
-            metaAI.logThought("[ERA ADVANCEMENT] Reached the Imperial Singularity.");
+            metaAI.logThought("[CIVILISATION ERA] Reached the Imperial Singularity!");
         }
     }
 
@@ -648,11 +961,11 @@ class IsometricCivilization {
         return {
             simulatedSeconds,
             population: this.population,
-            abstractPopulation: this.abstractPopulation,
+            familyCount: this.familyCount,
+            treasuryGold: this.treasuryGold,
             techPower: this.techPower,
             era: this.era,
-            religion: this.religion,
-            government: this.government,
+            dominantParty: this.dominantParty,
             buildingCount: this.buildings.length
         };
     }
@@ -661,22 +974,22 @@ class IsometricCivilization {
         if (!data) return;
         if (data.simulatedSeconds) timeEngine.simulatedSeconds = data.simulatedSeconds;
         if (data.population) this.population = data.population;
-        if (data.abstractPopulation) this.abstractPopulation = data.abstractPopulation;
+        if (data.familyCount) this.familyCount = data.familyCount;
+        if (data.treasuryGold) this.treasuryGold = data.treasuryGold;
         if (data.techPower) this.techPower = data.techPower;
         if (data.era) this.era = data.era;
-        if (data.religion) this.religion = data.religion;
-        if (data.government) this.government = data.government;
+        if (data.dominantParty) this.dominantParty = data.dominantParty;
     }
 }
 
 /**
- * META AI ENGINE & RARE WAR CONTROLLER
+ * META AI ENGINE & WARFARE CONTROLLER
  */
 class MetaAIEngine {
     constructor(app) {
         this.app = app;
         this.effectsContainer = new PIXI.Container();
-        this.effectsContainer.zIndex = 9999;
+        this.effectsContainer.zIndex = 99999;
         this.app.stage.addChild(this.effectsContainer);
     }
 
@@ -689,69 +1002,40 @@ class MetaAIEngine {
         logBox.scrollTop = logBox.scrollHeight;
     }
 
-    // War frequency reduced significantly (rare catastrophic event)
-    checkWarTrigger(civ, agents) {
-        if (Math.random() < 0.00005) { // Ultra rare chance per tick
-            civ.inWar = !civ.inWar;
-            const warText = document.getElementById('war-indicator');
+    createExplosionEffect(gx, gy) {
+        const pos = gridToIso(gx, gy);
+        const explosion = new PIXI.Graphics();
+        explosion.beginFill(0xef4444, 0.85);
+        explosion.drawCircle(0, 0, 26);
+        explosion.endFill();
+        explosion.x = pos.x;
+        explosion.y = pos.y;
 
-            if (civ.inWar) {
-                warText.innerText = '[IN WAR]';
-                warText.style.color = '#f43f5e';
-                this.logThought("<span class='log-war'>[WAR OUTBREAK]</span> Conflict erupted! Enemy artillery strikes imminent.");
-            } else {
-                warText.innerText = '[PEACE]';
-                warText.style.color = '#4ade80';
-                this.logThought("<span class='log-ai'>[PEACE DECLARED]</span> Hostilities ended. Reconstruction initiated.");
-            }
-        }
-
-        if (civ.inWar) {
-            this.executeWarArtillery(civ, agents);
-        }
+        this.effectsContainer.addChild(explosion);
+        setTimeout(() => this.effectsContainer.removeChild(explosion), 350);
     }
 
-    // Destruction of buildings and citizen deaths during wars
-    executeWarArtillery(civ, agents) {
-        if (Math.random() < 0.08) { // Projectile impact
-            const targetGx = Math.floor(Math.random() * MAP_SIZE);
-            const targetGy = Math.floor(Math.random() * MAP_SIZE);
-            const pos = gridToIso(targetGx, targetGy);
+    checkWarLogic(civ, agents) {
+        const warText = document.getElementById('war-indicator');
+        if (civ.inWar) {
+            warText.innerText = '[CIVIL WAR]';
+            warText.style.color = '#f43f5e';
 
-            // Graphical Explosion Particle Effect using Pixi.js
-            const explosion = new PIXI.Graphics();
-            explosion.beginFill(0xf43f5e, 0.8);
-            explosion.drawCircle(0, 0, 24);
-            explosion.endFill();
-            explosion.x = pos.x;
-            explosion.y = pos.y;
-            this.effectsContainer.addChild(explosion);
-
-            setTimeout(() => this.effectsContainer.removeChild(explosion), 300);
-
-            // Damage Buildings
-            civ.buildings.forEach(b => {
-                if (b.gx === targetGx && b.gy === targetGy && !b.isDestroyed) {
-                    b.takeDamage(45);
-                    this.logThought(`<span class='log-war'>[STRUCTURAL DAMAGE]</span> Building at (${b.gx}, ${b.gy}) damaged!`);
-                }
-            });
-
-            // Damage & Kill Citizens
-            agents.forEach(agent => {
-                if (Math.abs(agent.gx - targetGx) < 1.2 && Math.abs(agent.gy - targetGy) < 1.2) {
-                    agent.takeDamage(60, this, civ);
-                }
-            });
+            // Resolve War when tension dissipates
+            if (Math.random() < 0.01) {
+                civ.inWar = false;
+                warText.innerText = '[PEACE]';
+                warText.style.color = '#4ade80';
+                this.logThought("<span class='log-ai'>[PEACE RESTORED]</span> Political treaty signed. The Civil War has ended.");
+            }
         }
     }
 }
 
 /**
- * MAIN INITIALIZATION AND GAME LOOP
+ * APPLICATION INITIALIZATION
  */
 (async function init() {
-    // Pixi.js Application Setup (GitHub Render Library)
     const app = new PIXI.Application({
         width: window.innerWidth,
         height: window.innerHeight,
@@ -765,6 +1049,22 @@ class MetaAIEngine {
         app.renderer.resize(window.innerWidth, window.innerHeight);
     });
 
+    // Isometric Camera Dragging Controls
+    const containerEl = document.getElementById('canvas-container');
+    containerEl.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        dragStart = { x: e.clientX - cameraOffset.x, y: e.clientY - cameraOffset.y };
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            cameraOffset.x = e.clientX - dragStart.x;
+            cameraOffset.y = e.clientY - dragStart.y;
+        }
+    });
+
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
     const cloudSync = new DirectCloudSync();
     const syncManager = new DeviceSyncManager(cloudSync);
     window.syncManager = syncManager;
@@ -774,23 +1074,28 @@ class MetaAIEngine {
     const metaAI = new MetaAIEngine(app);
     const civ = new IsometricCivilization(app);
 
-    const agents = [new IsometricAgent(1, 2, 2, true)];
-    civ.worldContainer.addChild(agents[0].container);
+    // Initial Population Generation (Couples & Citizens)
+    for (let i = 0; i < 6; i++) {
+        const agent = new IsometricAgent(i + 1, Math.floor(Math.random() * 8) + 2, Math.floor(Math.random() * 8) + 2);
+        civ.agents.push(agent);
+        civ.worldContainer.addChild(agent.container);
+        civ.addPopulation(1);
+    }
 
-    // Initial keyless cloud load
-    metaAI.logThought("<span class='log-sync'>[CLOUD]</span> Checking keyless storage progression...");
+    // Cloud Data Sync Check
+    metaAI.logThought("<span class='log-sync'>[CLOUD STORAGE]</span> Loading state from keyless cloud endpoint...");
     const savedData = await cloudSync.loadState();
     if (savedData) {
         civ.importState(savedData, timeEngine);
-        metaAI.logThought("<span class='log-sync'>[CLOUD SUCCESS]</span> Civilization progression restored from cloud!");
+        metaAI.logThought("<span class='log-sync'>[CLOUD LOADED]</span> Realm progression loaded successfully!");
     } else {
-        metaAI.logThought("<span class='log-sync'>[CLOUD READY]</span> Active in keyless local auto-sync mode.");
+        metaAI.logThought("<span class='log-sync'>[CLOUD ACTIVE]</span> Empire auto-sync active.");
     }
 
     let lastTime = performance.now();
     let lastSaveTime = performance.now();
 
-    // Main Game Loop
+    // Main Engine Simulation Loop
     app.ticker.add(() => {
         const now = performance.now();
         const dt = (now - lastTime) / 1000;
@@ -798,38 +1103,41 @@ class MetaAIEngine {
 
         timeEngine.update(dt);
         civ.update(metaAI);
-        metaAI.checkWarTrigger(civ, agents);
+        metaAI.checkWarLogic(civ, civ.agents);
 
-        // Auto Save to Cloud every 30 seconds
-        if (now - lastSaveTime > 30000) {
+        // Auto Save Cloud State Every 25 Seconds
+        if (now - lastSaveTime > 25000) {
             lastSaveTime = now;
             cloudSync.saveState(civ.exportState(timeEngine.simulatedSeconds));
         }
 
-        // Maintain Agent Population
-        while (agents.filter(a => !a.isDead).length < Math.min(civ.population, 10)) {
-            const id = agents.length + 1;
-            const newAgent = new IsometricAgent(id, Math.floor(Math.random() * 8), Math.floor(Math.random() * 8));
-            agents.push(newAgent);
+        // Maintain Citizens & Spawn Children/Immigrants
+        while (civ.agents.filter(a => !a.isDead).length < Math.min(civ.population, 20)) {
+            const id = civ.agents.length + 1;
+            const newAgent = new IsometricAgent(id, Math.floor(Math.random() * 12) + 2, Math.floor(Math.random() * 12) + 2);
+            civ.agents.push(newAgent);
             civ.worldContainer.addChild(newAgent.container);
         }
 
-        // Update Active Agents
-        agents.forEach(agent => agent.update(dt, civ, metaAI, aiEngine));
+        // Update Active Agents & Siege Engines
+        civ.agents.forEach(agent => agent.update(dt, civ, metaAI, aiEngine));
+        civ.siegeEngines.forEach(siege => siege.update(dt, civ, metaAI));
 
-        // Update HUD
+        // Update UI Display
         const timeData = timeEngine.getFormattedTime();
-        document.getElementById('time-display').innerText = `Day ${timeData.days}, ${timeData.hours}:${timeData.minutes}`;
+        document.getElementById('time-display').innerText = `Day ${timeData.days}, ${timeData.hours}:00`;
         document.getElementById('era-display').innerText = civ.era;
-        document.getElementById('pop-display').innerText = civ.abstractPopulation.toLocaleString();
-        document.getElementById('action-display').innerText = agents[0] ? agents[0].state : 'N/A';
-        document.getElementById('religion-display').innerText = civ.religion;
-        document.getElementById('gov-display').innerText = civ.government;
-        document.getElementById('tech-display').innerText = `${civ.techPower.toFixed(2)} GW`;
+        document.getElementById('ruler-display').innerText = civ.currentRuler ? civ.currentRuler.name : 'None';
+        document.getElementById('party-display').innerText = civ.dominantParty;
+        document.getElementById('pop-display').innerText = civ.population;
+        document.getElementById('families-display').innerText = civ.familyCount;
+        document.getElementById('treasury-display').innerText = `${civ.treasuryGold} Gold`;
+        document.getElementById('tech-display').innerText = civ.techPower.toFixed(2);
         document.getElementById('buildings-display').innerText = civ.buildings.filter(b => !b.isDestroyed).length;
+        document.getElementById('siege-display').innerText = civ.siegeEngines.filter(s => !s.isDestroyed).length;
     });
 
-    metaAI.logThought("<span class='log-ai'>[WORLD ONLINE]</span> Age of Empires II style Isometric AI Matrix active.");
+    metaAI.logThought("<span class='log-ai'>[EMPIRE SIMULATOR READY]</span> Age of Empires II Realistic AI Society Simulation Online.");
 })();
 </script>
 </body>
