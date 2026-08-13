@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dark Fantasy Autonomous Supercivilization - LLM Enhanced</title>
+    <title>Dark Fantasy Autonomous Supercivilization - Cloud Synced</title>
     <style>
         * {
             margin: 0;
@@ -32,7 +32,7 @@
             position: absolute;
             top: 20px;
             left: 20px;
-            background: rgba(8, 9, 14, 0.9);
+            background: rgba(8, 9, 14, 0.92);
             border: 1px solid rgba(56, 189, 248, 0.4);
             box-shadow: 0 0 25px rgba(56, 189, 248, 0.15);
             border-radius: 8px;
@@ -69,35 +69,53 @@
         .stat-value.purple { color: #c084fc; }
         .stat-value.gold { color: #fbbf24; }
 
-        #ai-config-panel {
+        #config-panel {
             position: absolute;
             top: 20px;
             right: 20px;
-            background: rgba(8, 9, 14, 0.9);
+            background: rgba(8, 9, 14, 0.92);
             border: 1px solid rgba(192, 132, 252, 0.4);
             border-radius: 8px;
-            padding: 12px;
-            width: 280px;
+            padding: 14px;
+            width: 300px;
             z-index: 20;
             backdrop-filter: blur(12px);
         }
 
-        #ai-config-panel h4 {
+        #config-panel h4 {
             color: #c084fc;
             font-size: 0.85rem;
             margin-bottom: 8px;
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        #api-key-input {
+        .input-group {
+            margin-bottom: 8px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.68rem;
+            color: #94a3b8;
+            margin-bottom: 2px;
+        }
+
+        .panel-input {
             width: 100%;
-            padding: 6px;
+            padding: 5px 8px;
             background: #0f172a;
             border: 1px solid #334155;
             color: #38bdf8;
             border-radius: 4px;
             font-size: 0.75rem;
-            margin-bottom: 6px;
+        }
+
+        .sync-status {
+            font-size: 0.7rem;
+            color: #4ade80;
+            margin-top: 6px;
+            text-align: right;
         }
 
         #thought-log {
@@ -122,6 +140,7 @@
         .log-timestamp { color: #64748b; margin-right: 8px; }
         .log-ai { color: #38bdf8; font-weight: bold; }
         .log-llm { color: #f43f5e; font-weight: bold; }
+        .log-sync { color: #4ade80; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -131,7 +150,7 @@
     
     <div id="hud">
         <div class="hud-header">
-            <span>Dark Matrix LLM</span>
+            <span>Dark Matrix Cloud</span>
             <span id="war-indicator" style="color: #4ade80;">[PEACE]</span>
         </div>
         <div class="stat-row"><span class="stat-label">Sim Time:</span><span id="time-display" class="stat-value cyan">Day 1, 00:00</span></div>
@@ -143,17 +162,122 @@
         <div class="stat-row"><span class="stat-label">Tech Power:</span><span id="tech-display" class="stat-value gold">0.01 GW</span></div>
     </div>
 
-    <div id="ai-config-panel">
-        <h4>Cognitive LLM Engine</h4>
-        <input type="password" id="api-key-input" placeholder="Enter Gemini/OpenAI API Key (Optional)...">
-        <div style="font-size:0.7rem; color:#94a3b8;">Leave empty to use built-in Neural Synthesizer.</div>
+    <div id="config-panel">
+        <h4>Cloud & AI Matrix Controls</h4>
+        <div class="input-group">
+            <label>GitHub Owner / Username</label>
+            <input type="text" id="gh-owner-input" class="panel-input" placeholder="e.g. my-username">
+        </div>
+        <div class="input-group">
+            <label>GitHub Repository Name</label>
+            <input type="text" id="gh-repo-input" class="panel-input" value="dark-fantasy-civ">
+        </div>
+        <div class="input-group">
+            <label>GitHub Personal Access Token (PAT)</label>
+            <input type="password" id="gh-token-input" class="panel-input" placeholder="ghp_xxxxxxxxxxxx">
+        </div>
+        <div class="input-group">
+            <label>Gemini / OpenAI Key (Optional)</label>
+            <input type="password" id="api-key-input" class="panel-input" placeholder="API Key for live thoughts...">
+        </div>
+        <div id="sync-status" class="sync-status">Cloud Sync: Read-Only Mode</div>
     </div>
 
     <div id="thought-log"></div>
 </div>
 
 <script>
+/**
+ * TIME SCALE CONFIGURATION
+ * 4 Real Hours = 24 Sim Hours (1 Sim Day)
+ * Factor: 86400 sim sec / 14400 real sec = 6x speed
+ */
 const TIME_SCALE = 6;
+
+class GitHubSyncEngine {
+    constructor(filePath = 'state.json') {
+        this.filePath = filePath;
+        this.fileSha = null;
+    }
+
+    getOwner() { return document.getElementById('gh-owner-input').value.trim(); }
+    getRepo() { return document.getElementById('gh-repo-input').value.trim(); }
+    getToken() { return document.getElementById('gh-token-input').value.trim(); }
+
+    async loadGlobalState() {
+        const owner = this.getOwner();
+        const repo = this.getRepo();
+        if (!owner || !repo) return null;
+
+        try {
+            const response = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/main/${this.filePath}?t=${Date.now()}`);
+            if (!response.ok) throw new Error("No remote state file found.");
+            const data = await response.json();
+            return data;
+        } catch (err) {
+            console.warn("Could not load global state from GitHub, running local fallback.", err);
+            return null;
+        }
+    }
+
+    async saveGlobalState(stateData) {
+        const owner = this.getOwner();
+        const repo = this.getRepo();
+        const token = this.getToken();
+
+        const statusEl = document.getElementById('sync-status');
+        if (!owner || !repo || !token) {
+            statusEl.innerText = "Cloud Sync: Read-Only Mode (No Token)";
+            statusEl.style.color = "#94a3b8";
+            return;
+        }
+
+        statusEl.innerText = "Cloud Sync: Uploading state...";
+        statusEl.style.color = "#fbbf24";
+
+        const url = `https://api.github.com/repos/${owner}/${repo}/contents/${this.filePath}`;
+        
+        try {
+            if (!this.fileSha) {
+                const getRes = await fetch(url, {
+                    headers: { 'Authorization': `token ${token}` }
+                });
+                if (getRes.ok) {
+                    const fileInfo = await getRes.json();
+                    this.fileSha = fileInfo.sha;
+                }
+            }
+
+            const contentEncoded = btoa(unescape(encodeURIComponent(JSON.stringify(stateData, null, 2))));
+
+            const putRes = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: `[AUTO-SAVE] Day ${Math.floor(stateData.simulatedSeconds / 86400)} world state commit`,
+                    content: contentEncoded,
+                    sha: this.fileSha
+                })
+            });
+
+            if (putRes.ok) {
+                const resData = await putRes.json();
+                this.fileSha = resData.content.sha;
+                statusEl.innerText = "Cloud Sync: Synced to GitHub!";
+                statusEl.style.color = "#4ade80";
+            } else {
+                throw new Error(`HTTP ${putRes.status}`);
+            }
+        } catch (err) {
+            console.error("Failed to commit state update to GitHub:", err);
+            statusEl.innerText = "Cloud Sync: Upload Error";
+            statusEl.style.color = "#f43f5e";
+        }
+    }
+}
 
 class TimeEngine {
     constructor() {
@@ -192,7 +316,6 @@ class LLMEngine {
         
         if (apiKey) {
             try {
-                // Gemini API Call integration
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -209,7 +332,6 @@ class LLMEngine {
             }
         }
 
-        // Fallback Synthetic Generative Logic
         const randomIndex = Math.floor(Math.random() * this.syntheticPhrases.length);
         return `[SYNTHETIC COGNITION] ${this.syntheticPhrases[randomIndex]}`;
     }
@@ -387,6 +509,32 @@ class Civilization {
         if (this.population > 50) {
             this.abstractPopulation = Math.floor(10000 * Math.pow(1.05, this.population - 50));
         }
+    }
+
+    exportState(simulatedSeconds) {
+        return {
+            simulatedSeconds,
+            population: this.population,
+            abstractPopulation: this.abstractPopulation,
+            techPower: this.techPower,
+            era: this.era,
+            religion: this.religion,
+            government: this.government,
+            inWar: this.inWar,
+            lastUpdated: new Date().toISOString()
+        };
+    }
+
+    importState(data, timeEngine) {
+        if (!data) return;
+        if (data.simulatedSeconds) timeEngine.simulatedSeconds = data.simulatedSeconds;
+        if (data.population) this.population = data.population;
+        if (data.abstractPopulation) this.abstractPopulation = data.abstractPopulation;
+        if (data.techPower) this.techPower = data.techPower;
+        if (data.era) this.era = data.era;
+        if (data.religion) this.religion = data.religion;
+        if (data.government) this.government = data.government;
+        if (typeof data.inWar === 'boolean') this.inWar = data.inWar;
     }
 
     update(metaAI) {
@@ -580,9 +728,23 @@ const timeEngine = new TimeEngine();
 const llmEngine = new LLMEngine();
 const civ = new Civilization();
 const metaAI = new MetaAIEngine();
+const syncEngine = new GitHubSyncEngine();
 const agents = [new Agent(canvas.width / 2, canvas.height / 2, true)];
 
 let lastTime = performance.now();
+let lastSyncTime = performance.now();
+
+// Restore cloud state on startup
+(async function initCloudState() {
+    metaAI.logThought("<span class='log-sync'>[CLOUD]</span> Checking for remote world state in GitHub...");
+    const savedData = await syncEngine.loadGlobalState();
+    if (savedData) {
+        civ.importState(savedData, timeEngine);
+        metaAI.logThought("<span class='log-sync'>[CLOUD SUCCESS]</span> World restored from GitHub state.json!");
+    } else {
+        metaAI.logThought("<span class='log-sync'>[CLOUD NOTICE]</span> Starting new simulation or running in local mode.");
+    }
+})();
 
 function gameLoop(now) {
     const dt = (now - lastTime) / 1000;
@@ -591,6 +753,13 @@ function gameLoop(now) {
     timeEngine.update(dt);
     civ.update(metaAI);
     metaAI.triggerWarEvent(civ);
+
+    // Auto-save loop (every 60 seconds)
+    if ((now - lastSyncTime) > 60000) {
+        lastSyncTime = now;
+        const statePayload = civ.exportState(timeEngine.simulatedSeconds);
+        syncEngine.saveGlobalState(statePayload);
+    }
 
     while (agents.length < Math.min(civ.population, 12)) {
         agents.push(new Agent(canvas.width * Math.random(), canvas.height * Math.random(), false));
@@ -621,7 +790,7 @@ function gameLoop(now) {
     requestAnimationFrame(gameLoop);
 }
 
-metaAI.logThought("<span class='log-ai'>[META-AI]</span> LLM Cognitive Matrix Online.");
+metaAI.logThought("<span class='log-ai'>[META-AI]</span> Dark Matrix Simulation Matrix Ready.");
 requestAnimationFrame(gameLoop);
 </script>
 </body>
