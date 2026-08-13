@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dark Fantasy Civ - Autonomous World</title>
-    <!-- Load Pixi.js for isometric rendering -->
+    <title>Autonomous Sci-Fi Civilization</title>
+    <!-- Load Pixi.js for Isometric Rendering -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
     <style>
         * {
@@ -12,14 +12,14 @@
             margin: 0;
             padding: 0;
             user-select: none;
-            touch-action: none;
         }
         body, html {
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #050811;
-            font-family: 'Courier New', Courier, monospace;
+            background-color: #02040a;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #f1f5f9;
         }
         #canvas-container {
             position: absolute;
@@ -28,61 +28,140 @@
             width: 100%;
             height: 100%;
             z-index: 1;
+            touch-action: none; /* Pointer dragging only for game canvas */
         }
+
+        /* Glassmorphism Sci-Fi Panels */
         .ui-panel {
             position: absolute;
             z-index: 10;
-            background: rgba(10, 15, 28, 0.85);
-            border: 1px solid #1e293b;
-            border-radius: 8px;
-            padding: 12px;
+            background: rgba(8, 12, 22, 0.82);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            border-radius: 12px;
+            padding: 14px;
             color: #e2e8f0;
-            backdrop-filter: blur(6px);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6), inset 0 0 1px 1px rgba(255, 255, 255, 0.05);
         }
+
+        /* Top HUD Display */
         #hud {
-            top: 15px;
-            left: 15px;
-            right: 15px;
-            font-size: 13px;
-            pointer-events: none;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            max-width: 600px;
+            margin: 0 auto;
         }
         .hud-header {
             display: flex;
             justify-content: space-between;
-            font-weight: bold;
-            margin-bottom: 8px;
-            padding-bottom: 4px;
-            border-bottom: 1px solid #334155;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         .status-live {
-            color: #22c55e;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #38bdf8;
         }
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #22c55e;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #22c55e;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
         .hud-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px 12px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
         }
-        .val { font-weight: bold; }
+        @media (max-width: 480px) {
+            .hud-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        .hud-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 6px 8px;
+            border-radius: 6px;
+        }
+        .hud-label {
+            font-size: 10px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .val {
+            font-size: 13px;
+            font-weight: 700;
+            margin-top: 2px;
+        }
         .c-purple { color: #c084fc; }
         .c-gold { color: #facc15; }
         .c-cyan { color: #38bdf8; }
         .c-green { color: #4ade80; }
+        .c-red { color: #f87171; }
 
+        /* Scrollable Log Terminal */
         #log-box {
-            bottom: 15px;
-            left: 15px;
-            right: 15px;
-            height: 110px;
+            bottom: 12px;
+            left: 12px;
+            right: 12px;
+            max-width: 600px;
+            margin: 0 auto;
+            height: 120px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .log-title {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        #log-content {
+            flex: 1;
             overflow-y: auto;
+            touch-action: pan-y; /* Enable smooth scrolling on touch devices */
+            padding-right: 6px;
+            font-family: 'Courier New', Courier, monospace;
             font-size: 11px;
-            line-height: 1.4;
-            pointer-events: auto; /* Enabled touch interaction & scrolling */
-            -webkit-overflow-scrolling: touch;
+            line-height: 1.5;
+        }
+        #log-content::-webkit-scrollbar {
+            width: 4px;
+        }
+        #log-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        #log-content::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.4);
+            border-radius: 4px;
         }
         .log-entry {
-            margin-bottom: 4px;
-            color: #94a3b8;
+            margin-bottom: 3px;
+            color: #cbd5e1;
+            word-break: break-word;
         }
     </style>
 </head>
@@ -90,58 +169,87 @@
 
     <div id="canvas-container"></div>
 
-    <!-- UPPER HUD OVERLAY -->
+    <!-- UPPER HUD DISPLAY -->
     <div id="hud" class="ui-panel">
         <div class="hud-header">
-            <span>CLOUD STREAM 24/7</span>
-            <span class="status-live">[CONNECTED 24/7]</span>
+            <span>SOVEREIGN AI ENGINE</span>
+            <span class="status-live"><div class="pulse-dot"></div> 24/7 AUTONOMOUS</span>
         </div>
         <div class="hud-grid">
-            <div>Day: <span id="val-day" class="val c-gold">1</span></div>
-            <div>Era: <span id="val-era" class="val c-purple">Era 1</span></div>
-            <div>Ruler: <span id="val-ruler" class="val c-cyan">AI Sovereign</span></div>
-            <div>Pop: <span id="val-pop" class="val c-green">0</span></div>
-            <div>Tanks: <span id="val-tanks" class="val">0</span></div>
-            <div>Gold: <span id="val-gold" class="val c-gold">0</span></div>
-            <div>Build: <span id="val-build" class="val c-cyan">v1.0.0</span></div>
-            <div>War: <span id="val-war" class="val c-green">PEACE</span></div>
+            <div class="hud-card">
+                <div class="hud-label">Day</div>
+                <div id="val-day" class="val c-gold">1</div>
+            </div>
+            <div class="hud-card">
+                <div class="hud-label">Era</div>
+                <div id="val-era" class="val c-purple">Tribal</div>
+            </div>
+            <div class="hud-card">
+                <div class="hud-label">Population</div>
+                <div id="val-pop" class="val c-green">0</div>
+            </div>
+            <div class="hud-card">
+                <div class="hud-label">Treasury</div>
+                <div id="val-gold" class="val c-gold">0 G</div>
+            </div>
+            <div class="hud-card">
+                <div class="hud-label">Tech Power</div>
+                <div id="val-tech" class="val c-cyan">0.5</div>
+            </div>
+            <div class="hud-card">
+                <div class="hud-label">Defenses</div>
+                <div id="val-tanks" class="val">0</div>
+            </div>
+            <div class="hud-card">
+                <div class="hud-label">Status</div>
+                <div id="val-war" class="val c-green">PEACE</div>
+            </div>
+            <div class="hud-card">
+                <div class="hud-label">Build</div>
+                <div id="val-build" class="val c-cyan">v2.0</div>
+            </div>
         </div>
     </div>
 
-    <!-- LOWER LOG PANEL -->
+    <!-- LOWER LOG CONSOLE -->
     <div id="log-box" class="ui-panel">
+        <div class="log-title">System Event Stream</div>
         <div id="log-content"></div>
     </div>
 
     <script>
         // ==========================================
-        // 1. ENGINE & GRAPHICS INITIALIZATION
+        // 1. PIXI.JS GRAPHICS & CAMERA ENGINE
         // ==========================================
         const container = document.getElementById('canvas-container');
         const app = new PIXI.Application({
             width: window.innerWidth,
             height: window.innerHeight,
-            backgroundColor: 0x050811,
+            backgroundColor: 0x02040a,
             resizeTo: window,
-            antialias: true
+            antialias: true,
+            resolution: window.devicePixelRatio || 1
         });
         container.appendChild(app.view);
 
-        // Main World Camera Container
+        // World Camera Container
         const worldContainer = new PIXI.Container();
         worldContainer.x = app.screen.width / 2;
-        worldContainer.y = app.screen.height / 4;
+        worldContainer.y = app.screen.height / 3;
         app.stage.addChild(worldContainer);
 
-        // Sub-layers for clean rendering separation
+        // Layers for Isometric Depth
         const mapLayer = new PIXI.Container();
+        const gridOverlayLayer = new PIXI.Container();
         const entitiesLayer = new PIXI.Container();
         worldContainer.addChild(mapLayer);
+        worldContainer.addChild(gridOverlayLayer);
         worldContainer.addChild(entitiesLayer);
 
-        // Touch & Drag Camera Control
+        // Interactive Pan & Zoom
         let isDragging = false;
         let dragStart = { x: 0, y: 0 };
+
         app.stage.eventMode = 'static';
         app.stage.hitArea = app.screen;
 
@@ -158,29 +266,36 @@
         app.stage.on('pointerup', () => isDragging = false);
         app.stage.on('pointerupoutside', () => isDragging = false);
 
+        // Mouse Wheel Zoom
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
+            const newScale = Math.min(Math.max(0.4, worldContainer.scale.x * zoomFactor), 2.5);
+            worldContainer.scale.set(newScale);
+        }, { passive: false });
+
         // ==========================================
-        // 2. ISOMETRIC MAP & BIOME SYSTEM
-        // AI GENERATIVE HOOK: Extend biomes and tile logic here
+        // 2. ISOMETRIC MAP & BIOME GENERATOR
         // ==========================================
-        const GRID_SIZE = 20;
-        const TILE_WIDTH = 48;
-        const TILE_HEIGHT = 24;
+        const GRID_SIZE = 22;
+        const TILE_WIDTH = 52;
+        const TILE_HEIGHT = 26;
 
         const BIOMES = {
-            0: { name: "Grassland", color: 0x16a34a, border: 0x15803d }, // Green
-            1: { name: "River",     color: 0x0284c7, border: 0x0369a1 }, // Blue
-            2: { name: "Mountain",  color: 0x475569, border: 0x334155 }, // Grey
-            3: { name: "Forest",    color: 0x15803d, border: 0x166534 }  // Dark Green
+            0: { name: "Plains", color: 0x0f291e, border: 0x144531 },
+            1: { name: "Plasma Water", color: 0x0284c7, border: 0x0369a1 },
+            2: { name: "Mountains", color: 0x334155, border: 0x475569 },
+            3: { name: "Bio-Forest", color: 0x065f46, border: 0x047857 }
         };
 
         const mapData = [];
         for (let x = 0; x < GRID_SIZE; x++) {
             mapData[x] = [];
             for (let y = 0; y < GRID_SIZE; y++) {
-                if (x === 10 || y === 10) mapData[x][y] = 1; // River spine
-                else if ((x < 3 && y < 3) || (x > 16 && y > 16)) mapData[x][y] = 2; // Mountain ranges
-                else if ((x + y) % 7 === 0) mapData[x][y] = 3; // Forest patches
-                else mapData[x][y] = 0; // Grass field
+                if (x === 11 || y === 11) mapData[x][y] = 1; // Center River / Cyber Canal
+                else if ((x < 3 && y < 3) || (x > 18 && y > 18)) mapData[x][y] = 2; // Mountain ranges
+                else if ((x + y) % 6 === 0) mapData[x][y] = 3; // Forests
+                else mapData[x][y] = 0;
             }
         }
 
@@ -191,17 +306,29 @@
             };
         }
 
-        function renderMap() {
+        function renderMap(techLevel = 1) {
             mapLayer.removeChildren();
+            gridOverlayLayer.removeChildren();
+
+            const isFuturistic = techLevel >= 3;
+
             for (let x = 0; x < GRID_SIZE; x++) {
                 for (let y = 0; y < GRID_SIZE; y++) {
                     const biome = BIOMES[mapData[x][y]] || BIOMES[0];
                     const pos = isoToScreen(x, y);
 
                     const tile = new PIXI.Graphics();
-                    tile.beginFill(biome.color, 0.85);
-                    tile.lineStyle(1, biome.border, 0.5);
+                    let tileColor = biome.color;
+                    let borderColor = biome.border;
 
+                    // Adapt tile palette to Era advancement
+                    if (isFuturistic && mapData[x][y] === 0) {
+                        tileColor = 0x0a101d; // Dark Cyber Floor
+                        borderColor = 0x1e293b;
+                    }
+
+                    tile.beginFill(tileColor, 0.9);
+                    tile.lineStyle(1, borderColor, 0.6);
                     tile.moveTo(0, 0);
                     tile.lineTo(TILE_WIDTH / 2, TILE_HEIGHT / 2);
                     tile.lineTo(0, TILE_HEIGHT);
@@ -212,242 +339,191 @@
                     tile.x = pos.x;
                     tile.y = pos.y;
                     mapLayer.addChild(tile);
+
+                    // Add futuristic glowing grid overlay if tech power is high
+                    if (isFuturistic && (x % 2 === 0 && y % 2 === 0)) {
+                        const gridLine = new PIXI.Graphics();
+                        gridLine.lineStyle(1, 0x38bdf8, 0.15);
+                        gridLine.drawCircle(pos.x, pos.y + TILE_HEIGHT / 2, 2);
+                        gridOverlayLayer.addChild(gridLine);
+                    }
                 }
             }
         }
-        renderMap();
 
         // ==========================================
-        // 3. ADVANCED GRAPHICAL DRAWING HELPERS
+        // 3. MULTI-ERA DRAWING HELPERS (Stone Age -> Sci-Fi)
+        // AI HOOK: Extend graphic drawing functions here
         // ==========================================
 
-        // Draws a detailed 3D Isometric Capital Citadel
-        function drawCitadel(x, y) {
+        // --- ERA 1: PRIMITIVE / STONE AGE BUILDINGS ---
+        function drawPrimitiveHut(x, y) {
             const container = new PIXI.Container();
             const pos = isoToScreen(x, y);
-            container.x = pos.x;
-            container.y = pos.y;
-
+            container.x = pos.x; container.y = pos.y;
             const g = new PIXI.Graphics();
 
-            // Ground Shadow
-            g.beginFill(0x000000, 0.4);
-            g.drawEllipse(0, 8, 22, 11);
-            g.endFill();
-
-            // Base Walls
-            g.beginFill(0x334155); // Dark Slate Left
-            g.moveTo(-16, 0).lineTo(0, 8).lineTo(0, -12).lineTo(-16, -20).closePath().endFill();
-            g.beginFill(0x475569); // Slate Right
-            g.moveTo(0, 8).lineTo(16, 0).lineTo(16, -20).lineTo(0, -12).closePath().endFill();
-            g.beginFill(0x64748b); // Top Wall Roof
-            g.moveTo(-16, -20).lineTo(0, -12).lineTo(16, -20).lineTo(0, -28).closePath().endFill();
-
-            // Central Royal Keep (Golden Citadel Spire)
-            g.beginFill(0xd97706); // Dark Gold Left
-            g.moveTo(-10, -22).lineTo(0, -17).lineTo(0, -42).lineTo(-10, -47).closePath().endFill();
-            g.beginFill(0xf59e0b); // Gold Right
-            g.moveTo(0, -17).lineTo(10, -22).lineTo(10, -47).lineTo(0, -42).closePath().endFill();
-            g.beginFill(0xfacc15); // Top Roof
-            g.moveTo(-10, -47).lineTo(0, -42).lineTo(10, -47).lineTo(0, -52).closePath().endFill();
-
-            // Crown Gem / Spire Tip
-            g.beginFill(0x38bdf8);
-            g.drawCircle(0, -55, 3);
-            g.endFill();
-
-            // Banner Flag
-            g.lineStyle(1.5, 0x94a3b8);
-            g.moveTo(0, -52).lineTo(0, -64);
-            g.lineStyle(0);
-            g.beginFill(0xef4444);
-            g.moveTo(0, -64).lineTo(7, -60).lineTo(0, -56).closePath();
-            g.endFill();
+            // Straw/Wood Hut
+            g.beginFill(0x78350f); g.drawCircle(0, -6, 8); g.endFill();
+            g.beginFill(0xa16207); g.moveTo(-9, -6).lineTo(0, -18).lineTo(9, -6).closePath(); g.endFill();
+            // Campfire
+            g.beginFill(0xef4444); g.drawCircle(0, 2, 2.5); g.endFill();
 
             container.addChild(g);
             return container;
         }
 
-        // Draws a detailed Military Combat Tank
-        function drawTank(x, y) {
+        // --- ERA 2: MEDIEVAL / FEUDAL BUILDINGS ---
+        function drawMedievalCastle(x, y) {
             const container = new PIXI.Container();
             const pos = isoToScreen(x, y);
-            container.x = pos.x;
-            container.y = pos.y;
-
+            container.x = pos.x; container.y = pos.y;
             const g = new PIXI.Graphics();
 
-            // Tank Drop Shadow
-            g.beginFill(0x000000, 0.45);
-            g.drawEllipse(0, 3, 10, 5);
-            g.endFill();
+            // Stone Walls
+            g.beginFill(0x334155); g.drawRect(-12, -14, 24, 14); g.endFill();
+            // Golden Spire Keep
+            g.beginFill(0xd97706); g.drawRect(-6, -26, 12, 12); g.endFill();
+            g.beginFill(0xef4444); g.moveTo(-8, -26).lineTo(0, -38).lineTo(8, -26).closePath(); g.endFill();
 
-            // Tread / Tracks
-            g.beginFill(0x1e293b);
-            g.drawRoundRect(-8, -4, 16, 8, 3);
-            g.endFill();
+            container.addChild(g);
+            return container;
+        }
 
-            // Main Armored Hull
-            g.beginFill(0xb91c1c); // Deep Red Armor
-            g.drawRoundRect(-7, -7, 14, 8, 2);
-            g.endFill();
-            g.beginFill(0xef4444); // Top Armor Highlight
-            g.drawRect(-5, -6, 10, 5);
-            g.endFill();
+        // --- ERA 3: FUTURISTIC SCI-FI CITADEL ---
+        function drawSciFiSpire(x, y) {
+            const container = new PIXI.Container();
+            const pos = isoToScreen(x, y);
+            container.x = pos.x; container.y = pos.y;
+            const g = new PIXI.Graphics();
 
-            // Turret & Cannon Barrel
-            g.beginFill(0x7f1d1d); // Turret Base
-            g.drawCircle(0, -4, 4);
-            g.endFill();
-
-            g.lineStyle(2, 0x450a0a); // Heavy Cannon Barrel
-            g.moveTo(2, -4).lineTo(9, -8);
+            // Neon Base Ring
+            g.lineStyle(1.5, 0x38bdf8, 0.8);
+            g.drawEllipse(0, 0, 16, 8);
             g.lineStyle(0);
 
-            // Hatch Detail
-            g.beginFill(0xfca5a5);
-            g.drawCircle(-1, -5, 1.2);
+            // Metallic Tower Body
+            g.beginFill(0x0f172a);
+            g.moveTo(-10, 0).lineTo(-4, -45).lineTo(4, -45).lineTo(10, 0).closePath();
+            g.endFill();
+
+            // Cyan Hologram Energy Core
+            g.beginFill(0x38bdf8, 0.8);
+            g.drawRect(-2, -35, 4, 25);
+            g.endFill();
+
+            // Floating Apex Plasma Crystal
+            g.beginFill(0xc084fc);
+            g.moveTo(0, -58).lineTo(5, -50).lineTo(0, -42).lineTo(-5, -50).closePath();
             g.endFill();
 
             container.addChild(g);
             return container;
         }
 
-        // Draws a Citizen House / Cottage
-        function drawHouse(x, y) {
+        // --- DEFENSE UNITS (Tanks / Drones) ---
+        function drawDefenseUnit(x, y, isSciFi) {
             const container = new PIXI.Container();
             const pos = isoToScreen(x, y);
-            container.x = pos.x;
-            container.y = pos.y;
-
+            container.x = pos.x; container.y = pos.y;
             const g = new PIXI.Graphics();
 
-            // Shadow
-            g.beginFill(0x000000, 0.3);
-            g.drawEllipse(0, 4, 10, 5);
-            g.endFill();
-
-            // Walls
-            g.beginFill(0x78350f);
-            g.drawRect(-6, -8, 12, 8);
-            g.endFill();
-
-            // Roof
-            g.beginFill(0xb45309);
-            g.moveTo(-8, -8).lineTo(0, -15).lineTo(8, -8).closePath();
-            g.endFill();
-
-            // Glowing Window
-            g.beginFill(0xfef08a);
-            g.drawRect(-3, -6, 3, 3);
-            g.endFill();
-
-            container.addChild(g);
-            return container;
-        }
-
-        // Draws a Gold Vault / Bank Building
-        function drawVault(x, y) {
-            const container = new PIXI.Container();
-            const pos = isoToScreen(x, y);
-            container.x = pos.x;
-            container.y = pos.y;
-
-            const g = new PIXI.Graphics();
-
-            // Base
-            g.beginFill(0x1e293b);
-            g.drawRect(-10, -10, 20, 10);
-            g.endFill();
-
-            // Vault Golden Dome
-            g.beginFill(0xeab308);
-            g.drawCircle(0, -10, 8);
-            g.endFill();
-
-            // Gold Coins Pile Outside
-            g.beginFill(0xfacc15);
-            g.drawCircle(-6, -1, 2);
-            g.drawCircle(-3, 0, 2.5);
-            g.drawCircle(5, -1, 2);
-            g.endFill();
+            if (!isSciFi) {
+                // Classic Tank
+                g.beginFill(0x1e293b); g.drawRoundRect(-7, -4, 14, 8, 2); g.endFill();
+                g.beginFill(0xef4444); g.drawCircle(0, -3, 3); g.endFill();
+                g.lineStyle(2, 0x991b1b); g.moveTo(0, -3).lineTo(6, -6); g.lineStyle(0);
+            } else {
+                // Hover Drone / Mech
+                g.beginFill(0x38bdf8, 0.9); g.drawCircle(0, -8, 4); g.endFill();
+                g.lineStyle(1, 0xc084fc); g.drawCircle(0, -8, 7); g.lineStyle(0);
+                // Thruster Glow
+                g.beginFill(0x38bdf8, 0.5); g.drawEllipse(0, -2, 3, 1.5); g.endFill();
+            }
 
             container.addChild(g);
             return container;
         }
 
         // ==========================================
-        // 4. DYNAMIC ENTITY RENDERER
+        // 4. ERA VISUAL PROGRESSION ENGINE
         // ==========================================
         function updateEntities(state) {
             entitiesLayer.removeChildren();
 
-            // 1. Render Capital Citadel (Centered at 6, 6)
-            const citadel = drawCitadel(6, 6);
-            entitiesLayer.addChild(citadel);
+            const tech = state.techPower || 0.5;
+            let eraTier = 1; // 1: Stone/Primitive, 2: Medieval, 3+: Sci-Fi
+            if (tech >= 1.5 && tech < 4) eraTier = 2;
+            if (tech >= 4) eraTier = 3;
 
-            // 2. Render Gold Vault if Treasury is High (> 10,000)
-            if ((state.treasury || 0) > 10000) {
-                const vault = drawVault(8, 6);
-                entitiesLayer.addChild(vault);
-            }
+            // Update Map Styling based on Tech Tier
+            renderMap(eraTier);
 
-            // 3. Render Houses according to Population
+            // 1. Render Main Capital / Citadel
+            let capital;
+            if (eraTier === 1) capital = drawPrimitiveHut(7, 7);
+            else if (eraTier === 2) capital = drawMedievalCastle(7, 7);
+            else capital = drawSciFiSpire(7, 7);
+            entitiesLayer.addChild(capital);
+
+            // 2. Render Citizen Housing Slots
             const pop = state.population || 0;
             const houseSlots = [
-                {x: 5, y: 7}, {x: 7, y: 5}, {x: 7, y: 7}, {x: 5, y: 5},
-                {x: 4, y: 6}, {x: 6, y: 4}, {x: 8, y: 7}, {x: 7, y: 8}
+                {x: 5, y: 8}, {x: 8, y: 5}, {x: 8, y: 8}, {x: 5, y: 5},
+                {x: 4, y: 7}, {x: 7, y: 4}, {x: 9, y: 8}, {x: 8, y: 9}
             ];
             const houseCount = Math.min(Math.ceil(pop / 2), houseSlots.length);
+
             for (let i = 0; i < houseCount; i++) {
                 const slot = houseSlots[i];
-                const house = drawHouse(slot.x, slot.y);
+                let house;
+                if (eraTier === 1) house = drawPrimitiveHut(slot.x, slot.y);
+                else if (eraTier === 2) house = drawMedievalCastle(slot.x, slot.y);
+                else house = drawSciFiSpire(slot.x, slot.y);
                 entitiesLayer.addChild(house);
             }
 
-            // 4. Render Military Tanks based on server state
-            const tankCount = Math.min(state.tanks || 0, 25);
+            // 3. Render Defensive Military (Tanks or Cyber Drones)
+            const tankCount = Math.min(state.tanks || 0, 20);
             for (let i = 0; i < tankCount; i++) {
                 const tx = 3 + (i % 5) * 2;
                 const ty = 12 + Math.floor(i / 5) * 2;
-                const tank = drawTank(tx, ty);
-                entitiesLayer.addChild(tank);
+                const unit = drawDefenseUnit(tx, ty, eraTier >= 3);
+                entitiesLayer.addChild(unit);
             }
 
-            // Sort entities layer by vertical position for correct isometric depth
+            // Sort depth for isometric overlapping
             entitiesLayer.children.sort((a, b) => a.y - b.y);
         }
 
-        // ==========================================
-        // 5. BACKGROUND AMBIENT PARTICLES
-        // ==========================================
-        const particles = [];
-        for (let i = 0; i < 30; i++) {
-            const p = new PIXI.Graphics();
-            p.beginFill(0x38bdf8, Math.random() * 0.5 + 0.2);
-            p.drawCircle(0, 0, Math.random() * 3 + 1);
-            p.endFill();
-            p.x = Math.random() * app.screen.width;
-            p.y = Math.random() * app.screen.height;
-            p.vy = Math.random() * -0.5 - 0.2;
-            app.stage.addChild(p);
-            particles.push(p);
+        // Ambient Sci-Fi Starfield
+        const stars = [];
+        for (let i = 0; i < 40; i++) {
+            const s = new PIXI.Graphics();
+            s.beginFill(0x38bdf8, Math.random() * 0.6 + 0.2);
+            s.drawCircle(0, 0, Math.random() * 2 + 0.5);
+            s.endFill();
+            s.x = Math.random() * app.screen.width;
+            s.y = Math.random() * app.screen.height;
+            s.vy = Math.random() * -0.4 - 0.1;
+            app.stage.addChild(s);
+            stars.push(s);
         }
 
         app.ticker.add(() => {
-            particles.forEach(p => {
-                p.y += p.vy;
-                if (p.y < 0) p.y = app.screen.height;
+            stars.forEach(s => {
+                s.y += s.vy;
+                if (s.y < 0) s.y = app.screen.height;
             });
         });
 
         window.addEventListener('resize', () => {
             worldContainer.x = app.screen.width / 2;
-            worldContainer.y = app.screen.height / 4;
+            worldContainer.y = app.screen.height / 3;
         });
 
         // ==========================================
-        // 6. WEBSOCKET REAL-TIME SYNC
+        // 5. REAL-TIME WEBSOCKET SYNC
         // ==========================================
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}`;
@@ -458,25 +534,32 @@
             if (message.type === 'WORLD_UPDATE') {
                 const data = message.data;
 
-                // Sync HUD values
+                // Sync HUD Stats
                 document.getElementById('val-day').innerText = data.day;
                 document.getElementById('val-era').innerText = data.era;
-                document.getElementById('val-ruler').innerText = data.ruler;
                 document.getElementById('val-pop').innerText = data.population;
+                document.getElementById('val-gold').innerText = `${data.treasury} G`;
+                document.getElementById('val-tech').innerText = Number(data.techPower).toFixed(2);
                 document.getElementById('val-tanks').innerText = data.tanks;
-                document.getElementById('val-gold').innerText = data.treasury;
                 document.getElementById('val-build').innerText = data.engineBuild;
-                document.getElementById('val-war').innerText = data.inWar ? 'IN WAR' : 'PEACE';
+                
+                const warEl = document.getElementById('val-war');
+                if (data.inWar) {
+                    warEl.innerText = 'WAR';
+                    warEl.className = 'val c-red';
+                } else {
+                    warEl.innerText = 'PEACE';
+                    warEl.className = 'val c-green';
+                }
 
-                // Sync event log entries & auto-scroll to bottom
+                // Sync Event Console Logs & Smooth Auto-Scroll
                 if (data.logs) {
                     const logContainer = document.getElementById('log-content');
                     logContainer.innerHTML = data.logs.map(l => `<div class="log-entry">${l}</div>`).join('');
-                    const logBox = document.getElementById('log-box');
-                    logBox.scrollTop = logBox.scrollHeight;
+                    logContainer.scrollTop = logContainer.scrollHeight;
                 }
 
-                // Render dynamically updated visual entities
+                // Update Visual Map Entities & Evolution Tier
                 updateEntities(data);
             }
         };
