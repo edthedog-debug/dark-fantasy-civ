@@ -1,0 +1,14 @@
+{
+  "simulatedSeconds": 0,
+  "population": 1,
+  "abstractPopulation": 1,
+  "techPower": 0.01,
+  "era": "Dark Solitude",
+  "religion": "None",
+  "government": "Autarchy",
+  "inWar": false,
+  "lastUpdated": "2026-08-13T00:00:00Z",
+  "historyLog": [
+    "World initialized in cloud matrix state."
+  ]
+}
