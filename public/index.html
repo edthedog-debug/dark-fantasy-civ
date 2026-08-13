@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dark Fantasy Civ - Autonomous World</title>
-    <!-- Carga Pixi.js para los gráficos del juego -->
+    <!-- Load Pixi.js for isometric rendering -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
     <style>
         * {
@@ -12,6 +12,7 @@
             margin: 0;
             padding: 0;
             user-select: none;
+            touch-action: none;
         }
         body, html {
             width: 100%;
@@ -38,6 +39,7 @@
             color: #e2e8f0;
             backdrop-filter: blur(6px);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
         }
         #hud {
             top: 15px;
@@ -86,7 +88,7 @@
 
     <div id="canvas-container"></div>
 
-    <!-- HUD SUPERIOR -->
+    <!-- UPPER HUD OVERLAY -->
     <div id="hud" class="ui-panel">
         <div class="hud-header">
             <span>CLOUD STREAM 24/7</span>
@@ -104,57 +106,158 @@
         </div>
     </div>
 
-    <!-- LOGS INFERIORES -->
+    <!-- LOWER LOG PANEL -->
     <div id="log-box" class="ui-panel">
         <div id="log-content"></div>
     </div>
 
     <script>
-        // 1. INICIALIZAR MOTOR GRÁFICO (PIXI.JS)
+        // ==========================================
+        // 1. ENGINE & GRAPHICS INITIALIZATION
+        // ==========================================
         const container = document.getElementById('canvas-container');
         const app = new PIXI.Application({
             width: window.innerWidth,
             height: window.innerHeight,
-            backgroundColor: 0x070b19,
-            resizeTo: window
+            backgroundColor: 0x050811,
+            resizeTo: window,
+            antialias: true
         });
         container.appendChild(app.view);
 
-        // Capa para el mapa isomórfico
+        // Main World Camera Container
         const worldContainer = new PIXI.Container();
         worldContainer.x = app.screen.width / 2;
-        worldContainer.y = app.screen.height / 3;
+        worldContainer.y = app.screen.height / 4;
         app.stage.addChild(worldContainer);
 
-        // Dibujar rejilla/terreno isomórfico
-        const gridSize = 10;
-        const tileSize = 32;
+        // Sub-layers for clean rendering separation
+        const mapLayer = new PIXI.Container();
+        const entitiesLayer = new PIXI.Container();
+        worldContainer.addChild(mapLayer);
+        worldContainer.addChild(entitiesLayer);
 
-        for (let x = 0; x < gridSize; x++) {
-            for (let y = 0; y < gridSize; y++) {
-                const tile = new PIXI.Graphics();
-                tile.lineStyle(1, 0x1e293b, 0.8);
-                
-                // Color alternado para la tierra
-                const isAlt = (x + y) % 2 === 0;
-                tile.beginFill(isAlt ? 0x0f172a : 0x1e1b4b, 0.7);
+        // Touch & Drag Camera Control
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        app.stage.eventMode = 'static';
+        app.stage.hitArea = app.screen;
 
-                // Polígono isomórfico
-                const isoX = (x - y) * tileSize;
-                const isoY = (x + y) * (tileSize / 2);
+        app.stage.on('pointerdown', (e) => {
+            isDragging = true;
+            dragStart = { x: e.global.x - worldContainer.x, y: e.global.y - worldContainer.y };
+        });
+        app.stage.on('pointermove', (e) => {
+            if (isDragging) {
+                worldContainer.x = e.global.x - dragStart.x;
+                worldContainer.y = e.global.y - dragStart.y;
+            }
+        });
+        app.stage.on('pointerup', () => isDragging = false);
+        app.stage.on('pointerupoutside', () => isDragging = false);
 
-                tile.drawPolygon([
-                    isoX, isoY,
-                    isoX + tileSize, isoY + (tileSize / 2),
-                    isoX, isoY + tileSize,
-                    isoX - tileSize, isoY + (tileSize / 2)
-                ]);
-                tile.endFill();
-                worldContainer.addChild(tile);
+        // ==========================================
+        // 2. ISOMETRIC MAP & BIOME SYSTEM
+        // AI GENERATIVE HOOK: Extend biomes and tile logic here
+        // ==========================================
+        const GRID_SIZE = 20;
+        const TILE_WIDTH = 48;
+        const TILE_HEIGHT = 24;
+
+        // Biome Palette (AI can add new hex colors for Desert, Snow, Lava, etc.)
+        const BIOMES = {
+            0: { name: "Grassland", color: 0x16a34a, border: 0x15803d }, // Green
+            1: { name: "River",     color: 0x0284c7, border: 0x0369a1 }, // Blue
+            2: { name: "Mountain",  color: 0x475569, border: 0x334155 }, // Grey
+            3: { name: "Forest",    color: 0x15803d, border: 0x166534 }  // Dark Green
+        };
+
+        // Procedural Map Matrix (0=Grass, 1=River, 2=Mountain, 3=Forest)
+        const mapData = [];
+        for (let x = 0; x < GRID_SIZE; x++) {
+            mapData[x] = [];
+            for (let y = 0; y < GRID_SIZE; y++) {
+                if (x === 10 || y === 10) mapData[x][y] = 1; // River spine
+                else if ((x < 3 && y < 3) || (x > 16 && y > 16)) mapData[x][y] = 2; // Mountain ranges
+                else if ((x + y) % 7 === 0) mapData[x][y] = 3; // Forest patches
+                else mapData[x][y] = 0; // Grass field
             }
         }
 
-        // Partículas/Luces flotantes en el fondo
+        function isoToScreen(x, y) {
+            return {
+                x: (x - y) * (TILE_WIDTH / 2),
+                y: (x + y) * (TILE_HEIGHT / 2)
+            };
+        }
+
+        function renderMap() {
+            mapLayer.removeChildren();
+            for (let x = 0; x < GRID_SIZE; x++) {
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    const biome = BIOMES[mapData[x][y]] || BIOMES[0];
+                    const pos = isoToScreen(x, y);
+
+                    const tile = new PIXI.Graphics();
+                    tile.beginFill(biome.color, 0.85);
+                    tile.lineStyle(1, biome.border, 0.5);
+
+                    tile.moveTo(0, 0);
+                    tile.lineTo(TILE_WIDTH / 2, TILE_HEIGHT / 2);
+                    tile.lineTo(0, TILE_HEIGHT);
+                    tile.lineTo(-TILE_WIDTH / 2, TILE_HEIGHT / 2);
+                    tile.closePath();
+                    tile.endFill();
+
+                    tile.x = pos.x;
+                    tile.y = pos.y;
+                    mapLayer.addChild(tile);
+                }
+            }
+        }
+        renderMap();
+
+        // ==========================================
+        // 3. DYNAMIC ENTITY RENDERER
+        // AI GENERATIVE HOOK: Add dynamic buildings, tanks, and animations
+        // ==========================================
+        function updateEntities(state) {
+            entitiesLayer.removeChildren();
+
+            // Render Capital City (Golden Citadel)
+            const capPos = isoToScreen(6, 6);
+            const capital = new PIXI.Graphics();
+            capital.beginFill(0xfacc15);
+            capital.drawRect(-8, -16, 16, 16);
+            capital.endFill();
+            capital.x = capPos.x;
+            capital.y = capPos.y;
+            entitiesLayer.addChild(capital);
+
+            // Render Military Tanks based on server state
+            const tankCount = Math.min(state.tanks || 0, 25);
+            for (let i = 0; i < tankCount; i++) {
+                const tx = 4 + (i % 5) * 2;
+                const ty = 12 + Math.floor(i / 5) * 2;
+                const tPos = isoToScreen(tx, ty);
+
+                const tank = new PIXI.Graphics();
+                tank.beginFill(0xef4444); // Red Military Body
+                tank.drawCircle(0, 0, 6);
+                tank.endFill();
+                tank.beginFill(0x991b1b);
+                tank.drawRect(-1, -8, 3, 8); // Barrel
+                tank.endFill();
+
+                tank.x = tPos.x;
+                tank.y = tPos.y;
+                entitiesLayer.addChild(tank);
+            }
+        }
+
+        // ==========================================
+        // 4. BACKGROUND AMBIENT PARTICLES
+        // ==========================================
         const particles = [];
         for (let i = 0; i < 30; i++) {
             const p = new PIXI.Graphics();
@@ -168,7 +271,6 @@
             particles.push(p);
         }
 
-        // Bucle de animación
         app.ticker.add(() => {
             particles.forEach(p => {
                 p.y += p.vy;
@@ -176,13 +278,14 @@
             });
         });
 
-        // Ajustar pantalla al redimensionar móvil
         window.addEventListener('resize', () => {
             worldContainer.x = app.screen.width / 2;
-            worldContainer.y = app.screen.height / 3;
+            worldContainer.y = app.screen.height / 4;
         });
 
-        // 2. CONEXIÓN WEBSOCKET CON EL SERVIDOR
+        // ==========================================
+        // 5. WEBSOCKET REAL-TIME SYNC
+        // ==========================================
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}`;
         const socket = new WebSocket(wsUrl);
@@ -191,6 +294,8 @@
             const message = JSON.parse(event.data);
             if (message.type === 'WORLD_UPDATE') {
                 const data = message.data;
+
+                // Sync HUD values
                 document.getElementById('val-day').innerText = data.day;
                 document.getElementById('val-era').innerText = data.era;
                 document.getElementById('val-ruler').innerText = data.ruler;
@@ -200,10 +305,14 @@
                 document.getElementById('val-build').innerText = data.engineBuild;
                 document.getElementById('val-war').innerText = data.inWar ? 'IN WAR' : 'PEACE';
 
+                // Sync event log entries
                 if (data.logs) {
                     const logContainer = document.getElementById('log-content');
                     logContainer.innerHTML = data.logs.map(l => `<div class="log-entry">${l}</div>`).join('');
                 }
+
+                // Render dynamically updated visual entities
+                updateEntities(data);
             }
         };
     </script>
