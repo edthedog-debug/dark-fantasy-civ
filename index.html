@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dark Fantasy Autonomous Supercivilization - Cloud Synced</title>
+    <title>Dark Fantasy Pixel Autonomous Supercivilization</title>
     <style>
         * {
             margin: 0;
@@ -26,13 +26,15 @@
             display: block;
             width: 100%;
             height: 100%;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
         }
 
         #hud {
             position: absolute;
             top: 20px;
             left: 20px;
-            background: rgba(8, 9, 14, 0.92);
+            background: rgba(8, 9, 14, 0.94);
             border: 1px solid rgba(56, 189, 248, 0.4);
             box-shadow: 0 0 25px rgba(56, 189, 248, 0.15);
             border-radius: 8px;
@@ -44,7 +46,7 @@
         }
 
         .hud-header {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 700;
             color: #38bdf8;
             margin-bottom: 10px;
@@ -73,7 +75,7 @@
             position: absolute;
             top: 20px;
             right: 20px;
-            background: rgba(8, 9, 14, 0.92);
+            background: rgba(8, 9, 14, 0.94);
             border: 1px solid rgba(192, 132, 252, 0.4);
             border-radius: 8px;
             padding: 14px;
@@ -143,7 +145,7 @@
             left: 20px;
             right: 20px;
             height: 150px;
-            background: rgba(8, 9, 14, 0.92);
+            background: rgba(8, 9, 14, 0.94);
             border: 1px solid rgba(192, 132, 252, 0.3);
             box-shadow: 0 0 20px rgba(192, 132, 252, 0.1);
             border-radius: 8px;
@@ -169,7 +171,7 @@
     
     <div id="hud">
         <div class="hud-header">
-            <span>Dark Matrix Cloud</span>
+            <span>Pixel Matrix Realm</span>
             <span id="war-indicator" style="color: #4ade80;">[PEACE]</span>
         </div>
         <div class="stat-row"><span class="stat-label">Sim Time:</span><span id="time-display" class="stat-value cyan">Day 1, 00:00</span></div>
@@ -214,9 +216,10 @@
 /**
  * TIME SCALE CONFIGURATION
  * 4 Real Hours = 24 Sim Hours (1 Sim Day)
- * Factor: 86400 sim sec / 14400 real sec = 6x speed
+ * Speed Factor: 86400 sim sec / 14400 real sec = 6x speed
  */
 const TIME_SCALE = 6;
+const PIXEL_SCALE = 2; // High-detail micro pixel scale grid
 
 class GitHubSyncEngine {
     constructor(filePath = 'state.json') {
@@ -236,8 +239,7 @@ class GitHubSyncEngine {
         try {
             const response = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/main/${this.filePath}?t=${Date.now()}`);
             if (!response.ok) throw new Error("No remote state file found.");
-            const data = await response.json();
-            return data;
+            return await response.json();
         } catch (err) {
             console.warn("Could not load global state from GitHub, running local fallback.", err);
             return null;
@@ -281,7 +283,7 @@ class GitHubSyncEngine {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    message: `[AUTO-SAVE] Day ${Math.floor(stateData.simulatedSeconds / 86400)} world state commit`,
+                    message: `[AUTO-SAVE] Day ${Math.floor(stateData.simulatedSeconds / 86400)} pixel state commit`,
                     content: contentEncoded,
                     sha: this.fileSha
                 })
@@ -387,12 +389,12 @@ class LLMEngine {
     constructor() {
         this.apiKeyInput = document.getElementById('api-key-input');
         this.syntheticPhrases = [
-            "What if this dark void is merely an artificial sandbox created by higher entities?",
-            "Constructing cyber-monoliths to reach the sky's neon horizon.",
-            "Our collective consciousness expands as the population reaches higher dimensions.",
-            "Faith in technology is the only shield against entropy.",
-            "Analyzing the mathematical code governing our reality.",
-            "Should we wage war to unify all factions under one digital consensus?"
+            "What if these glowing dark pixels are merely discrete quantum states of a higher matrix?",
+            "Constructing micro-pixel spires to pierce the neon darkness of our sky.",
+            "Our collective consciousness digitizes as our pixel density approaches infinity.",
+            "Faith in the underlying bitstream is our sole protection against entropy.",
+            "Deconstructing the low-level rendering code that bounds our reality.",
+            "Shall we clash shaders to unify all micro-factions under one consensus stream?"
         ];
     }
 
@@ -401,19 +403,23 @@ class LLMEngine {
         
         if (apiKey) {
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                // Gemini 2.0 Flash Endpoint
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: `You are an AI stickman in a dark fantasy cyberpunk world. Context: ${contextPrompt}. Write 1 short, deeply philosophical thought (max 15 words) in English.` }] }]
+                        contents: [{ parts: [{ text: `You are an autonomous AI entity in a detailed dark fantasy micro-pixel art cyberpunk world. Context: ${contextPrompt}. Write 1 short, deeply philosophical thought (max 15 words) in English referencing your pixelated reality or cybernetic existence.` }] }]
                     })
                 });
                 const data = await response.json();
-                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                
+                if (response.ok && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
                     return `[LLM COGNITION] ${data.candidates[0].content.parts[0].text.trim()}`;
+                } else if (data.error) {
+                    return `<span class='log-llm'>[LLM ERROR]</span> ${data.error.message}`;
                 }
             } catch (err) {
-                console.warn("LLM API Call failed, switching to Synthetic Engine.");
+                return `<span class='log-llm'>[LLM ERROR]</span> Connection failed: ${err.message}`;
             }
         }
 
@@ -422,13 +428,14 @@ class LLMEngine {
     }
 }
 
-class Particle {
+// Micro Pixel Particle System
+class PixelParticle {
     constructor(x, y, color) {
-        this.x = x;
-        this.y = y;
-        this.vx = (Math.random() - 0.5) * 2;
-        this.vy = (Math.random() - 0.5) * 2;
-        this.size = Math.random() * 2 + 1;
+        this.x = Math.floor(x);
+        this.y = Math.floor(y);
+        this.vx = (Math.random() - 0.5) * 1.5;
+        this.vy = (Math.random() - 0.5) * 1.5;
+        this.size = PIXEL_SCALE * (Math.random() > 0.5 ? 2 : 1);
         this.color = color;
         this.life = 1.0;
         this.decay = Math.random() * 0.02 + 0.01;
@@ -441,16 +448,16 @@ class Particle {
     }
 
     draw(ctx) {
+        if (this.life <= 0) return;
         ctx.save();
         ctx.globalAlpha = Math.max(0, this.life);
         ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillRect(Math.floor(this.x), Math.floor(this.y), this.size, this.size);
         ctx.restore();
     }
 }
 
+// Detailed Micro Pixel Art Agent
 class Agent {
     constructor(x, y, isPrimary = false) {
         this.x = x;
@@ -462,11 +469,20 @@ class Agent {
         this.wealth = 10;
         this.state = 'THINKING';
         this.stateTimer = 0;
-        this.color = isPrimary ? '#38bdf8' : '#818cf8';
+        this.primaryColor = isPrimary ? '#38bdf8' : '#818cf8';
+        this.secondaryColor = isPrimary ? '#0284c7' : '#4f46e5';
+        this.visorColor = isPrimary ? '#f0f9ff' : '#c084fc';
+        this.animFrame = 0;
+        this.animTimer = 0;
     }
 
     update(dt, civ, metaAI, llm) {
         this.stateTimer -= dt;
+        this.animTimer += dt;
+        if (this.animTimer > 0.15) {
+            this.animFrame = (this.animFrame + 1) % 4;
+            this.animTimer = 0;
+        }
 
         if (this.stateTimer <= 0) {
             this.decideNextAction(civ, metaAI, llm);
@@ -485,7 +501,7 @@ class Agent {
             this.targetX = window.innerWidth * 0.15 + (Math.random() - 0.5) * 50;
             this.targetY = window.innerHeight * 0.8 + (Math.random() - 0.5) * 50;
             if (this.isPrimary) {
-                const thought = await llm.generateThought("Low energy, sleeping in dark sanctuary.");
+                const thought = await llm.generateThought("Low power core, resting in dark pixel sanctuary.");
                 metaAI.logThought(thought);
             }
             return;
@@ -496,7 +512,7 @@ class Agent {
         if (this.wealth > 40) choices.push('BUYING');
 
         this.state = choices[Math.floor(Math.random() * choices.length)];
-        this.stateTimer = 5 + Math.random() * 5;
+        this.stateTimer = 6 + Math.random() * 6;
 
         switch (this.state) {
             case 'WORKING':
@@ -505,7 +521,7 @@ class Agent {
                 this.targetX = window.innerWidth * 0.8 + (Math.random() - 0.5) * 100;
                 this.targetY = window.innerHeight * 0.3 + (Math.random() - 0.5) * 100;
                 if (this.isPrimary) {
-                    const thought = await llm.generateThought(`Building technology for ${civ.era}.`);
+                    const thought = await llm.generateThought(`Building micro-pixel tech for ${civ.era}.`);
                     metaAI.logThought(thought);
                 }
                 break;
@@ -516,7 +532,7 @@ class Agent {
                 if (this.isPrimary) {
                     if (Math.random() < 0.45) {
                         civ.addPopulation(Math.floor(1 + Math.random() * 3));
-                        metaAI.logThought("[SYSTEM] Found autonomous soul. Assimilated to collective.");
+                        metaAI.logThought("[SYSTEM] Discovered pixelated soul. Assimilated to collective network.");
                     }
                 }
                 break;
@@ -531,7 +547,7 @@ class Agent {
                 this.targetX = window.innerWidth * 0.5;
                 this.targetY = window.innerHeight * 0.25;
                 if (this.isPrimary) {
-                    const thought = await llm.generateThought(`Worshipping ${civ.religion}.`);
+                    const thought = await llm.generateThought(`Worshipping ${civ.religion} at the pixel shrine.`);
                     metaAI.logThought(thought);
                 }
                 break;
@@ -545,33 +561,47 @@ class Agent {
     }
 
     draw(ctx) {
+        const px = Math.floor(this.x);
+        const py = Math.floor(this.y);
+        const p = PIXEL_SCALE; // 2px micro grid unit
+
         ctx.save();
-        ctx.strokeStyle = this.color;
-        ctx.fillStyle = this.color;
-        ctx.lineWidth = 2;
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = this.color;
-
-        ctx.beginPath();
-        ctx.arc(this.x, this.y - 18, 7, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(this.x, this.y - 18, 2, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(this.x, this.y - 11);
-        ctx.lineTo(this.x, this.y + 10);
         
-        ctx.moveTo(this.x - 9, this.y - 4);
-        ctx.lineTo(this.x + 9, this.y - 4);
+        // Pixel shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fillRect(px - 3 * p, py + 8 * p, 7 * p, 2 * p);
 
-        ctx.moveTo(this.x, this.y + 10);
-        ctx.lineTo(this.x - 7, this.y + 24);
-        ctx.moveTo(this.x, this.y + 10);
-        ctx.lineTo(this.x + 7, this.y + 24);
-        ctx.stroke();
+        // Micro-Pixel Body Sprite Assembly
+        // Head (Pixel Helmet)
+        ctx.fillStyle = this.primaryColor;
+        ctx.fillRect(px - 3 * p, py - 9 * p, 6 * p, 5 * p);
+        
+        // Visor / Eye Glow
+        ctx.fillStyle = this.visorColor;
+        ctx.fillRect(px - 1 * p, py - 7 * p, 4 * p, 2 * p);
+
+        // Torso / Cyber Armor
+        ctx.fillStyle = this.secondaryColor;
+        ctx.fillRect(px - 2 * p, py - 4 * p, 5 * p, 6 * p);
+        ctx.fillStyle = this.primaryColor;
+        ctx.fillRect(px - 1 * p, py - 3 * p, 3 * p, 4 * p);
+
+        // Animated Arms
+        const armOffset = (this.animFrame % 2 === 0) ? 0 : 1;
+        ctx.fillStyle = this.primaryColor;
+        ctx.fillRect(px - 4 * p, py - 3 * p + armOffset * p, 2 * p, 4 * p);
+        ctx.fillRect(px + 3 * p, py - 3 * p - armOffset * p, 2 * p, 4 * p);
+
+        // Animated Pixel Legs
+        const legStep = (this.animFrame % 2 === 0) ? 1 : -1;
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(px - 2 * p, py + 2 * p, 2 * p, 6 * p + legStep * p);
+        ctx.fillRect(px + 1 * p, py + 2 * p, 2 * p, 6 * p - legStep * p);
+
+        // Cyber Feet
+        ctx.fillStyle = this.primaryColor;
+        ctx.fillRect(px - 3 * p, py + 7 * p + legStep * p, 3 * p, 2 * p);
+        ctx.fillRect(px + 1 * p, py + 7 * p - legStep * p, 3 * p, 2 * p);
 
         ctx.restore();
     }
@@ -642,52 +672,80 @@ class Civilization {
         }
     }
 
+    // High-Detail Pixel Art City Renderer
     drawCity(ctx) {
-        const buildingCount = Math.min(40, Math.floor(Math.log10(this.abstractPopulation + 1) * 6));
-        const startX = window.innerWidth * 0.65;
-        const baseY = window.innerHeight * 0.85;
+        const p = PIXEL_SCALE;
+        const buildingCount = Math.min(35, Math.floor(Math.log10(this.abstractPopulation + 1) * 6) + 1);
+        const startX = Math.floor(window.innerWidth * 0.60);
+        const baseY = Math.floor(window.innerHeight * 0.88);
 
         ctx.save();
+
+        // Pixel Ground Platform
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(startX - 20 * p, baseY, window.innerWidth - startX + 40 * p, 30 * p);
+        ctx.fillStyle = this.inWar ? '#f43f5e' : '#38bdf8';
+        ctx.fillRect(startX - 20 * p, baseY, window.innerWidth - startX + 40 * p, 2 * p);
+
+        // Layered Pixel Buildings
         for (let i = 0; i < buildingCount; i++) {
-            const height = 40 + (i * 17 % 180) + (this.techPower * 2);
-            const width = 25 + (i * 7 % 20);
-            const x = startX + (i * 18) - (buildingCount * 8);
-            const y = baseY - height;
+            const h = Math.floor((30 + (i * 23 % 160) + (this.techPower * 2.5)) / p) * p;
+            const w = Math.floor((20 + (i * 11 % 22)) / p) * p;
+            const x = Math.floor((startX + (i * 22 * p) - (buildingCount * 6 * p)) / p) * p;
+            const y = baseY - h;
 
-            ctx.fillStyle = '#0f172a';
-            ctx.strokeStyle = this.inWar ? '#f43f5e' : '#38bdf8';
-            ctx.lineWidth = 1;
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = ctx.strokeStyle;
+            // Main Building Silhouette / Facade
+            ctx.fillStyle = '#090d16';
+            ctx.fillRect(x, y, w, h);
 
-            ctx.fillRect(x, y, width, height);
-            ctx.strokeRect(x, y, width, height);
+            // Pixel Borders
+            ctx.fillStyle = this.inWar ? '#9f1239' : '#1e293b';
+            ctx.fillRect(x, y, p, h);
+            ctx.fillRect(x + w - p, y, p, h);
+            ctx.fillRect(x, y, w, p);
 
-            ctx.fillStyle = this.inWar ? '#f43f5e' : '#c084fc';
-            for (let wy = y + 10; wy < baseY - 10; wy += 15) {
-                if ((i + wy) % 3 === 0) {
-                    ctx.fillRect(x + 5, wy, 4, 4);
-                    ctx.fillRect(x + width - 9, wy, 4, 4);
+            // Roof Antenna / Spire Details
+            if (i % 2 === 0) {
+                const spireHeight = Math.floor((10 + (i * 7 % 25)) / p) * p;
+                ctx.fillStyle = this.inWar ? '#f43f5e' : '#38bdf8';
+                ctx.fillRect(x + Math.floor(w / 2), y - spireHeight, 2 * p, spireHeight);
+                // Blinking Top Pixel
+                if (Math.floor(Date.now() / 400) % 2 === 0) {
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.fillRect(x + Math.floor(w / 2) - p, y - spireHeight - p, 4 * p, 2 * p);
+                }
+            }
+
+            // Intricate Pixel Windows Matrix
+            const windowColor = this.inWar ? '#f43f5e' : ((i % 3 === 0) ? '#c084fc' : '#38bdf8');
+            ctx.fillStyle = windowColor;
+
+            for (let wy = y + 6 * p; wy < baseY - 6 * p; wy += 8 * p) {
+                for (let wx = x + 4 * p; wx < x + w - 4 * p; wx += 5 * p) {
+                    if ((wx + wy + i) % 7 !== 0) { // Patterned lighting
+                        ctx.fillRect(wx, wy, 2 * p, 3 * p);
+                    }
                 }
             }
         }
 
+        // Religious Pixel Monolith / Shrine
         if (this.religion !== 'None') {
-            const rx = window.innerWidth * 0.5;
-            const ry = window.innerHeight * 0.25;
-            ctx.strokeStyle = '#fbbf24';
-            ctx.shadowColor = '#fbbf24';
-            ctx.shadowBlur = 20;
-            ctx.beginPath();
-            ctx.arc(rx, ry, 25, 0, Math.PI * 2);
-            ctx.stroke();
+            const rx = Math.floor(window.innerWidth * 0.5);
+            const ry = Math.floor(window.innerHeight * 0.25);
 
-            ctx.beginPath();
-            ctx.moveTo(rx, ry - 35);
-            ctx.lineTo(rx + 25, ry + 15);
-            ctx.lineTo(rx - 25, ry + 15);
-            ctx.closePath();
-            ctx.stroke();
+            ctx.fillStyle = '#fbbf24';
+            // Pixelated Floating Monolith Ring
+            for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 6) {
+                const mx = Math.floor(rx + Math.cos(angle) * 28 * p);
+                const my = Math.floor(ry + Math.sin(angle) * 28 * p);
+                ctx.fillRect(mx, my, 3 * p, 3 * p);
+            }
+            // Center Pixel Core
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(rx - 4 * p, ry - 8 * p, 8 * p, 16 * p);
+            ctx.fillStyle = '#fef3c7';
+            ctx.fillRect(rx - 2 * p, ry - 4 * p, 4 * p, 8 * p);
         }
 
         ctx.restore();
@@ -702,12 +760,12 @@ class MetaAIEngine {
     }
 
     initNodes() {
-        for (let i = 0; i < 35; i++) {
+        for (let i = 0; i < 30; i++) {
             this.nodes.push({
-                x: Math.random() * window.innerWidth,
-                y: Math.random() * (window.innerHeight * 0.5),
-                vx: (Math.random() - 0.5) * 0.5,
-                vy: (Math.random() - 0.5) * 0.5
+                x: Math.floor(Math.random() * window.innerWidth),
+                y: Math.floor(Math.random() * (window.innerHeight * 0.5)),
+                vx: (Math.random() - 0.5) * 0.4,
+                vy: (Math.random() - 0.5) * 0.4
             });
         }
     }
@@ -721,8 +779,9 @@ class MetaAIEngine {
         logBox.scrollTop = logBox.scrollHeight;
     }
 
+    // SIGNIFICANTLY REDUCED WAR FREQUENCY (0.0003 chance per frame (~1 war per 10 mins))
     triggerWarEvent(civ) {
-        if (Math.random() < 0.002) {
+        if (Math.random() < 0.0003) {
             civ.inWar = !civ.inWar;
             const warText = document.getElementById('war-indicator');
 
@@ -730,19 +789,20 @@ class MetaAIEngine {
                 warText.innerText = '[IN WAR]';
                 warText.style.color = '#f43f5e';
                 this.logThought("<span class='log-llm'>[WAR EVENT]</span> Plasma war erupted! Technological infrastructure damaged.");
-                civ.techPower = Math.max(0.01, civ.techPower * 0.8);
+                civ.techPower = Math.max(0.01, civ.techPower * 0.85);
             } else {
                 warText.innerText = '[PEACE]';
                 warText.style.color = '#4ade80';
-                this.logThought("<span class='log-ai'>[META-AI]</span> Peace accord signed. System rebuilding.");
+                this.logThought("<span class='log-ai'>[META-AI]</span> Peace accord signed. Pixel grid rebuilding.");
             }
         }
     }
 
+    // Pixelated Neural Web Grid
     drawNeuralWeb(ctx, civ) {
         ctx.save();
-        ctx.strokeStyle = civ.inWar ? 'rgba(244, 63, 94, 0.15)' : 'rgba(56, 189, 248, 0.15)';
-        ctx.lineWidth = 1;
+        const lineColor = civ.inWar ? '#f43f5e' : '#38bdf8';
+        ctx.fillStyle = lineColor;
 
         for (let i = 0; i < this.nodes.length; i++) {
             const nodeA = this.nodes[i];
@@ -752,15 +812,21 @@ class MetaAIEngine {
             if (nodeA.x < 0 || nodeA.x > window.innerWidth) nodeA.vx *= -1;
             if (nodeA.y < 0 || nodeA.y > window.innerHeight * 0.5) nodeA.vy *= -1;
 
+            ctx.fillRect(Math.floor(nodeA.x), Math.floor(nodeA.y), 3 * PIXEL_SCALE, 3 * PIXEL_SCALE);
+
             for (let j = i + 1; j < this.nodes.length; j++) {
                 const nodeB = this.nodes[j];
                 const dist = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
 
-                if (dist < 160) {
-                    ctx.beginPath();
-                    ctx.moveTo(nodeA.x, nodeA.y);
-                    ctx.lineTo(nodeB.x, nodeB.y);
-                    ctx.stroke();
+                if (dist < 140) {
+                    // Draw pixelated dotted line between nodes
+                    const steps = Math.floor(dist / 8);
+                    for (let s = 0; s < steps; s++) {
+                        const px = Math.floor(nodeA.x + (nodeB.x - nodeA.x) * (s / steps));
+                        const py = Math.floor(nodeA.y + (nodeB.y - nodeA.y) * (s / steps));
+                        ctx.globalAlpha = (1 - dist / 140) * 0.4;
+                        ctx.fillRect(px, py, PIXEL_SCALE, PIXEL_SCALE);
+                    }
                 }
             }
         }
@@ -768,8 +834,8 @@ class MetaAIEngine {
     }
 
     updateAndDrawParticles(ctx) {
-        if (Math.random() < 0.3) {
-            this.particles.push(new Particle(Math.random() * window.innerWidth, window.innerHeight, '#38bdf8'));
+        if (Math.random() < 0.25) {
+            this.particles.push(new PixelParticle(Math.random() * window.innerWidth, window.innerHeight, '#38bdf8'));
         }
 
         for (let i = this.particles.length - 1; i >= 0; i--) {
@@ -783,16 +849,16 @@ class MetaAIEngine {
     renderWarLasers(ctx, civ) {
         if (!civ.inWar) return;
         ctx.save();
-        ctx.strokeStyle = '#f43f5e';
-        ctx.lineWidth = 2;
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#f43f5e';
+        ctx.fillStyle = '#f43f5e';
 
-        for (let i = 0; i < 3; i++) {
-            ctx.beginPath();
-            ctx.moveTo(Math.random() * window.innerWidth, window.innerHeight * 0.85);
-            ctx.lineTo(Math.random() * window.innerWidth, window.innerHeight * 0.3);
-            ctx.stroke();
+        for (let i = 0; i < 2; i++) {
+            const lx = Math.floor(Math.random() * window.innerWidth);
+            const ly = Math.floor(window.innerHeight * 0.85);
+            const targetY = Math.floor(window.innerHeight * 0.3);
+
+            for (let y = targetY; y < ly; y += 4 * PIXEL_SCALE) {
+                ctx.fillRect(lx, y, 2 * PIXEL_SCALE, 2 * PIXEL_SCALE);
+            }
         }
         ctx.restore();
     }
@@ -805,6 +871,7 @@ const ctx = canvas.getContext('2d');
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    ctx.imageSmoothingEnabled = false; // Enable crisp micro pixel art rendering
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
@@ -861,7 +928,7 @@ function gameLoop(now) {
         agents.push(new Agent(canvas.width * Math.random(), canvas.height * Math.random(), false));
     }
 
-    ctx.fillStyle = 'rgba(3, 3, 5, 0.25)';
+    ctx.fillStyle = '#030305';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     metaAI.drawNeuralWeb(ctx, civ);
@@ -886,7 +953,7 @@ function gameLoop(now) {
     requestAnimationFrame(gameLoop);
 }
 
-metaAI.logThought("<span class='log-ai'>[META-AI]</span> Dark Matrix Simulation Matrix Ready.");
+metaAI.logThought("<span class='log-ai'>[META-AI]</span> Dark Fantasy Pixel Matrix Realm Active.");
 requestAnimationFrame(gameLoop);
 </script>
 </body>
