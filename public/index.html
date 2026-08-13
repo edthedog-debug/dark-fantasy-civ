@@ -1,81 +1,211 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autonomous AI Cloud World Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dark Fantasy Civ - Autonomous World</title>
+    <!-- Carga Pixi.js para los gráficos del juego -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; background: #020204; color: #f1f5f9; font-family: monospace; overflow: hidden; }
-        #canvas-container { position: relative; width: 100vw; height: 100vh; }
-        #hud { position: absolute; top: 15px; left: 15px; background: rgba(10, 11, 18, 0.92); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; padding: 16px; width: 380px; z-index: 10; }
-        .hud-header { font-size: 0.9rem; color: #38bdf8; font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid rgba(56, 189, 248, 0.2); padding-bottom: 4px; display: flex; justify-content: space-between; }
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.75rem; }
-        .stat-val { font-weight: bold; color: #fbbf24; }
-        #thought-log { position: absolute; bottom: 15px; left: 15px; right: 15px; height: 140px; background: rgba(10, 11, 18, 0.94); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 12px; overflow-y: auto; font-size: 0.75rem; color: #c084fc; z-index: 10; }
-        .log-entry { margin-bottom: 4px; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #050811;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        .ui-panel {
+            position: absolute;
+            z-index: 10;
+            background: rgba(10, 15, 28, 0.85);
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 12px;
+            color: #e2e8f0;
+            backdrop-filter: blur(6px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        #hud {
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            font-size: 13px;
+        }
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #334155;
+        }
+        .status-live {
+            color: #22c55e;
+        }
+        .hud-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 12px;
+        }
+        .val { font-weight: bold; }
+        .c-purple { color: #c084fc; }
+        .c-gold { color: #facc15; }
+        .c-cyan { color: #38bdf8; }
+        .c-green { color: #4ade80; }
+
+        #log-box {
+            bottom: 15px;
+            left: 15px;
+            right: 15px;
+            height: 110px;
+            overflow-y: auto;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+        .log-entry {
+            margin-bottom: 4px;
+            color: #94a3b8;
+        }
     </style>
 </head>
 <body>
 
-<div id="canvas-container">
-    <div id="hud">
+    <div id="canvas-container"></div>
+
+    <!-- HUD SUPERIOR -->
+    <div id="hud" class="ui-panel">
         <div class="hud-header">
             <span>CLOUD STREAM 24/7</span>
-            <span id="conn-status" style="color: #f43f5e;">[DISCONNECTED]</span>
+            <span class="status-live">[CONNECTED 24/7]</span>
         </div>
-        <div class="stat-grid">
-            <div>Day: <span id="day-val" class="stat-val">0</span></div>
-            <div>Era: <span id="era-val" class="stat-val" style="color:#c084fc;">-</span></div>
-            <div>Ruler: <span id="ruler-val" class="stat-val">-</span></div>
-            <div>Pop: <span id="pop-val" class="stat-val">0</span></div>
-            <div>Tanks: <span id="tanks-val" class="stat-val" style="color:#f43f5e;">0</span></div>
-            <div>Gold: <span id="gold-val" class="stat-val">0</span></div>
-            <div>Build: <span id="build-val" class="stat-val" style="color:#38bdf8;">-</span></div>
-            <div>War Status: <span id="war-val" class="stat-val" style="color:#4ade80;">PEACE</span></div>
+        <div class="hud-grid">
+            <div>Day: <span id="val-day" class="val c-gold">1</span></div>
+            <div>Era: <span id="val-era" class="val c-purple">Era 1</span></div>
+            <div>Ruler: <span id="val-ruler" class="val c-cyan">AI Sovereign</span></div>
+            <div>Pop: <span id="val-pop" class="val c-green">0</span></div>
+            <div>Tanks: <span id="val-tanks" class="val">0</span></div>
+            <div>Gold: <span id="val-gold" class="val c-gold">0</span></div>
+            <div>Build: <span id="val-build" class="val c-cyan">v1.0.0</span></div>
+            <div>War: <span id="val-war" class="val c-green">PEACE</span></div>
         </div>
     </div>
-    <div id="thought-log"></div>
-</div>
 
-<script>
-    // AUTO-CONNECT TO BACKEND SERVER WEBSOCKET
-    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-    const wsUrl = protocol + window.location.host;
-    let socket = new WebSocket(wsUrl);
+    <!-- LOGS INFERIORES -->
+    <div id="log-box" class="ui-panel">
+        <div id="log-content"></div>
+    </div>
 
-    const statusEl = document.getElementById('conn-status');
+    <script>
+        // 1. INICIALIZAR MOTOR GRÁFICO (PIXI.JS)
+        const container = document.getElementById('canvas-container');
+        const app = new PIXI.Application({
+            width: window.innerWidth,
+            height: window.innerHeight,
+            backgroundColor: 0x070b19,
+            resizeTo: window
+        });
+        container.appendChild(app.view);
 
-    socket.onopen = () => {
-        statusEl.innerText = "[CONNECTED 24/7]";
-        statusEl.style.color = "#4ade80";
-    };
+        // Capa para el mapa isomórfico
+        const worldContainer = new PIXI.Container();
+        worldContainer.x = app.screen.width / 2;
+        worldContainer.y = app.screen.height / 3;
+        app.stage.addChild(worldContainer);
 
-    socket.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        if (msg.type === 'WORLD_UPDATE') {
-            const data = msg.data;
-            document.getElementById('day-val').innerText = data.day;
-            document.getElementById('era-val').innerText = data.era;
-            document.getElementById('ruler-val').innerText = data.ruler;
-            document.getElementById('pop-val').innerText = data.population;
-            document.getElementById('tanks-val').innerText = data.tanks;
-            document.getElementById('gold-val').innerText = data.treasury;
-            document.getElementById('build-val').innerText = data.engineBuild;
-            document.getElementById('war-val').innerText = data.inWar ? "IN WAR" : "PEACE";
-            document.getElementById('war-val').style.color = data.inWar ? "#f43f5e" : "#4ade80";
+        // Dibujar rejilla/terreno isomórfico
+        const gridSize = 10;
+        const tileSize = 32;
 
-            // Update Logs
-            const logBox = document.getElementById('thought-log');
-            logBox.innerHTML = data.logs.map(l => `<div class="log-entry">${l}</div>`).join('');
-            logBox.scrollTop = logBox.scrollHeight;
+        for (let x = 0; x < gridSize; x++) {
+            for (let y = 0; y < gridSize; y++) {
+                const tile = new PIXI.Graphics();
+                tile.lineStyle(1, 0x1e293b, 0.8);
+                
+                // Color alternado para la tierra
+                const isAlt = (x + y) % 2 === 0;
+                tile.beginFill(isAlt ? 0x0f172a : 0x1e1b4b, 0.7);
+
+                // Polígono isomórfico
+                const isoX = (x - y) * tileSize;
+                const isoY = (x + y) * (tileSize / 2);
+
+                tile.drawPolygon([
+                    isoX, isoY,
+                    isoX + tileSize, isoY + (tileSize / 2),
+                    isoX, isoY + tileSize,
+                    isoX - tileSize, isoY + (tileSize / 2)
+                ]);
+                tile.endFill();
+                worldContainer.addChild(tile);
+            }
         }
-    };
 
-    socket.onclose = () => {
-        statusEl.innerText = "[RECONNECTING...]";
-        statusEl.style.color = "#fbbf24";
-    };
-</script>
+        // Partículas/Luces flotantes en el fondo
+        const particles = [];
+        for (let i = 0; i < 30; i++) {
+            const p = new PIXI.Graphics();
+            p.beginFill(0x38bdf8, Math.random() * 0.5 + 0.2);
+            p.drawCircle(0, 0, Math.random() * 3 + 1);
+            p.endFill();
+            p.x = Math.random() * app.screen.width;
+            p.y = Math.random() * app.screen.height;
+            p.vy = Math.random() * -0.5 - 0.2;
+            app.stage.addChild(p);
+            particles.push(p);
+        }
+
+        // Bucle de animación
+        app.ticker.add(() => {
+            particles.forEach(p => {
+                p.y += p.vy;
+                if (p.y < 0) p.y = app.screen.height;
+            });
+        });
+
+        // Ajustar pantalla al redimensionar móvil
+        window.addEventListener('resize', () => {
+            worldContainer.x = app.screen.width / 2;
+            worldContainer.y = app.screen.height / 3;
+        });
+
+        // 2. CONEXIÓN WEBSOCKET CON EL SERVIDOR
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}`;
+        const socket = new WebSocket(wsUrl);
+
+        socket.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            if (message.type === 'WORLD_UPDATE') {
+                const data = message.data;
+                document.getElementById('val-day').innerText = data.day;
+                document.getElementById('val-era').innerText = data.era;
+                document.getElementById('val-ruler').innerText = data.ruler;
+                document.getElementById('val-pop').innerText = data.population;
+                document.getElementById('val-tanks').innerText = data.tanks;
+                document.getElementById('val-gold').innerText = data.treasury;
+                document.getElementById('val-build').innerText = data.engineBuild;
+                document.getElementById('val-war').innerText = data.inWar ? 'IN WAR' : 'PEACE';
+
+                if (data.logs) {
+                    const logContainer = document.getElementById('log-content');
+                    logContainer.innerHTML = data.logs.map(l => `<div class="log-entry">${l}</div>`).join('');
+                }
+            }
+        };
+    </script>
 </body>
 </html>
