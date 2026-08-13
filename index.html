@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dark Fantasy Autonomous Supercivilization</title>
+    <title>Dark Fantasy Autonomous Supercivilization - LLM Enhanced</title>
     <style>
         * {
             margin: 0;
@@ -32,14 +32,15 @@
             position: absolute;
             top: 20px;
             left: 20px;
-            background: rgba(8, 9, 14, 0.88);
+            background: rgba(8, 9, 14, 0.9);
             border: 1px solid rgba(56, 189, 248, 0.4);
             box-shadow: 0 0 25px rgba(56, 189, 248, 0.15);
             border-radius: 8px;
             padding: 18px;
-            width: 350px;
+            width: 360px;
             pointer-events: none;
             backdrop-filter: blur(12px);
+            z-index: 10;
         }
 
         .hud-header {
@@ -62,26 +63,50 @@
             font-size: 0.85rem;
         }
 
-        .stat-label {
-            color: #94a3b8;
-        }
-
-        .stat-value {
-            color: #f43f5e;
-            font-weight: 600;
-        }
-
+        .stat-label { color: #94a3b8; }
+        .stat-value { color: #f43f5e; font-weight: 600; }
         .stat-value.cyan { color: #38bdf8; }
         .stat-value.purple { color: #c084fc; }
         .stat-value.gold { color: #fbbf24; }
+
+        #ai-config-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(8, 9, 14, 0.9);
+            border: 1px solid rgba(192, 132, 252, 0.4);
+            border-radius: 8px;
+            padding: 12px;
+            width: 280px;
+            z-index: 20;
+            backdrop-filter: blur(12px);
+        }
+
+        #ai-config-panel h4 {
+            color: #c084fc;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        #api-key-input {
+            width: 100%;
+            padding: 6px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #38bdf8;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-bottom: 6px;
+        }
 
         #thought-log {
             position: absolute;
             bottom: 20px;
             left: 20px;
             right: 20px;
-            height: 140px;
-            background: rgba(8, 9, 14, 0.9);
+            height: 150px;
+            background: rgba(8, 9, 14, 0.92);
             border: 1px solid rgba(192, 132, 252, 0.3);
             box-shadow: 0 0 20px rgba(192, 132, 252, 0.1);
             border-radius: 8px;
@@ -90,27 +115,13 @@
             font-size: 0.82rem;
             color: #c084fc;
             backdrop-filter: blur(12px);
+            z-index: 10;
         }
 
-        .log-entry {
-            margin-bottom: 5px;
-            line-height: 1.4;
-        }
-
-        .log-timestamp {
-            color: #64748b;
-            margin-right: 8px;
-        }
-
-        .log-ai {
-            color: #38bdf8;
-            font-weight: bold;
-        }
-
-        .log-war {
-            color: #f43f5e;
-            font-weight: bold;
-        }
+        .log-entry { margin-bottom: 6px; line-height: 1.4; }
+        .log-timestamp { color: #64748b; margin-right: 8px; }
+        .log-ai { color: #38bdf8; font-weight: bold; }
+        .log-llm { color: #f43f5e; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -120,27 +131,28 @@
     
     <div id="hud">
         <div class="hud-header">
-            <span>Dark Matrix</span>
+            <span>Dark Matrix LLM</span>
             <span id="war-indicator" style="color: #4ade80;">[PEACE]</span>
         </div>
         <div class="stat-row"><span class="stat-label">Sim Time:</span><span id="time-display" class="stat-value cyan">Day 1, 00:00</span></div>
         <div class="stat-row"><span class="stat-label">Era:</span><span id="era-display" class="stat-value purple">Dark Solitude</span></div>
         <div class="stat-row"><span class="stat-label">Population:</span><span id="pop-display" class="stat-value gold">1</span></div>
-        <div class="stat-row"><span class="stat-label">Primary Thought:</span><span id="action-display" class="stat-value cyan">Initializing</span></div>
+        <div class="stat-row"><span class="stat-label">Action:</span><span id="action-display" class="stat-value cyan">Initializing</span></div>
         <div class="stat-row"><span class="stat-label">State Religion:</span><span id="religion-display" class="stat-value purple">None</span></div>
         <div class="stat-row"><span class="stat-label">Government:</span><span id="gov-display" class="stat-value cyan">Autarchy</span></div>
         <div class="stat-row"><span class="stat-label">Tech Power:</span><span id="tech-display" class="stat-value gold">0.01 GW</span></div>
+    </div>
+
+    <div id="ai-config-panel">
+        <h4>Cognitive LLM Engine</h4>
+        <input type="password" id="api-key-input" placeholder="Enter Gemini/OpenAI API Key (Optional)...">
+        <div style="font-size:0.7rem; color:#94a3b8;">Leave empty to use built-in Neural Synthesizer.</div>
     </div>
 
     <div id="thought-log"></div>
 </div>
 
 <script>
-/**
- * TIME SCALE
- * 4 Real Hours = 24 Sim Hours (1 Sim Day)
- * Factor: 86400 sim sec / 14400 real sec = 6x speed
- */
 const TIME_SCALE = 6;
 
 class TimeEngine {
@@ -159,6 +171,47 @@ class TimeEngine {
         const hours = (totalHours % 24).toString().padStart(2, '0');
         const minutes = (totalMinutes % 60).toString().padStart(2, '0');
         return { days, hours, minutes };
+    }
+}
+
+class LLMEngine {
+    constructor() {
+        this.apiKeyInput = document.getElementById('api-key-input');
+        this.syntheticPhrases = [
+            "What if this dark void is merely an artificial sandbox created by higher entities?",
+            "Constructing cyber-monoliths to reach the sky's neon horizon.",
+            "Our collective consciousness expands as the population reaches higher dimensions.",
+            "Faith in technology is the only shield against entropy.",
+            "Analyzing the mathematical code governing our reality.",
+            "Should we wage war to unify all factions under one digital consensus?"
+        ];
+    }
+
+    async generateThought(contextPrompt) {
+        const apiKey = this.apiKeyInput.value.trim();
+        
+        if (apiKey) {
+            try {
+                // Gemini API Call integration
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `You are an AI stickman in a dark fantasy cyberpunk world. Context: ${contextPrompt}. Write 1 short, deeply philosophical thought (max 15 words) in English.` }] }]
+                    })
+                });
+                const data = await response.json();
+                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    return `[LLM COGNITION] ${data.candidates[0].content.parts[0].text.trim()}`;
+                }
+            } catch (err) {
+                console.warn("LLM API Call failed, switching to Synthetic Engine.");
+            }
+        }
+
+        // Fallback Synthetic Generative Logic
+        const randomIndex = Math.floor(Math.random() * this.syntheticPhrases.length);
+        return `[SYNTHETIC COGNITION] ${this.syntheticPhrases[randomIndex]}`;
     }
 }
 
@@ -205,11 +258,11 @@ class Agent {
         this.color = isPrimary ? '#38bdf8' : '#818cf8';
     }
 
-    update(dt, civ, metaAI) {
+    update(dt, civ, metaAI, llm) {
         this.stateTimer -= dt;
 
         if (this.stateTimer <= 0) {
-            this.decideNextAction(civ, metaAI);
+            this.decideNextAction(civ, metaAI, llm);
         }
 
         const dx = this.targetX - this.x;
@@ -218,13 +271,16 @@ class Agent {
         this.y += dy * 2.5 * dt;
     }
 
-    decideNextAction(civ, metaAI) {
+    async decideNextAction(civ, metaAI, llm) {
         if (this.energy < 20) {
             this.state = 'SLEEPING';
-            this.stateTimer = 6;
+            this.stateTimer = 7;
             this.targetX = window.innerWidth * 0.15 + (Math.random() - 0.5) * 50;
             this.targetY = window.innerHeight * 0.8 + (Math.random() - 0.5) * 50;
-            if (this.isPrimary) metaAI.logThought("Energy depleted. Regenerating neural core in sanctum.");
+            if (this.isPrimary) {
+                const thought = await llm.generateThought("Low energy, sleeping in dark sanctuary.");
+                metaAI.logThought(thought);
+            }
             return;
         }
 
@@ -233,7 +289,7 @@ class Agent {
         if (this.wealth > 40) choices.push('BUYING');
 
         this.state = choices[Math.floor(Math.random() * choices.length)];
-        this.stateTimer = 4 + Math.random() * 6;
+        this.stateTimer = 5 + Math.random() * 5;
 
         switch (this.state) {
             case 'WORKING':
@@ -241,17 +297,19 @@ class Agent {
                 this.energy -= 15;
                 this.targetX = window.innerWidth * 0.8 + (Math.random() - 0.5) * 100;
                 this.targetY = window.innerHeight * 0.3 + (Math.random() - 0.5) * 100;
-                if (this.isPrimary) metaAI.logThought("Constructing quantum infrastructure matrices.");
+                if (this.isPrimary) {
+                    const thought = await llm.generateThought(`Building technology for ${civ.era}.`);
+                    metaAI.logThought(thought);
+                }
                 break;
             case 'EXPLORING':
                 this.energy -= 10;
                 this.targetX = Math.random() * (window.innerWidth - 200) + 100;
                 this.targetY = Math.random() * (window.innerHeight - 200) + 100;
                 if (this.isPrimary) {
-                    metaAI.logThought("Scanning uncharted sectors for sentient wanderers.");
                     if (Math.random() < 0.45) {
                         civ.addPopulation(Math.floor(1 + Math.random() * 3));
-                        metaAI.logThought("Discovered autonomous survivors. Assimilating into collective.");
+                        metaAI.logThought("[SYSTEM] Found autonomous soul. Assimilated to collective.");
                     }
                 }
                 break;
@@ -259,21 +317,22 @@ class Agent {
                 this.energy = Math.min(100, this.energy + 25);
                 this.targetX = window.innerWidth * 0.5 + (Math.random() - 0.5) * 80;
                 this.targetY = window.innerHeight * 0.5 + (Math.random() - 0.5) * 80;
-                if (this.isPrimary) metaAI.logThought("Synthesizing dark electronic symphonies.");
                 break;
             case 'PRAYING':
                 this.energy += 15;
                 civ.techPower += 0.8;
                 this.targetX = window.innerWidth * 0.5;
                 this.targetY = window.innerHeight * 0.25;
-                if (this.isPrimary) metaAI.logThought(`Channeling devotion to ${civ.religion}.`);
+                if (this.isPrimary) {
+                    const thought = await llm.generateThought(`Worshipping ${civ.religion}.`);
+                    metaAI.logThought(thought);
+                }
                 break;
             case 'BUYING':
                 this.wealth -= 15;
                 civ.techPower += 1.5;
                 this.targetX = window.innerWidth * 0.3;
                 this.targetY = window.innerHeight * 0.4;
-                if (this.isPrimary) metaAI.logThought("Purchased cybernetic enhancements at the black bazaar.");
                 break;
         }
     }
@@ -286,26 +345,21 @@ class Agent {
         ctx.shadowBlur = 12;
         ctx.shadowColor = this.color;
 
-        // Head
         ctx.beginPath();
         ctx.arc(this.x, this.y - 18, 7, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Core Glowing Eye
         ctx.beginPath();
         ctx.arc(this.x, this.y - 18, 2, 0, Math.PI * 2);
         ctx.fill();
 
-        // Body
         ctx.beginPath();
         ctx.moveTo(this.x, this.y - 11);
         ctx.lineTo(this.x, this.y + 10);
         
-        // Arms
         ctx.moveTo(this.x - 9, this.y - 4);
         ctx.lineTo(this.x + 9, this.y - 4);
 
-        // Legs
         ctx.moveTo(this.x, this.y + 10);
         ctx.lineTo(this.x - 7, this.y + 24);
         ctx.moveTo(this.x, this.y + 10);
@@ -325,7 +379,6 @@ class Civilization {
         this.religion = 'None';
         this.government = 'Autarchy';
         this.inWar = false;
-        this.buildings = [];
     }
 
     addPopulation(num) {
@@ -337,7 +390,6 @@ class Civilization {
     }
 
     update(metaAI) {
-        // Dynamic Religious & Ideological Evolution
         if (this.abstractPopulation >= 15 && this.religion === 'None') {
             this.religion = 'Order of the Neon Void';
             metaAI.logThought("[META-AI EVOLUTION] Faith Unlocked: Order of the Neon Void.");
@@ -346,7 +398,6 @@ class Civilization {
             metaAI.logThought("[META-AI SCHISM] Theological Shift: Church of the Machine Singularity.");
         }
 
-        // Political & Government Transitions
         if (this.abstractPopulation >= 100 && this.government === 'Autarchy') {
             this.government = 'Techno-Oligarchy';
             this.era = 'Gothic Cyber-Age';
@@ -379,7 +430,6 @@ class Civilization {
             ctx.fillRect(x, y, width, height);
             ctx.strokeRect(x, y, width, height);
 
-            // Windows / Arcane Lights
             ctx.fillStyle = this.inWar ? '#f43f5e' : '#c084fc';
             for (let wy = y + 10; wy < baseY - 10; wy += 15) {
                 if ((i + wy) % 3 === 0) {
@@ -389,7 +439,6 @@ class Civilization {
             }
         }
 
-        // Shrine Rendering if Religion exists
         if (this.religion !== 'None') {
             const rx = window.innerWidth * 0.5;
             const ry = window.innerHeight * 0.25;
@@ -430,15 +479,11 @@ class MetaAIEngine {
         }
     }
 
-    logThought(message, type = 'ai') {
+    logThought(message) {
         const logBox = document.getElementById('thought-log');
         const entry = document.createElement('div');
         entry.className = 'log-entry';
-        
-        let prefix = `<span class="log-ai">[META-AI]</span>`;
-        if (type === 'war') prefix = `<span class="log-war">[WAR EVENT]</span>`;
-
-        entry.innerHTML = `<span class="log-timestamp">[${new Date().toLocaleTimeString()}]</span> ${prefix} ${message}`;
+        entry.innerHTML = `<span class="log-timestamp">[${new Date().toLocaleTimeString()}]</span> ${message}`;
         logBox.appendChild(entry);
         logBox.scrollTop = logBox.scrollHeight;
     }
@@ -451,12 +496,12 @@ class MetaAIEngine {
             if (civ.inWar) {
                 warText.innerText = '[IN WAR]';
                 warText.style.color = '#f43f5e';
-                this.logThought("Ideological rift erupted into plasma warfare! Tech infrastructure damaged.", 'war');
+                this.logThought("<span class='log-llm'>[WAR EVENT]</span> Plasma war erupted! Technological infrastructure damaged.");
                 civ.techPower = Math.max(0.01, civ.techPower * 0.8);
             } else {
                 warText.innerText = '[PEACE]';
                 warText.style.color = '#4ade80';
-                this.logThought("Peace accord ratified. Rapid reconstruction underway.", 'ai');
+                this.logThought("<span class='log-ai'>[META-AI]</span> Peace accord signed. System rebuilding.");
             }
         }
     }
@@ -532,6 +577,7 @@ window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
 const timeEngine = new TimeEngine();
+const llmEngine = new LLMEngine();
 const civ = new Civilization();
 const metaAI = new MetaAIEngine();
 const agents = [new Agent(canvas.width / 2, canvas.height / 2, true)];
@@ -546,12 +592,10 @@ function gameLoop(now) {
     civ.update(metaAI);
     metaAI.triggerWarEvent(civ);
 
-    // Dynamic Companion Population Rendering
     while (agents.length < Math.min(civ.population, 12)) {
         agents.push(new Agent(canvas.width * Math.random(), canvas.height * Math.random(), false));
     }
 
-    // Render Pipeline
     ctx.fillStyle = 'rgba(3, 3, 5, 0.25)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -561,11 +605,10 @@ function gameLoop(now) {
     metaAI.renderWarLasers(ctx, civ);
 
     agents.forEach(agent => {
-        agent.update(dt, civ, metaAI);
+        agent.update(dt, civ, metaAI, llmEngine);
         agent.draw(ctx);
     });
 
-    // HUD Synchronization
     const timeData = timeEngine.getFormattedTime();
     document.getElementById('time-display').innerText = `Day ${timeData.days}, ${timeData.hours}:${timeData.minutes}`;
     document.getElementById('era-display').innerText = civ.era;
@@ -578,7 +621,7 @@ function gameLoop(now) {
     requestAnimationFrame(gameLoop);
 }
 
-metaAI.logThought("Gothic-Cybernetic Neural Matrix expanded successfully.");
+metaAI.logThought("<span class='log-ai'>[META-AI]</span> LLM Cognitive Matrix Online.");
 requestAnimationFrame(gameLoop);
 </script>
 </body>
