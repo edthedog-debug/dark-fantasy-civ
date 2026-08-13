@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dark Fantasy Autonomous Simulation</title>
+    <title>Dark Fantasy Autonomous Supercivilization</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            background-color: #050508;
-            color: #d1d5db;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #030305;
+            color: #e2e8f0;
+            font-family: 'Consolas', 'Courier New', monospace;
             overflow: hidden;
+            user-select: none;
         }
 
         #canvas-container {
@@ -31,63 +32,84 @@
             position: absolute;
             top: 20px;
             left: 20px;
-            background: rgba(10, 10, 16, 0.85);
-            border: 1px solid #3b82f6;
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+            background: rgba(8, 9, 14, 0.88);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.15);
             border-radius: 8px;
-            padding: 16px;
-            width: 320px;
+            padding: 18px;
+            width: 350px;
             pointer-events: none;
-            backdrop-filter: blur(8px);
+            backdrop-filter: blur(12px);
         }
 
-        .hud-title {
+        .hud-header {
             font-size: 1.1rem;
-            font-weight: bold;
-            color: #93c5fd;
-            margin-bottom: 8px;
+            font-weight: 700;
+            color: #38bdf8;
+            margin-bottom: 10px;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            border-bottom: 1px solid #1e3a8a;
-            padding-bottom: 4px;
+            letter-spacing: 1.5px;
+            border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+            padding-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
         }
 
         .stat-row {
             display: flex;
             justify-content: space-between;
-            margin: 4px 0;
+            margin: 5px 0;
             font-size: 0.85rem;
         }
 
-        .stat-value {
-            color: #38bdf8;
-            font-weight: bold;
+        .stat-label {
+            color: #94a3b8;
         }
+
+        .stat-value {
+            color: #f43f5e;
+            font-weight: 600;
+        }
+
+        .stat-value.cyan { color: #38bdf8; }
+        .stat-value.purple { color: #c084fc; }
+        .stat-value.gold { color: #fbbf24; }
 
         #thought-log {
             position: absolute;
             bottom: 20px;
             left: 20px;
             right: 20px;
-            height: 120px;
-            background: rgba(10, 10, 16, 0.85);
-            border: 1px solid #8b5cf6;
-            box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+            height: 140px;
+            background: rgba(8, 9, 14, 0.9);
+            border: 1px solid rgba(192, 132, 252, 0.3);
+            box-shadow: 0 0 20px rgba(192, 132, 252, 0.1);
             border-radius: 8px;
-            padding: 12px;
+            padding: 14px;
             overflow-y: auto;
-            font-family: monospace;
-            font-size: 0.8rem;
-            color: #a78bfa;
-            backdrop-filter: blur(8px);
+            font-size: 0.82rem;
+            color: #c084fc;
+            backdrop-filter: blur(12px);
         }
 
         .log-entry {
-            margin-bottom: 4px;
+            margin-bottom: 5px;
+            line-height: 1.4;
         }
 
-        .log-meta {
-            color: #ec4899;
+        .log-timestamp {
+            color: #64748b;
+            margin-right: 8px;
+        }
+
+        .log-ai {
+            color: #38bdf8;
+            font-weight: bold;
+        }
+
+        .log-war {
+            color: #f43f5e;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -97,14 +119,17 @@
     <canvas id="simCanvas"></canvas>
     
     <div id="hud">
-        <div class="hud-title">Gothic-Cyber Civilization</div>
-        <div class="stat-row"><span>Simulated Time:</span><span id="time-display" class="stat-value">Day 1, 00:00</span></div>
-        <div class="stat-row"><span>Era:</span><span id="era-display" class="stat-value">Dark Solitude</span></div>
-        <div class="stat-row"><span>Population:</span><span id="pop-display" class="stat-value">1</span></div>
-        <div class="stat-row"><span>Current Action:</span><span id="action-display" class="stat-value">Idle</span></div>
-        <div class="stat-row"><span>Religion:</span><span id="religion-display" class="stat-value">None</span></div>
-        <div class="stat-row"><span>Political System:</span><span id="gov-display" class="stat-value">Autarchy</span></div>
-        <div class="stat-row"><span>Tech Power:</span><span id="tech-display" class="stat-value">0.01</span></div>
+        <div class="hud-header">
+            <span>Dark Matrix</span>
+            <span id="war-indicator" style="color: #4ade80;">[PEACE]</span>
+        </div>
+        <div class="stat-row"><span class="stat-label">Sim Time:</span><span id="time-display" class="stat-value cyan">Day 1, 00:00</span></div>
+        <div class="stat-row"><span class="stat-label">Era:</span><span id="era-display" class="stat-value purple">Dark Solitude</span></div>
+        <div class="stat-row"><span class="stat-label">Population:</span><span id="pop-display" class="stat-value gold">1</span></div>
+        <div class="stat-row"><span class="stat-label">Primary Thought:</span><span id="action-display" class="stat-value cyan">Initializing</span></div>
+        <div class="stat-row"><span class="stat-label">State Religion:</span><span id="religion-display" class="stat-value purple">None</span></div>
+        <div class="stat-row"><span class="stat-label">Government:</span><span id="gov-display" class="stat-value cyan">Autarchy</span></div>
+        <div class="stat-row"><span class="stat-label">Tech Power:</span><span id="tech-display" class="stat-value gold">0.01 GW</span></div>
     </div>
 
     <div id="thought-log"></div>
@@ -112,7 +137,7 @@
 
 <script>
 /**
- * TIME CONFIGURATION
+ * TIME SCALE
  * 4 Real Hours = 24 Sim Hours (1 Sim Day)
  * Factor: 86400 sim sec / 14400 real sec = 6x speed
  */
@@ -137,18 +162,47 @@ class TimeEngine {
     }
 }
 
+class Particle {
+    constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 2;
+        this.vy = (Math.random() - 0.5) * 2;
+        this.size = Math.random() * 2 + 1;
+        this.color = color;
+        this.life = 1.0;
+        this.decay = Math.random() * 0.02 + 0.01;
+    }
+
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.life -= this.decay;
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, this.life);
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
 class Agent {
-    constructor(x, y) {
+    constructor(x, y, isPrimary = false) {
         this.x = x;
         this.y = y;
         this.targetX = x;
         this.targetY = y;
+        this.isPrimary = isPrimary;
         this.energy = 100;
         this.wealth = 10;
-        this.knowledge = 0;
-        this.state = 'THINKING'; // THINKING, WORKING, BUYING, SLEEPING, HOBBY, EXPLORING, PRAYING
+        this.state = 'THINKING';
         this.stateTimer = 0;
-        this.color = '#38bdf8';
+        this.color = isPrimary ? '#38bdf8' : '#818cf8';
     }
 
     update(dt, civ, metaAI) {
@@ -158,64 +212,68 @@ class Agent {
             this.decideNextAction(civ, metaAI);
         }
 
-        // Movement interpolation
         const dx = this.targetX - this.x;
         const dy = this.targetY - this.y;
-        this.x += dx * 2 * dt;
-        this.y += dy * 2 * dt;
+        this.x += dx * 2.5 * dt;
+        this.y += dy * 2.5 * dt;
     }
 
     decideNextAction(civ, metaAI) {
         if (this.energy < 20) {
             this.state = 'SLEEPING';
-            this.stateTimer = 8; // Sim seconds duration
-            this.targetX = window.innerWidth * 0.2;
-            this.targetY = window.innerHeight * 0.8;
-            metaAI.logThought("Energy low. Entering deep meditation/sleep.");
+            this.stateTimer = 6;
+            this.targetX = window.innerWidth * 0.15 + (Math.random() - 0.5) * 50;
+            this.targetY = window.innerHeight * 0.8 + (Math.random() - 0.5) * 50;
+            if (this.isPrimary) metaAI.logThought("Energy depleted. Regenerating neural core in sanctum.");
             return;
         }
 
         const choices = ['WORKING', 'EXPLORING', 'HOBBY'];
         if (civ.religion !== 'None') choices.push('PRAYING');
-        if (this.wealth > 50) choices.push('BUYING');
+        if (this.wealth > 40) choices.push('BUYING');
 
         this.state = choices[Math.floor(Math.random() * choices.length)];
-        this.stateTimer = 5 + Math.random() * 5;
+        this.stateTimer = 4 + Math.random() * 6;
 
         switch (this.state) {
             case 'WORKING':
-                this.wealth += 15;
-                this.knowledge += 2;
+                this.wealth += 20;
                 this.energy -= 15;
-                this.targetX = window.innerWidth * 0.7;
-                this.targetY = window.innerHeight * 0.3;
-                metaAI.logThought("Working on arcane-technological algorithms.");
+                this.targetX = window.innerWidth * 0.8 + (Math.random() - 0.5) * 100;
+                this.targetY = window.innerHeight * 0.3 + (Math.random() - 0.5) * 100;
+                if (this.isPrimary) metaAI.logThought("Constructing quantum infrastructure matrices.");
                 break;
             case 'EXPLORING':
                 this.energy -= 10;
-                this.targetX = Math.random() * (window.innerWidth - 100) + 50;
-                this.targetY = Math.random() * (window.innerHeight - 100) + 50;
-                metaAI.logThought("Scouting dark realm frontiers for lost knowledge.");
-                if (Math.random() < 0.3) {
-                    civ.addPopulation(1);
-                    metaAI.logThought("Found an isolated wanderer. Population expanded.");
+                this.targetX = Math.random() * (window.innerWidth - 200) + 100;
+                this.targetY = Math.random() * (window.innerHeight - 200) + 100;
+                if (this.isPrimary) {
+                    metaAI.logThought("Scanning uncharted sectors for sentient wanderers.");
+                    if (Math.random() < 0.45) {
+                        civ.addPopulation(Math.floor(1 + Math.random() * 3));
+                        metaAI.logThought("Discovered autonomous survivors. Assimilating into collective.");
+                    }
                 }
                 break;
             case 'HOBBY':
-                this.energy = Math.min(100, this.energy + 20);
-                this.targetX = window.innerWidth * 0.5;
-                this.targetY = window.innerHeight * 0.5;
-                metaAI.logThought("Engaging in dark alchemy and aesthetic creation.");
+                this.energy = Math.min(100, this.energy + 25);
+                this.targetX = window.innerWidth * 0.5 + (Math.random() - 0.5) * 80;
+                this.targetY = window.innerHeight * 0.5 + (Math.random() - 0.5) * 80;
+                if (this.isPrimary) metaAI.logThought("Synthesizing dark electronic symphonies.");
                 break;
             case 'PRAYING':
-                this.energy += 10;
-                civ.techPower += 0.5;
-                metaAI.logThought(`Offering devotion to ${civ.religion}.`);
+                this.energy += 15;
+                civ.techPower += 0.8;
+                this.targetX = window.innerWidth * 0.5;
+                this.targetY = window.innerHeight * 0.25;
+                if (this.isPrimary) metaAI.logThought(`Channeling devotion to ${civ.religion}.`);
                 break;
             case 'BUYING':
-                this.wealth -= 20;
-                civ.techPower += 1.2;
-                metaAI.logThought("Acquired hyper-density processors from the shadow market.");
+                this.wealth -= 15;
+                civ.techPower += 1.5;
+                this.targetX = window.innerWidth * 0.3;
+                this.targetY = window.innerHeight * 0.4;
+                if (this.isPrimary) metaAI.logThought("Purchased cybernetic enhancements at the black bazaar.");
                 break;
         }
     }
@@ -225,28 +283,33 @@ class Agent {
         ctx.strokeStyle = this.color;
         ctx.fillStyle = this.color;
         ctx.lineWidth = 2;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 12;
         ctx.shadowColor = this.color;
 
         // Head
         ctx.beginPath();
-        ctx.arc(this.x, this.y - 20, 8, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y - 18, 7, 0, Math.PI * 2);
         ctx.stroke();
+
+        // Core Glowing Eye
+        ctx.beginPath();
+        ctx.arc(this.x, this.y - 18, 2, 0, Math.PI * 2);
+        ctx.fill();
 
         // Body
         ctx.beginPath();
-        ctx.moveTo(this.x, this.y - 12);
+        ctx.moveTo(this.x, this.y - 11);
         ctx.lineTo(this.x, this.y + 10);
         
         // Arms
-        ctx.moveTo(this.x - 10, this.y - 5);
-        ctx.lineTo(this.x + 10, this.y - 5);
+        ctx.moveTo(this.x - 9, this.y - 4);
+        ctx.lineTo(this.x + 9, this.y - 4);
 
         // Legs
         ctx.moveTo(this.x, this.y + 10);
-        ctx.lineTo(this.x - 8, this.y + 25);
+        ctx.lineTo(this.x - 7, this.y + 24);
         ctx.moveTo(this.x, this.y + 10);
-        ctx.lineTo(this.x + 8, this.y + 25);
+        ctx.lineTo(this.x + 7, this.y + 24);
         ctx.stroke();
 
         ctx.restore();
@@ -256,65 +319,204 @@ class Agent {
 class Civilization {
     constructor() {
         this.population = 1;
-        this.abstractPopulation = 1; // Scales dynamically to millions
+        this.abstractPopulation = 1;
         this.techPower = 0.01;
         this.era = 'Dark Solitude';
         this.religion = 'None';
         this.government = 'Autarchy';
         this.inWar = false;
+        this.buildings = [];
     }
 
     addPopulation(num) {
         this.population += num;
-        this.abstractPopulation = Math.floor(this.population * Math.pow(1.15, this.population));
+        this.abstractPopulation = Math.floor(this.population * Math.pow(1.22, Math.min(this.population, 50)));
+        if (this.population > 50) {
+            this.abstractPopulation = Math.floor(10000 * Math.pow(1.05, this.population - 50));
+        }
     }
 
     update(metaAI) {
-        if (this.abstractPopulation > 100 && this.religion === 'None') {
-            this.religion = 'Cult of the Machine Core';
-            metaAI.logThought("[META-AI EVENT] New Religion Founded: Cult of the Machine Core.");
+        // Dynamic Religious & Ideological Evolution
+        if (this.abstractPopulation >= 15 && this.religion === 'None') {
+            this.religion = 'Order of the Neon Void';
+            metaAI.logThought("[META-AI EVOLUTION] Faith Unlocked: Order of the Neon Void.");
+        } else if (this.abstractPopulation >= 50000 && this.religion === 'Order of the Neon Void') {
+            this.religion = 'Church of the Machine Singularity';
+            metaAI.logThought("[META-AI SCHISM] Theological Shift: Church of the Machine Singularity.");
         }
 
-        if (this.abstractPopulation > 5000 && this.government === 'Autarchy') {
-            this.government = 'Cyber-Technocracy';
-            this.era = 'Arcane-Industrial Age';
-            metaAI.logThought("[META-AI EVENT] Political Shift: Established Cyber-Technocracy.");
+        // Political & Government Transitions
+        if (this.abstractPopulation >= 100 && this.government === 'Autarchy') {
+            this.government = 'Techno-Oligarchy';
+            this.era = 'Gothic Cyber-Age';
+            metaAI.logThought("[META-AI POLITICS] Government Reform: Techno-Oligarchy established.");
+        } else if (this.abstractPopulation >= 100000 && this.government === 'Techno-Oligarchy') {
+            this.government = 'AI-Direct Consensus Network';
+            this.era = 'Planetary Super-Civilization';
+            metaAI.logThought("[META-AI POLITICS] Ultimate State: AI-Direct Consensus Network active.");
+        }
+    }
+
+    drawCity(ctx) {
+        const buildingCount = Math.min(40, Math.floor(Math.log10(this.abstractPopulation + 1) * 6));
+        const startX = window.innerWidth * 0.65;
+        const baseY = window.innerHeight * 0.85;
+
+        ctx.save();
+        for (let i = 0; i < buildingCount; i++) {
+            const height = 40 + (i * 17 % 180) + (this.techPower * 2);
+            const width = 25 + (i * 7 % 20);
+            const x = startX + (i * 18) - (buildingCount * 8);
+            const y = baseY - height;
+
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = this.inWar ? '#f43f5e' : '#38bdf8';
+            ctx.lineWidth = 1;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = ctx.strokeStyle;
+
+            ctx.fillRect(x, y, width, height);
+            ctx.strokeRect(x, y, width, height);
+
+            // Windows / Arcane Lights
+            ctx.fillStyle = this.inWar ? '#f43f5e' : '#c084fc';
+            for (let wy = y + 10; wy < baseY - 10; wy += 15) {
+                if ((i + wy) % 3 === 0) {
+                    ctx.fillRect(x + 5, wy, 4, 4);
+                    ctx.fillRect(x + width - 9, wy, 4, 4);
+                }
+            }
         }
 
-        if (this.abstractPopulation > 1000000 && this.era !== 'Planetary Singularity') {
-            this.era = 'Planetary Singularity';
-            metaAI.logThought("[META-AI EVENT] Civilization achieved Hyper-Futuristic Singularity.");
+        // Shrine Rendering if Religion exists
+        if (this.religion !== 'None') {
+            const rx = window.innerWidth * 0.5;
+            const ry = window.innerHeight * 0.25;
+            ctx.strokeStyle = '#fbbf24';
+            ctx.shadowColor = '#fbbf24';
+            ctx.shadowBlur = 20;
+            ctx.beginPath();
+            ctx.arc(rx, ry, 25, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(rx, ry - 35);
+            ctx.lineTo(rx + 25, ry + 15);
+            ctx.lineTo(rx - 25, ry + 15);
+            ctx.closePath();
+            ctx.stroke();
         }
+
+        ctx.restore();
     }
 }
 
 class MetaAIEngine {
     constructor() {
-        this.glowIntensity = 10;
-        this.themeColor = '#8b5cf6';
+        this.particles = [];
+        this.nodes = [];
+        this.initNodes();
     }
 
-    enhanceGraphics(ctx) {
-        // Dynamic Meta-AI visual overlay updates
-        ctx.fillStyle = 'rgba(5, 5, 8, 0.2)';
-        ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+    initNodes() {
+        for (let i = 0; i < 35; i++) {
+            this.nodes.push({
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * (window.innerHeight * 0.5),
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: (Math.random() - 0.5) * 0.5
+            });
+        }
     }
 
-    logThought(message) {
+    logThought(message, type = 'ai') {
         const logBox = document.getElementById('thought-log');
         const entry = document.createElement('div');
         entry.className = 'log-entry';
-        entry.innerHTML = `<span class="log-meta">[${new Date().toLocaleTimeString()}]</span> ${message}`;
+        
+        let prefix = `<span class="log-ai">[META-AI]</span>`;
+        if (type === 'war') prefix = `<span class="log-war">[WAR EVENT]</span>`;
+
+        entry.innerHTML = `<span class="log-timestamp">[${new Date().toLocaleTimeString()}]</span> ${prefix} ${message}`;
         logBox.appendChild(entry);
         logBox.scrollTop = logBox.scrollHeight;
     }
 
-    triggerGlobalEvents(civ) {
-        if (Math.random() < 0.001) { // Random conflict trigger
+    triggerWarEvent(civ) {
+        if (Math.random() < 0.002) {
             civ.inWar = !civ.inWar;
-            const status = civ.inWar ? "WAR DECLARED: Geopolitical ideological conflict." : "PEACE TREATY: Rebuilding infrastructure.";
-            this.logThought(`[META-AI DYNAMICS] ${status}`);
+            const warText = document.getElementById('war-indicator');
+
+            if (civ.inWar) {
+                warText.innerText = '[IN WAR]';
+                warText.style.color = '#f43f5e';
+                this.logThought("Ideological rift erupted into plasma warfare! Tech infrastructure damaged.", 'war');
+                civ.techPower = Math.max(0.01, civ.techPower * 0.8);
+            } else {
+                warText.innerText = '[PEACE]';
+                warText.style.color = '#4ade80';
+                this.logThought("Peace accord ratified. Rapid reconstruction underway.", 'ai');
+            }
         }
+    }
+
+    drawNeuralWeb(ctx, civ) {
+        ctx.save();
+        ctx.strokeStyle = civ.inWar ? 'rgba(244, 63, 94, 0.15)' : 'rgba(56, 189, 248, 0.15)';
+        ctx.lineWidth = 1;
+
+        for (let i = 0; i < this.nodes.length; i++) {
+            const nodeA = this.nodes[i];
+            nodeA.x += nodeA.vx;
+            nodeA.y += nodeA.vy;
+
+            if (nodeA.x < 0 || nodeA.x > window.innerWidth) nodeA.vx *= -1;
+            if (nodeA.y < 0 || nodeA.y > window.innerHeight * 0.5) nodeA.vy *= -1;
+
+            for (let j = i + 1; j < this.nodes.length; j++) {
+                const nodeB = this.nodes[j];
+                const dist = Math.hypot(nodeA.x - nodeB.x, nodeA.y - nodeB.y);
+
+                if (dist < 160) {
+                    ctx.beginPath();
+                    ctx.moveTo(nodeA.x, nodeA.y);
+                    ctx.lineTo(nodeB.x, nodeB.y);
+                    ctx.stroke();
+                }
+            }
+        }
+        ctx.restore();
+    }
+
+    updateAndDrawParticles(ctx) {
+        if (Math.random() < 0.3) {
+            this.particles.push(new Particle(Math.random() * window.innerWidth, window.innerHeight, '#38bdf8'));
+        }
+
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            p.update();
+            p.draw(ctx);
+            if (p.life <= 0) this.particles.splice(i, 1);
+        }
+    }
+
+    renderWarLasers(ctx, civ) {
+        if (!civ.inWar) return;
+        ctx.save();
+        ctx.strokeStyle = '#f43f5e';
+        ctx.lineWidth = 2;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#f43f5e';
+
+        for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(Math.random() * window.innerWidth, window.innerHeight * 0.85);
+            ctx.lineTo(Math.random() * window.innerWidth, window.innerHeight * 0.3);
+            ctx.stroke();
+        }
+        ctx.restore();
     }
 }
 
@@ -332,7 +534,7 @@ resizeCanvas();
 const timeEngine = new TimeEngine();
 const civ = new Civilization();
 const metaAI = new MetaAIEngine();
-const primaryAgent = new Agent(canvas.width / 2, canvas.height / 2);
+const agents = [new Agent(canvas.width / 2, canvas.height / 2, true)];
 
 let lastTime = performance.now();
 
@@ -341,28 +543,42 @@ function gameLoop(now) {
     lastTime = now;
 
     timeEngine.update(dt);
-    primaryAgent.update(dt, civ, metaAI);
     civ.update(metaAI);
-    metaAI.triggerGlobalEvents(civ);
+    metaAI.triggerWarEvent(civ);
 
-    // Render
-    metaAI.enhanceGraphics(ctx);
-    primaryAgent.draw(ctx);
+    // Dynamic Companion Population Rendering
+    while (agents.length < Math.min(civ.population, 12)) {
+        agents.push(new Agent(canvas.width * Math.random(), canvas.height * Math.random(), false));
+    }
 
-    // Update UI
+    // Render Pipeline
+    ctx.fillStyle = 'rgba(3, 3, 5, 0.25)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    metaAI.drawNeuralWeb(ctx, civ);
+    metaAI.updateAndDrawParticles(ctx);
+    civ.drawCity(ctx);
+    metaAI.renderWarLasers(ctx, civ);
+
+    agents.forEach(agent => {
+        agent.update(dt, civ, metaAI);
+        agent.draw(ctx);
+    });
+
+    // HUD Synchronization
     const timeData = timeEngine.getFormattedTime();
     document.getElementById('time-display').innerText = `Day ${timeData.days}, ${timeData.hours}:${timeData.minutes}`;
     document.getElementById('era-display').innerText = civ.era;
     document.getElementById('pop-display').innerText = civ.abstractPopulation.toLocaleString();
-    document.getElementById('action-display').innerText = primaryAgent.state;
+    document.getElementById('action-display').innerText = agents[0].state;
     document.getElementById('religion-display').innerText = civ.religion;
     document.getElementById('gov-display').innerText = civ.government;
-    document.getElementById('tech-display').innerText = civ.techPower.toFixed(2);
+    document.getElementById('tech-display').innerText = `${civ.techPower.toFixed(2)} GW`;
 
     requestAnimationFrame(gameLoop);
 }
 
-metaAI.logThought("Meta-AI Initialized. Dark Fantasy World Matrix Online.");
+metaAI.logThought("Gothic-Cybernetic Neural Matrix expanded successfully.");
 requestAnimationFrame(gameLoop);
 </script>
 </body>
