@@ -123,7 +123,7 @@ async function autoImproveGameCode() {
         const fileData = await getFile.json();
         const currentSha = fileData.sha;
 
-        const prompt = `Improve the Pixi.js code for an isometric world simulator. Add a new visual effect (like dynamic weather, particle effects, glowing buildings, or tank trails).
+        const prompt = `Improve the Pixi.js code for an isometric world simulator. As the civilization grows and available grid tiles run out, expand the map size into a larger territory or entire country. Implement an interactive mobile camera control system (touch drag/pan and pinch-zoom) so players can navigate the expanded world. Also add detailed isometric buildings, citizens, vehicles, or visual effects.
         Current build: ${worldState.engineBuild}. Return ONLY the raw complete valid HTML/JS code for public/index.html.`;
 
         const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${AI_API_KEY}`, {
