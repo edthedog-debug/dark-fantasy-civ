@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Fantasy Autonomous Simulation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            background-color: #050508;
+            color: #d1d5db;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(10, 10, 16, 0.85);
+            border: 1px solid #3b82f6;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            width: 320px;
+            pointer-events: none;
+            backdrop-filter: blur(8px);
+        }
+
+        .hud-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #93c5fd;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #1e3a8a;
+            padding-bottom: 4px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+            font-size: 0.85rem;
+        }
+
+        .stat-value {
+            color: #38bdf8;
+            font-weight: bold;
+        }
+
+        #thought-log {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            height: 120px;
+            background: rgba(10, 10, 16, 0.85);
+            border: 1px solid #8b5cf6;
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #a78bfa;
+            backdrop-filter: blur(8px);
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+        }
+
+        .log-meta {
+            color: #ec4899;
+        }
+    </style>
+</head>
+<body>
+
+<div id="canvas-container">
+    <canvas id="simCanvas"></canvas>
+    
+    <div id="hud">
+        <div class="hud-title">Gothic-Cyber Civilization</div>
+        <div class="stat-row"><span>Simulated Time:</span><span id="time-display" class="stat-value">Day 1, 00:00</span></div>
+        <div class="stat-row"><span>Era:</span><span id="era-display" class="stat-value">Dark Solitude</span></div>
+        <div class="stat-row"><span>Population:</span><span id="pop-display" class="stat-value">1</span></div>
+        <div class="stat-row"><span>Current Action:</span><span id="action-display" class="stat-value">Idle</span></div>
+        <div class="stat-row"><span>Religion:</span><span id="religion-display" class="stat-value">None</span></div>
+        <div class="stat-row"><span>Political System:</span><span id="gov-display" class="stat-value">Autarchy</span></div>
+        <div class="stat-row"><span>Tech Power:</span><span id="tech-display" class="stat-value">0.01</span></div>
+    </div>
+
+    <div id="thought-log"></div>
+</div>
+
+<script>
+/**
+ * TIME CONFIGURATION
+ * 4 Real Hours = 24 Sim Hours (1 Sim Day)
+ * Factor: 86400 sim sec / 14400 real sec = 6x speed
+ */
+const TIME_SCALE = 6;
+
+class TimeEngine {
+    constructor() {
+        this.simulatedSeconds = 0;
+    }
+
+    update(deltaRealSeconds) {
+        this.simulatedSeconds += deltaRealSeconds * TIME_SCALE;
+    }
+
+    getFormattedTime() {
+        const totalMinutes = Math.floor(this.simulatedSeconds / 60);
+        const totalHours = Math.floor(totalMinutes / 60);
+        const days = Math.floor(totalHours / 24) + 1;
+        const hours = (totalHours % 24).toString().padStart(2, '0');
+        const minutes = (totalMinutes % 60).toString().padStart(2, '0');
+        return { days, hours, minutes };
+    }
+}
+
+class Agent {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.targetX = x;
+        this.targetY = y;
+        this.energy = 100;
+        this.wealth = 10;
+        this.knowledge = 0;
+        this.state = 'THINKING'; // THINKING, WORKING, BUYING, SLEEPING, HOBBY, EXPLORING, PRAYING
+        this.stateTimer = 0;
+        this.color = '#38bdf8';
+    }
+
+    update(dt, civ, metaAI) {
+        this.stateTimer -= dt;
+
+        if (this.stateTimer <= 0) {
+            this.decideNextAction(civ, metaAI);
+        }
+
+        // Movement interpolation
+        const dx = this.targetX - this.x;
+        const dy = this.targetY - this.y;
+        this.x += dx * 2 * dt;
+        this.y += dy * 2 * dt;
+    }
+
+    decideNextAction(civ, metaAI) {
+        if (this.energy < 20) {
+            this.state = 'SLEEPING';
+            this.stateTimer = 8; // Sim seconds duration
+            this.targetX = window.innerWidth * 0.2;
+            this.targetY = window.innerHeight * 0.8;
+            metaAI.logThought("Energy low. Entering deep meditation/sleep.");
+            return;
+        }
+
+        const choices = ['WORKING', 'EXPLORING', 'HOBBY'];
+        if (civ.religion !== 'None') choices.push('PRAYING');
+        if (this.wealth > 50) choices.push('BUYING');
+
+        this.state = choices[Math.floor(Math.random() * choices.length)];
+        this.stateTimer = 5 + Math.random() * 5;
+
+        switch (this.state) {
+            case 'WORKING':
+                this.wealth += 15;
+                this.knowledge += 2;
+                this.energy -= 15;
+                this.targetX = window.innerWidth * 0.7;
+                this.targetY = window.innerHeight * 0.3;
+                metaAI.logThought("Working on arcane-technological algorithms.");
+                break;
+            case 'EXPLORING':
+                this.energy -= 10;
+                this.targetX = Math.random() * (window.innerWidth - 100) + 50;
+                this.targetY = Math.random() * (window.innerHeight - 100) + 50;
+                metaAI.logThought("Scouting dark realm frontiers for lost knowledge.");
+                if (Math.random() < 0.3) {
+                    civ.addPopulation(1);
+                    metaAI.logThought("Found an isolated wanderer. Population expanded.");
+                }
+                break;
+            case 'HOBBY':
+                this.energy = Math.min(100, this.energy + 20);
+                this.targetX = window.innerWidth * 0.5;
+                this.targetY = window.innerHeight * 0.5;
+                metaAI.logThought("Engaging in dark alchemy and aesthetic creation.");
+                break;
+            case 'PRAYING':
+                this.energy += 10;
+                civ.techPower += 0.5;
+                metaAI.logThought(`Offering devotion to ${civ.religion}.`);
+                break;
+            case 'BUYING':
+                this.wealth -= 20;
+                civ.techPower += 1.2;
+                metaAI.logThought("Acquired hyper-density processors from the shadow market.");
+                break;
+        }
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.strokeStyle = this.color;
+        ctx.fillStyle = this.color;
+        ctx.lineWidth = 2;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = this.color;
+
+        // Head
+        ctx.beginPath();
+        ctx.arc(this.x, this.y - 20, 8, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Body
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y - 12);
+        ctx.lineTo(this.x, this.y + 10);
+        
+        // Arms
+        ctx.moveTo(this.x - 10, this.y - 5);
+        ctx.lineTo(this.x + 10, this.y - 5);
+
+        // Legs
+        ctx.moveTo(this.x, this.y + 10);
+        ctx.lineTo(this.x - 8, this.y + 25);
+        ctx.moveTo(this.x, this.y + 10);
+        ctx.lineTo(this.x + 8, this.y + 25);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+}
+
+class Civilization {
+    constructor() {
+        this.population = 1;
+        this.abstractPopulation = 1; // Scales dynamically to millions
+        this.techPower = 0.01;
+        this.era = 'Dark Solitude';
+        this.religion = 'None';
+        this.government = 'Autarchy';
+        this.inWar = false;
+    }
+
+    addPopulation(num) {
+        this.population += num;
+        this.abstractPopulation = Math.floor(this.population * Math.pow(1.15, this.population));
+    }
+
+    update(metaAI) {
+        if (this.abstractPopulation > 100 && this.religion === 'None') {
+            this.religion = 'Cult of the Machine Core';
+            metaAI.logThought("[META-AI EVENT] New Religion Founded: Cult of the Machine Core.");
+        }
+
+        if (this.abstractPopulation > 5000 && this.government === 'Autarchy') {
+            this.government = 'Cyber-Technocracy';
+            this.era = 'Arcane-Industrial Age';
+            metaAI.logThought("[META-AI EVENT] Political Shift: Established Cyber-Technocracy.");
+        }
+
+        if (this.abstractPopulation > 1000000 && this.era !== 'Planetary Singularity') {
+            this.era = 'Planetary Singularity';
+            metaAI.logThought("[META-AI EVENT] Civilization achieved Hyper-Futuristic Singularity.");
+        }
+    }
+}
+
+class MetaAIEngine {
+    constructor() {
+        this.glowIntensity = 10;
+        this.themeColor = '#8b5cf6';
+    }
+
+    enhanceGraphics(ctx) {
+        // Dynamic Meta-AI visual overlay updates
+        ctx.fillStyle = 'rgba(5, 5, 8, 0.2)';
+        ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+    }
+
+    logThought(message) {
+        const logBox = document.getElementById('thought-log');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.innerHTML = `<span class="log-meta">[${new Date().toLocaleTimeString()}]</span> ${message}`;
+        logBox.appendChild(entry);
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    triggerGlobalEvents(civ) {
+        if (Math.random() < 0.001) { // Random conflict trigger
+            civ.inWar = !civ.inWar;
+            const status = civ.inWar ? "WAR DECLARED: Geopolitical ideological conflict." : "PEACE TREATY: Rebuilding infrastructure.";
+            this.logThought(`[META-AI DYNAMICS] ${status}`);
+        }
+    }
+}
+
+// Initialization
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+const timeEngine = new TimeEngine();
+const civ = new Civilization();
+const metaAI = new MetaAIEngine();
+const primaryAgent = new Agent(canvas.width / 2, canvas.height / 2);
+
+let lastTime = performance.now();
+
+function gameLoop(now) {
+    const dt = (now - lastTime) / 1000;
+    lastTime = now;
+
+    timeEngine.update(dt);
+    primaryAgent.update(dt, civ, metaAI);
+    civ.update(metaAI);
+    metaAI.triggerGlobalEvents(civ);
+
+    // Render
+    metaAI.enhanceGraphics(ctx);
+    primaryAgent.draw(ctx);
+
+    // Update UI
+    const timeData = timeEngine.getFormattedTime();
+    document.getElementById('time-display').innerText = `Day ${timeData.days}, ${timeData.hours}:${timeData.minutes}`;
+    document.getElementById('era-display').innerText = civ.era;
+    document.getElementById('pop-display').innerText = civ.abstractPopulation.toLocaleString();
+    document.getElementById('action-display').innerText = primaryAgent.state;
+    document.getElementById('religion-display').innerText = civ.religion;
+    document.getElementById('gov-display').innerText = civ.government;
+    document.getElementById('tech-display').innerText = civ.techPower.toFixed(2);
+
+    requestAnimationFrame(gameLoop);
+}
+
+metaAI.logThought("Meta-AI Initialized. Dark Fantasy World Matrix Online.");
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
