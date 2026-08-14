@@ -65,6 +65,14 @@ function broadcastState() {
     });
 }
 
+function addLog(msg) {
+    const logEntry = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    worldState.logs.unshift(logEntry);
+    if (worldState.logs.length > 50) worldState.logs.pop();
+    saveWorldState();
+    broadcastState();
+}
+
 /**
  * GEMINI REST API HELPER (Native v1 Endpoint with Fallback)
  */
@@ -170,10 +178,20 @@ async function autoImproveGameCode() {
     addLog(`[AI AUTO-CODING] Analyzing frontend engine to improve rendering & feature set...`);
 
     try {
+        // CORREGIDO: URL limpia con interpolación mediante backticks
         const fileUrl = `[https://api.github.com/repos/$](https://api.github.com/repos/$){GITHUB_REPO}/contents/public/index.html`;
         const getFile = await fetch(fileUrl, {
-            headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'User-Agent': 'Node-AI-Server' }
+            headers: { 
+                'Authorization': `token ${GITHUB_TOKEN}`, 
+                'User-Agent': 'Node-AI-Server' 
+            }
         });
+
+        if (!getFile.ok) {
+            addLog(`[AI AUTO-CODING] Error fetching repository file: ${getFile.statusText}`);
+            return;
+        }
+
         const fileData = await getFile.json();
         const currentSha = fileData.sha;
 
@@ -189,4 +207,53 @@ async function autoImproveGameCode() {
         let newCode = await queryGemini(prompt);
         if (!newCode) return;
 
-        newCode = newCode.replace(/
+        // Limpiar sintaxis markdown si la IA la añade por error
+        newCode = newCode.replace(/```(?:html)?/gi, '').replace(/```/g, '').trim();
+
+        // Enviar commit actualizado a GitHub
+        const updateRes = await fetch(fileUrl, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Content-Type': 'application/json',
+                'User-Agent': 'Node-AI-Server'
+            },
+            body: JSON.stringify({
+                message: "🤖 AI: Refactored canvas graphics & system stability",
+                content: Buffer.from(newCode).toString('base64'),
+                sha: currentSha
+            })
+        });
+
+        if (updateRes.ok) {
+            addLog(`[AI AUTO-CODING] Successfully committed upgraded index.html to GitHub!`);
+        } else {
+            const errData = await updateRes.json();
+            addLog(`[AI AUTO-CODING] GitHub commit failed: ${errData.message}`);
+        }
+    } catch (err) {
+        addLog(`Auto-code commit error: ${err.message}`);
+    }
+}
+
+// Bucle principal de simulación del mundo
+setInterval(async () => {
+    worldState.day += 1;
+    await generateAIEvents();
+    saveWorldState();
+    broadcastState();
+}, 60000); // Se ejecuta cada minuto
+
+// Bucle secundario de mejora de código (cada 30 minutos)
+setInterval(async () => {
+    await autoImproveGameCode();
+}, 1800000);
+
+// Rutas de API básicas
+APP.get('/api/state', (req, res) => {
+    res.json(worldState);
+});
+
+SERVER.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
