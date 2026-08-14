@@ -32,7 +32,7 @@ let worldState = {
     treasury: 500,
     techPower: 0.5,
     economicPower: "Emerging Market", // Global Economic Tier
-    engineBuild: "v1.0.0-AI-Cloud",
+    engineBuild: "v2.0.0-AI-Cloud",
     inWar: false,
     logs: [
         `[${new Date().toLocaleTimeString()}] Autonomous Cloud Engine Initialized.`
@@ -96,7 +96,6 @@ async function generateAIEvents() {
     }`;
 
     try {
-        // Updated model to gemini-1.5-flash to fix 404 error
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AI_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -162,7 +161,6 @@ async function autoImproveGameCode() {
         const prompt = `Improve the Pixi.js code for an isometric world simulator representing a booming economic superpower. As the civilization grows and available grid tiles run out, expand the map size into a larger country/global territory. Implement interactive mobile camera controls (touch drag/pan and pinch-zoom). Graphically showcase thriving trade hubs, banks, futuristic infrastructure, happy citizens, nature/rivers, and defensive military vehicles (tanks) protecting the wealth.
         Current build: ${worldState.engineBuild}. Return ONLY the raw complete valid HTML/JS code for public/index.html.`;
 
-        // Updated model to gemini-1.5-flash to fix 404 error
         const aiResponse = await fetch(`[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$){AI_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -211,47 +209,77 @@ async function autoImproveGameCode() {
 setInterval(() => {
     worldState.day += 1;
 
-    // --- DYNAMIC ECONOMIC & WELLBEING ENGINE ---
-    
-    // 1. Revenue Scaling (Population & Tech Power generate income)
-    const dailyRevenue = Math.floor((worldState.population * 8) * (1 + worldState.techPower * 0.5));
-    
-    // 2. Upkeep & Expenses (Population services + Military maintenance)
-    const dailyUpkeep = Math.floor(worldState.population * 2) + (worldState.tanks * 10);
-    
-    // Net profit
-    const netProfit = dailyRevenue - dailyUpkeep;
+    // --- REALISTIC POPULATION-DRIVEN ECONOMY ENGINE ---
+    // Wealth is generated exclusively by citizen labor and tax collection.
+
+    // 1. Productivity Factor based on Public Morale
+    let moraleProductivity = 1.0;
+    if (worldState.happiness >= 80) {
+        moraleProductivity = 1.5; // Morale bonus
+    } else if (worldState.happiness >= 50) {
+        moraleProductivity = 1.0; // Normal production
+    } else if (worldState.happiness >= 30) {
+        moraleProductivity = 0.4; // Low efficiency due to discontent
+    } else {
+        moraleProductivity = 0.05; // Civil unrest / strikes (negligible revenue)
+    }
+
+    // 2. Gross Tax Revenue (Tied strictly to population, tech level, and morale)
+    const baseTaxPerCitizen = 12;
+    const techMultiplier = 1 + (worldState.techPower * 0.4);
+    const grossIncome = Math.floor(worldState.population * baseTaxPerCitizen * moraleProductivity * techMultiplier);
+
+    // 3. Upkeep & Infrastructure Expenses
+    const citizenServicesUpkeep = Math.floor(worldState.population * 3);
+    const militaryMaintenance = worldState.tanks * 15;
+    const totalExpenses = citizenServicesUpkeep + militaryMaintenance;
+
+    // 4. Net Profit calculation
+    const netProfit = grossIncome - totalExpenses;
     worldState.treasury = Math.max(0, worldState.treasury + netProfit);
 
-    // 3. Natural Tech Advancement
-    worldState.techPower += 0.02;
-
-    // 4. Strategic Reinvestment (Autonomously spends excess treasury to grow power & happiness)
-    if (worldState.treasury > 1200) {
-        worldState.treasury -= 300;
-        worldState.techPower += 0.15; // R&D Investment
-        worldState.happiness = Math.min(100, worldState.happiness + 2); // Public services boost
-        addLog(`[ECONOMY] Reinvested 300 Gold into Tech R&D and Public Services.`);
+    // Alert if running a fiscal deficit
+    if (netProfit < 0 && worldState.day % 6 === 0) {
+        addLog(`[ECONOMY ALERT] Fiscal deficit! Daily net loss: ${netProfit} Gold.`);
     }
 
-    // 5. Military Investment (Buys tanks if rich enough to defend wealth)
-    if (worldState.treasury > 2000 && worldState.tanks < 10) {
-        worldState.treasury -= 500;
+    // --- DEMOGRAPHIC DYNAMICS & EMIGRATION ---
+    
+    // Natural baseline R&D progress
+    worldState.techPower += 0.01;
+
+    // Population fluctuates based on quality of life and economic health
+    if (worldState.happiness > 75 && worldState.treasury > 100 && worldState.day % 4 === 0) {
+        worldState.population += 1;
+        addLog(`[DEMOGRAPHICS] Prosperous conditions attracted 1 immigrant. Pop: ${worldState.population}`);
+    } else if (worldState.happiness < 35 && worldState.population > 1 && worldState.day % 4 === 0) {
+        worldState.population -= 1;
+        addLog(`[DEMOGRAPHICS] 1 Citizen emigrated due to poor living conditions.`);
+    }
+
+    // --- AUTONOMOUS REINVESTMENT ---
+
+    // Spend excess treasury on R&D and public services to boost morale
+    if (worldState.treasury > 1500) {
+        worldState.treasury -= 400;
+        worldState.techPower += 0.2;
+        worldState.happiness = Math.min(100, worldState.happiness + 4);
+        addLog(`[ECONOMY] Reinvested 400 Gold into Tech R&D and Public Services.`);
+    }
+
+    // Spend excess treasury on military defense if rich
+    if (worldState.treasury > 2500 && worldState.tanks < 12) {
+        worldState.treasury -= 600;
         worldState.tanks += 1;
-        addLog(`[DEFENSE] Manufactured 1 Heavy Defense Tank for 500 Gold.`);
+        addLog(`[DEFENSE] Manufactured 1 Heavy Defense Unit for 600 Gold.`);
     }
 
-    // 6. Population Growth & Happiness Dynamics
-    if (worldState.happiness > 70 && worldState.day % 5 === 0) {
-        worldState.population += 1; // Population increases when happy
-    }
-
-    // Update Global Economic Standing Tier
-    if (worldState.treasury > 10000) {
+    // Update Global Economic Standing
+    if (worldState.treasury > 15000) {
         worldState.economicPower = "Global Economic Superpower";
-    } else if (worldState.treasury > 5000) {
+    } else if (worldState.treasury > 6000) {
         worldState.economicPower = "Major Financial Hub";
-    } else if (worldState.treasury > 2000) {
+    } else if (worldState.treasury > 2500) {
         worldState.economicPower = "Thriving Market Economy";
     } else {
         worldState.economicPower = "Emerging Market";
