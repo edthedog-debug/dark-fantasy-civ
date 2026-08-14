@@ -4,6 +4,7 @@ const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const APP = express();
 const PORT = process.env.PORT || 3000;
@@ -12,6 +13,9 @@ const PORT = process.env.PORT || 3000;
 const AI_API_KEY = process.env.GEMINI_API_KEY; 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_REPO = process.env.GITHUB_REPO; // Format: "username/repository-name"
+
+// Initialize Gemini Client
+const genAI = AI_API_KEY ? new GoogleGenerativeAI(AI_API_KEY) : null;
 
 APP.use(cors());
 APP.use(express.static(path.join(__dirname, 'public')));
@@ -66,59 +70,26 @@ function broadcastState() {
 }
 
 /**
- * GEMINI API HELPER (Google Interactions API & v1 Endpoint Adapter)
+ * GEMINI API HELPER (Compatible with official models: gemini-2.0-flash & gemini-1.5-flash)
  */
 async function queryGemini(prompt) {
-    if (!AI_API_KEY) {
+    if (!genAI) {
         console.error("GEMINI_API_KEY is missing in environment variables.");
         return null;
     }
 
-    // Attempt 1: Official Interactions API endpoint (Mandatory for new key projects)
-    try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/interactions?key=${AI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: 'gemini-2.5-flash',
-                input: prompt
-            })
-        });
+    const availableModels = ["gemini-2.0-flash", "gemini-1.5-flash"];
 
-        if (res.ok) {
-            const data = await res.json();
-            if (data.output) return data.output;
-            if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                return data.candidates[0].content.parts[0].text;
-            }
-        } else {
-            const errData = await res.json().catch(() => ({}));
-            console.error("Interactions API status:", res.status, errData.error?.message || res.statusText);
-        }
-    } catch (e) {
-        console.error("Interactions API fetch error:", e.message);
-    }
-
-    // Attempt 2: REST v1 generateContent endpoint fallback with gemini-2.5-flash
-    try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${AI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
-            })
-        });
-
-        if (res.ok) {
-            const data = await res.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    for (const modelName of availableModels) {
+        try {
+            const model = genAI.getGenerativeModel({ model: modelName });
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
             if (text) return text;
-        } else {
-            const errData = await res.json().catch(() => ({}));
-            console.error("v1 generateContent status:", res.status, errData.error?.message || res.statusText);
+        } catch (e) {
+            console.error(`Gemini API model [${modelName}] failed:`, e.message);
         }
-    } catch (e) {
-        console.error("v1 generateContent fetch error:", e.message);
     }
 
     return null;
@@ -183,7 +154,7 @@ async function generateAIEvents() {
  * 2. AI GRAPHICS & CODE REFACTOR ENGINE (GITHUB AUTO-COMMIT)
  */
 async function autoImproveGameCode() {
-    if (!GITHUB_TOKEN || !GITHUB_REPO) return;
+    if (!GITHUB_TOKEN || !GITHUB_REPO || !genAI) return;
 
     console.log("🤖 AI starting Code Refactor & Graphics Upgrade cycle...");
     addLog(`[AI AUTO-CODING] Analyzing frontend engine to improve rendering & feature set...`);
