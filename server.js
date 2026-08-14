@@ -66,7 +66,7 @@ function broadcastState() {
 }
 
 /**
- * GEMINI API HELPER (Multi-Model REST Fallback)
+ * GEMINI API HELPER (Google Interactions API & v1 Endpoint Adapter)
  */
 async function queryGemini(prompt) {
     if (!AI_API_KEY) {
@@ -74,29 +74,51 @@ async function queryGemini(prompt) {
         return null;
     }
 
-    const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+    // Attempt 1: Official Interactions API endpoint (Mandatory for new key projects)
+    try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/interactions?key=${AI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'gemini-2.5-flash',
+                input: prompt
+            })
+        });
 
-    for (const model of models) {
-        try {
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${AI_API_KEY}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }]
-                })
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (text) return text;
-            } else {
-                const errData = await res.json().catch(() => ({}));
-                console.error(`Gemini API (${model}) error:`, res.status, errData.error?.message || res.statusText);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.output) return data.output;
+            if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                return data.candidates[0].content.parts[0].text;
             }
-        } catch (e) {
-            console.error(`Gemini fetch error (${model}):`, e.message);
+        } else {
+            const errData = await res.json().catch(() => ({}));
+            console.error("Interactions API status:", res.status, errData.error?.message || res.statusText);
         }
+    } catch (e) {
+        console.error("Interactions API fetch error:", e.message);
+    }
+
+    // Attempt 2: REST v1 generateContent endpoint fallback with gemini-2.5-flash
+    try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${AI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) return text;
+        } else {
+            const errData = await res.json().catch(() => ({}));
+            console.error("v1 generateContent status:", res.status, errData.error?.message || res.statusText);
+        }
+    } catch (e) {
+        console.error("v1 generateContent fetch error:", e.message);
     }
 
     return null;
