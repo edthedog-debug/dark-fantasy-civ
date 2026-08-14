@@ -4,7 +4,6 @@ const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const APP = express();
 const PORT = process.env.PORT || 3000;
@@ -13,9 +12,6 @@ const PORT = process.env.PORT || 3000;
 const AI_API_KEY = process.env.GEMINI_API_KEY; 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_REPO = process.env.GITHUB_REPO; // Format: "username/repository-name"
-
-// Initialize Gemini Client
-const genAI = AI_API_KEY ? new GoogleGenerativeAI(AI_API_KEY) : null;
 
 APP.use(cors());
 APP.use(express.static(path.join(__dirname, 'public')));
@@ -70,11 +66,61 @@ function broadcastState() {
 }
 
 /**
+ * GEMINI API HELPER (Compatible with Google Interactions API & v1beta Fallback)
+ */
+async function queryGemini(prompt) {
+    if (!AI_API_KEY) {
+        console.error("GEMINI_API_KEY is missing in environment variables.");
+        return null;
+    }
+
+    // Attempt 1: New Google Interactions API
+    try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/interactions?key=${AI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'gemini-2.5-flash',
+                input: prompt
+            })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            if (data.output) return data.output;
+            if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                return data.candidates[0].content.parts[0].text;
+            }
+        }
+    } catch (e) {
+        console.error("Interactions API error:", e.message);
+    }
+
+    // Attempt 2: Direct v1beta REST fallback
+    try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+        }
+    } catch (e) {
+        console.error("v1beta Fallback error:", e.message);
+    }
+
+    return null;
+}
+
+/**
  * 1. AI GENERATIVE NARRATIVE, ECONOMY & PHILOSOPHY ENGINE
  */
 async function generateAIEvents() {
-    if (!genAI) return;
-
     const prompt = `You are the Sovereign AI governing a nation. The ultimate goal is to build a highly profitable, technologically advanced global economic powerhouse with happy citizens, resilient to all hardships and disasters.
     Current World State:
     - Day: ${worldState.day}
@@ -98,17 +144,11 @@ async function generateAIEvents() {
     }`;
 
     try {
-        const model = genAI.getGenerativeModel(
-            { model: "gemini-2.5-flash", generationConfig: { responseMimeType: "application/json" } },
-            { apiVersion: "v1" }
-        );
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const rawText = response.text();
-
+        const rawText = await queryGemini(prompt);
         if (!rawText) return;
 
-        const parsed = JSON.parse(rawText);
+        const cleanedText = rawText.replace(/```(?:json)?/gi, '').trim();
+        const parsed = JSON.parse(cleanedText);
 
         if (parsed.event) {
             addLog(`[AI THOUGHT] ${parsed.event}`);
@@ -136,13 +176,13 @@ async function generateAIEvents() {
  * 2. AI GRAPHICS & CODE REFACTOR ENGINE (GITHUB AUTO-COMMIT)
  */
 async function autoImproveGameCode() {
-    if (!GITHUB_TOKEN || !GITHUB_REPO || !genAI) return;
+    if (!GITHUB_TOKEN || !GITHUB_REPO) return;
 
     console.log("🤖 AI starting Code Refactor & Graphics Upgrade cycle...");
     addLog(`[AI AUTO-CODING] Analyzing frontend engine to improve rendering & feature set...`);
 
     try {
-        const fileUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/public/index.html`;
+        const fileUrl = `[https://api.github.com/repos/$](https://api.github.com/repos/$){GITHUB_REPO}/contents/public/index.html`;
         const getFile = await fetch(fileUrl, {
             headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'User-Agent': 'Node-AI-Server' }
         });
@@ -158,11 +198,7 @@ async function autoImproveGameCode() {
         4. Maintain mobile touch gesture controls (drag pan and zoom).
         5. Return ONLY the raw, complete, valid HTML file code without markdown syntax or triple backticks.`;
 
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }, { apiVersion: "v1" });
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        let newCode = response.text();
-
+        let newCode = await queryGemini(prompt);
         if (!newCode) return;
 
         newCode = newCode.replace(/```(?:html)?/gi, '').trim();
