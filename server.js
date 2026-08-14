@@ -67,8 +67,6 @@ function broadcastState() {
 
 /**
  * 1. AI GENERATIVE NARRATIVE, ECONOMY & PHILOSOPHY ENGINE
- * Calls Gemini LLM to write socio-political breakthroughs, handle global hardships,
- * and steer the empire toward becoming a profitable economic powerhouse.
  */
 async function generateAIEvents() {
     if (!AI_API_KEY) return;
@@ -96,7 +94,7 @@ async function generateAIEvents() {
     }`;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${AI_API_KEY}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${AI_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -124,7 +122,6 @@ async function generateAIEvents() {
             worldState.philosophy = parsed.newPhilosophy;
         }
 
-        // Apply AI economic & social impacts
         if (typeof parsed.goldImpact === 'number') {
             worldState.treasury = Math.max(0, worldState.treasury + parsed.goldImpact);
         }
@@ -142,7 +139,6 @@ async function generateAIEvents() {
 
 /**
  * 2. AI GRAPHICS & CODE REFACTOR ENGINE (GITHUB AUTO-COMMIT)
- * Rewrites public/index.html on GitHub to improve game graphics & features automatically.
  */
 async function autoImproveGameCode() {
     if (!GITHUB_TOKEN || !GITHUB_REPO || !AI_API_KEY) return;
@@ -158,7 +154,6 @@ async function autoImproveGameCode() {
         const fileData = await getFile.json();
         const currentSha = fileData.sha;
 
-        // STRICT ENFORCED PROMPT TO PREVENT BLANK CANVAS & LANGUAGE DRIFT
         const prompt = `You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'public/index.html' for an autonomous isometric economic empire simulator.
         
         CRITICAL RULES:
@@ -168,7 +163,7 @@ async function autoImproveGameCode() {
         4. Maintain mobile touch gesture controls (drag pan and zoom).
         5. Return ONLY the raw, complete, valid HTML file code without markdown syntax or triple backticks.`;
 
-        const aiResponse = await fetch(`[https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$){AI_API_KEY}`, {
+        const aiResponse = await fetch(`[https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$){AI_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
@@ -216,46 +211,34 @@ async function autoImproveGameCode() {
 setInterval(() => {
     worldState.day += 1;
 
-    // --- REALISTIC POPULATION-DRIVEN ECONOMY ENGINE ---
-    // Wealth is generated exclusively by citizen labor and tax collection.
-
-    // 1. Productivity Factor based on Public Morale
     let moraleProductivity = 1.0;
     if (worldState.happiness >= 80) {
-        moraleProductivity = 1.5; // Morale bonus
+        moraleProductivity = 1.5;
     } else if (worldState.happiness >= 50) {
-        moraleProductivity = 1.0; // Normal production
+        moraleProductivity = 1.0;
     } else if (worldState.happiness >= 30) {
-        moraleProductivity = 0.4; // Low efficiency due to discontent
+        moraleProductivity = 0.4;
     } else {
-        moraleProductivity = 0.05; // Civil unrest / strikes (negligible revenue)
+        moraleProductivity = 0.05;
     }
 
-    // 2. Gross Tax Revenue (Tied strictly to population, tech level, and morale)
     const baseTaxPerCitizen = 12;
     const techMultiplier = 1 + (worldState.techPower * 0.4);
     const grossIncome = Math.floor(worldState.population * baseTaxPerCitizen * moraleProductivity * techMultiplier);
 
-    // 3. Upkeep & Infrastructure Expenses
     const citizenServicesUpkeep = Math.floor(worldState.population * 3);
     const militaryMaintenance = worldState.tanks * 15;
     const totalExpenses = citizenServicesUpkeep + militaryMaintenance;
 
-    // 4. Net Profit calculation
     const netProfit = grossIncome - totalExpenses;
     worldState.treasury = Math.max(0, worldState.treasury + netProfit);
 
-    // Alert if running a fiscal deficit
     if (netProfit < 0 && worldState.day % 6 === 0) {
         addLog(`[ECONOMY ALERT] Fiscal deficit! Daily net loss: ${netProfit} Gold.`);
     }
 
-    // --- DEMOGRAPHIC DYNAMICS & EMIGRATION ---
-    
-    // Natural baseline R&D progress
     worldState.techPower += 0.01;
 
-    // Population fluctuates based on quality of life and economic health
     if (worldState.happiness > 75 && worldState.treasury > 100 && worldState.day % 4 === 0) {
         worldState.population += 1;
         addLog(`[DEMOGRAPHICS] Prosperous conditions attracted 1 immigrant. Pop: ${worldState.population}`);
@@ -264,9 +247,6 @@ setInterval(() => {
         addLog(`[DEMOGRAPHICS] 1 Citizen emigrated due to poor living conditions.`);
     }
 
-    // --- AUTONOMOUS REINVESTMENT ---
-
-    // Spend excess treasury on R&D and public services to boost morale
     if (worldState.treasury > 1500) {
         worldState.treasury -= 400;
         worldState.techPower += 0.2;
@@ -274,14 +254,12 @@ setInterval(() => {
         addLog(`[ECONOMY] Reinvested 400 Gold into Tech R&D and Public Services.`);
     }
 
-    // Spend excess treasury on military defense if rich
     if (worldState.treasury > 2500 && worldState.tanks < 12) {
         worldState.treasury -= 600;
         worldState.tanks += 1;
         addLog(`[DEFENSE] Manufactured 1 Heavy Defense Unit for 600 Gold.`);
     }
 
-    // Update Global Economic Standing
     if (worldState.treasury > 15000) {
         worldState.economicPower = "Global Economic Superpower";
     } else if (worldState.treasury > 6000) {
@@ -292,12 +270,10 @@ setInterval(() => {
         worldState.economicPower = "Emerging Market";
     }
 
-    // Trigger AI Narrative & Hardship Adaptation every 10 ticks (~40 seconds)
     if (worldState.day % 10 === 0) {
         generateAIEvents();
     }
 
-    // Trigger AI Code Auto-Improvement every 100 ticks (~6.5 minutes)
     if (worldState.day % 100 === 0) {
         const patch = Math.floor(Math.random() * 9) + 1;
         worldState.engineBuild = `v2.${patch}.0-Generative-AI`;
