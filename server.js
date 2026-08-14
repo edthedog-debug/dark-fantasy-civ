@@ -98,15 +98,17 @@ async function generateAIEvents() {
     }`;
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel(
+            { model: "gemini-2.5-flash", generationConfig: { responseMimeType: "application/json" } },
+            { apiVersion: "v1" }
+        );
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const rawText = response.text();
 
         if (!rawText) return;
 
-        const cleanedText = rawText.replace(/```(?:json)?/gi, '').trim();
-        const parsed = JSON.parse(cleanedText);
+        const parsed = JSON.parse(rawText);
 
         if (parsed.event) {
             addLog(`[AI THOUGHT] ${parsed.event}`);
@@ -140,7 +142,7 @@ async function autoImproveGameCode() {
     addLog(`[AI AUTO-CODING] Analyzing frontend engine to improve rendering & feature set...`);
 
     try {
-        const fileUrl = `[https://api.github.com/repos/$](https://api.github.com/repos/$){GITHUB_REPO}/contents/public/index.html`;
+        const fileUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/public/index.html`;
         const getFile = await fetch(fileUrl, {
             headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'User-Agent': 'Node-AI-Server' }
         });
@@ -156,7 +158,7 @@ async function autoImproveGameCode() {
         4. Maintain mobile touch gesture controls (drag pan and zoom).
         5. Return ONLY the raw, complete, valid HTML file code without markdown syntax or triple backticks.`;
 
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }, { apiVersion: "v1" });
         const result = await model.generateContent(prompt);
         const response = await result.response;
         let newCode = response.text();
