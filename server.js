@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 // ENVIRONMENT VARIABLES (Configured in Render)
 const AI_API_KEY = process.env.GEMINI_API_KEY; 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_REPO = process.env.GITHUB_REPO; // Format: "edthedog-debug/dark-fantasy-civ"
+const GITHUB_REPO = process.env.GITHUB_REPO; // Format: "username/repository-name"
 
 APP.use(cors());
 APP.use(express.static(path.join(__dirname, 'public')));
@@ -158,8 +158,15 @@ async function autoImproveGameCode() {
         const fileData = await getFile.json();
         const currentSha = fileData.sha;
 
-        const prompt = `Improve the Pixi.js code for an isometric world simulator representing a booming economic superpower. As the civilization grows and available grid tiles run out, expand the map size into a larger country/global territory. Implement interactive mobile camera controls (touch drag/pan and pinch-zoom). Graphically showcase thriving trade hubs, banks, futuristic infrastructure, happy citizens, nature/rivers, and defensive military vehicles (tanks) protecting the wealth.
-        Current build: ${worldState.engineBuild}. Return ONLY the raw complete valid HTML/JS code for public/index.html.`;
+        // STRICT ENFORCED PROMPT TO PREVENT BLANK CANVAS & LANGUAGE DRIFT
+        const prompt = `You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'public/index.html' for an autonomous isometric economic empire simulator.
+        
+        CRITICAL RULES:
+        1. Keep the HTML structure, canvas element ID ('gameCanvas'), and WebSocket listener logic intact so the map never renders blank or loses server updates.
+        2. Keep ALL UI text, labels, status badges, and logs strictly in ENGLISH.
+        3. Use native HTML5 2D Canvas rendering for isometric buildings, animated citizen particles, river/terrain tiles, and defense vehicles.
+        4. Maintain mobile touch gesture controls (drag pan and zoom).
+        5. Return ONLY the raw, complete, valid HTML file code without markdown syntax or triple backticks.`;
 
         const aiResponse = await fetch(`[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$){AI_API_KEY}`, {
             method: 'POST',
@@ -188,14 +195,14 @@ async function autoImproveGameCode() {
                 'User-Agent': 'Node-AI-Server'
             },
             body: JSON.stringify({
-                message: `🤖 [AI Auto-Upgrade] Engine refactored to ${worldState.engineBuild}`,
+                message: `🤖 [AI Auto-Upgrade] Refactored frontend engine to ${worldState.engineBuild}`,
                 content: updatedContentBase64,
                 sha: currentSha
             })
         });
 
         if (commitResponse.ok) {
-            addLog(`[AI COMMIT SUCCESS] Pushed new graphics & feature code to GitHub! Auto-deploying...`);
+            addLog(`[AI COMMIT SUCCESS] Pushed graphics & engine improvements to GitHub! Auto-deploying...`);
         } else {
             const commitErr = await commitResponse.json();
             console.error("GitHub Commit Error:", commitErr.message);
