@@ -4,6 +4,7 @@ const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const APP = express();
 const PORT = process.env.PORT || 3000;
@@ -12,6 +13,9 @@ const PORT = process.env.PORT || 3000;
 const AI_API_KEY = process.env.GEMINI_API_KEY; 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_REPO = process.env.GITHUB_REPO; // Format: "username/repository-name"
+
+// Initialize Gemini Client
+const genAI = AI_API_KEY ? new GoogleGenerativeAI(AI_API_KEY) : null;
 
 APP.use(cors());
 APP.use(express.static(path.join(__dirname, 'public')));
@@ -27,11 +31,11 @@ let worldState = {
     dominantParty: "Arcane Council",
     philosophy: "Rational Pragmatism",
     population: 12,
-    happiness: 85, // Happiness percentage (0-100%)
+    happiness: 85,
     tanks: 0,
     treasury: 500,
     techPower: 0.5,
-    economicPower: "Emerging Market", // Global Economic Tier
+    economicPower: "Emerging Market",
     engineBuild: "v2.0.0-AI-Cloud",
     inWar: false,
     logs: [
@@ -69,7 +73,7 @@ function broadcastState() {
  * 1. AI GENERATIVE NARRATIVE, ECONOMY & PHILOSOPHY ENGINE
  */
 async function generateAIEvents() {
-    if (!AI_API_KEY) return;
+    if (!genAI) return;
 
     const prompt = `You are the Sovereign AI governing a nation. The ultimate goal is to build a highly profitable, technologically advanced global economic powerhouse with happy citizens, resilient to all hardships and disasters.
     Current World State:
@@ -94,22 +98,11 @@ async function generateAIEvents() {
     }`;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${AI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
-            })
-        });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const rawText = response.text();
 
-        const data = await response.json();
-        
-        if (!response.ok) {
-            console.error(`Gemini API Error (${response.status}):`, data.error?.message || JSON.stringify(data));
-            return;
-        }
-
-        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!rawText) return;
 
         const cleanedText = rawText.replace(/```(?:json)?/gi, '').trim();
@@ -141,7 +134,7 @@ async function generateAIEvents() {
  * 2. AI GRAPHICS & CODE REFACTOR ENGINE (GITHUB AUTO-COMMIT)
  */
 async function autoImproveGameCode() {
-    if (!GITHUB_TOKEN || !GITHUB_REPO || !AI_API_KEY) return;
+    if (!GITHUB_TOKEN || !GITHUB_REPO || !genAI) return;
 
     console.log("🤖 AI starting Code Refactor & Graphics Upgrade cycle...");
     addLog(`[AI AUTO-CODING] Analyzing frontend engine to improve rendering & feature set...`);
@@ -163,20 +156,11 @@ async function autoImproveGameCode() {
         4. Maintain mobile touch gesture controls (drag pan and zoom).
         5. Return ONLY the raw, complete, valid HTML file code without markdown syntax or triple backticks.`;
 
-        const aiResponse = await fetch(`[https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$){AI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        let newCode = response.text();
 
-        const aiData = await aiResponse.json();
-
-        if (!aiResponse.ok) {
-            console.error(`Gemini Code API Error (${aiResponse.status}):`, aiData.error?.message || JSON.stringify(aiData));
-            return;
-        }
-
-        let newCode = aiData?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!newCode) return;
 
         newCode = newCode.replace(/```(?:html)?/gi, '').trim();
