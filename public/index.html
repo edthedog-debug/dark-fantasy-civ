@@ -2,567 +2,387 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Autonomous Sci-Fi Civilization</title>
-    <!-- Load Pixi.js for Isometric Rendering -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Sovereign AI Engine - World Map</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none;
-        }
-        body, html {
-            width: 100%;
-            height: 100%;
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body {
+            background-color: #070913;
+            color: #e0e6ed;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            gap: 10px;
             overflow: hidden;
-            background-color: #02040a;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            color: #f1f5f9;
-        }
-        #canvas-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            touch-action: none; /* Pointer dragging only for game canvas */
         }
 
-        /* Glassmorphism Sci-Fi Panels */
-        .ui-panel {
-            position: absolute;
-            z-index: 10;
-            background: rgba(8, 12, 22, 0.82);
-            border: 1px solid rgba(56, 189, 248, 0.25);
+        /* Top Stats Dashboard */
+        .dashboard {
+            background: rgba(16, 22, 36, 0.9);
+            border: 1px solid rgba(0, 210, 255, 0.2);
             border-radius: 12px;
-            padding: 14px;
-            color: #e2e8f0;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6), inset 0 0 1px 1px rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
         }
-
-        /* Top HUD Display */
-        #hud {
-            top: 12px;
-            left: 12px;
-            right: 12px;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        .hud-header {
+        .dash-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
             margin-bottom: 10px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            color: #8a99ad;
         }
-        .status-live {
+        .status-badge {
+            color: #00ff88;
+            font-size: 11px;
             display: flex;
             align-items: center;
-            gap: 6px;
-            color: #38bdf8;
+            gap: 5px;
         }
-        .pulse-dot {
+        .status-dot {
             width: 8px;
             height: 8px;
-            background-color: #22c55e;
+            background-color: #00ff88;
             border-radius: 50%;
-            box-shadow: 0 0 8px #22c55e;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(0.8); }
-            100% { opacity: 1; transform: scale(1); }
+            box-shadow: 0 0 8px #00ff88;
         }
 
-        .hud-grid {
+        .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 8px;
         }
-        @media (max-width: 480px) {
-            .hud-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-        .hud-card {
-            background: rgba(255, 255, 255, 0.03);
+        .stat-card {
+            background: rgba(25, 33, 52, 0.6);
             border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 6px 8px;
-            border-radius: 6px;
+            border-radius: 8px;
+            padding: 8px;
         }
-        .hud-label {
-            font-size: 10px;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .val {
-            font-size: 13px;
-            font-weight: 700;
-            margin-top: 2px;
-        }
-        .c-purple { color: #c084fc; }
-        .c-gold { color: #facc15; }
-        .c-cyan { color: #38bdf8; }
-        .c-green { color: #4ade80; }
-        .c-red { color: #f87171; }
+        .stat-label { font-size: 10px; color: #6b7c93; text-transform: uppercase; margin-bottom: 2px; }
+        .stat-value { font-size: 14px; font-weight: bold; color: #ffffff; }
+        .val-gold { color: #f1c40f; }
+        .val-pop { color: #2ecc71; }
+        .val-tech { color: #3498db; }
+        .val-era { color: #9b59b6; }
 
-        /* Scrollable Log Terminal */
-        #log-box {
-            bottom: 12px;
-            left: 12px;
-            right: 12px;
-            max-width: 600px;
-            margin: 0 auto;
-            height: 120px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        .log-title {
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            color: #64748b;
-            text-transform: uppercase;
-            margin-bottom: 6px;
-        }
-        #log-content {
+        /* Middle Map Container */
+        #map-container {
             flex: 1;
+            background: #04060d;
+            border: 1px solid rgba(0, 210, 255, 0.25);
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8);
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+        .map-overlay-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(8, 12, 22, 0.85);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            pointer-events: none;
+            color: #00d2ff;
+        }
+
+        /* Bottom Event Logs Stream */
+        .log-container {
+            height: 100px;
+            background: rgba(12, 17, 29, 0.95);
+            border: 1px solid rgba(0, 210, 255, 0.2);
+            border-radius: 12px;
+            padding: 10px;
             overflow-y: auto;
-            touch-action: pan-y; /* Enable smooth scrolling on touch devices */
-            padding-right: 6px;
             font-family: 'Courier New', Courier, monospace;
             font-size: 11px;
-            line-height: 1.5;
         }
-        #log-content::-webkit-scrollbar {
-            width: 4px;
+        .log-title {
+            font-size: 11px;
+            color: #6b7c93;
+            margin-bottom: 6px;
+            font-weight: bold;
+            letter-spacing: 1px;
         }
-        #log-content::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 4px;
-        }
-        #log-content::-webkit-scrollbar-thumb {
-            background: rgba(56, 189, 248, 0.4);
-            border-radius: 4px;
-        }
-        .log-entry {
-            margin-bottom: 3px;
-            color: #cbd5e1;
-            word-break: break-word;
+        .log-entry { margin-bottom: 3px; color: #a0aec0; line-height: 1.3; }
+        .log-entry:last-child { color: #00d2ff; }
+
+        @media (max-width: 600px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .stat-value { font-size: 12px; }
         }
     </style>
 </head>
 <body>
 
-    <div id="canvas-container"></div>
-
-    <!-- UPPER HUD DISPLAY -->
-    <div id="hud" class="ui-panel">
-        <div class="hud-header">
+    <!-- TOP DASHBOARD -->
+    <div class="dashboard">
+        <div class="dash-header">
             <span>SOVEREIGN AI ENGINE</span>
-            <span class="status-live"><div class="pulse-dot"></div> 24/7 AUTONOMOUS</span>
+            <div class="status-badge"><div class="status-dot"></div> 24/7 AUTONOMOUS</div>
         </div>
-        <div class="hud-grid">
-            <div class="hud-card">
-                <div class="hud-label">Day</div>
-                <div id="val-day" class="val c-gold">1</div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">DAY</div>
+                <div class="stat-value" id="stat-day">1</div>
             </div>
-            <div class="hud-card">
-                <div class="hud-label">Era</div>
-                <div id="val-era" class="val c-purple">Tribal</div>
+            <div class="stat-card">
+                <div class="stat-label">ERA</div>
+                <div class="stat-value val-era" id="stat-era">Era 1</div>
             </div>
-            <div class="hud-card">
-                <div class="hud-label">Population</div>
-                <div id="val-pop" class="val c-green">0</div>
+            <div class="stat-card">
+                <div class="stat-label">POPULATION</div>
+                <div class="stat-value val-pop" id="stat-pop">0</div>
             </div>
-            <div class="hud-card">
-                <div class="hud-label">Treasury</div>
-                <div id="val-gold" class="val c-gold">0 G</div>
+            <div class="stat-card">
+                <div class="stat-label">TREASURY</div>
+                <div class="stat-value val-gold" id="stat-gold">0 G</div>
             </div>
-            <div class="hud-card">
-                <div class="hud-label">Tech Power</div>
-                <div id="val-tech" class="val c-cyan">0.5</div>
+            <div class="stat-card">
+                <div class="stat-label">TECH POWER</div>
+                <div class="stat-value val-tech" id="stat-tech">0.0</div>
             </div>
-            <div class="hud-card">
-                <div class="hud-label">Defenses</div>
-                <div id="val-tanks" class="val">0</div>
+            <div class="stat-card">
+                <div class="stat-label">DEFENSES</div>
+                <div class="stat-value" id="stat-tanks">0</div>
             </div>
-            <div class="hud-card">
-                <div class="hud-label">Status</div>
-                <div id="val-war" class="val c-green">PEACE</div>
+            <div class="stat-card">
+                <div class="stat-label">STATUS</div>
+                <div class="stat-value" style="color: #2ecc71;" id="stat-status">PEACE</div>
             </div>
-            <div class="hud-card">
-                <div class="hud-label">Build</div>
-                <div id="val-build" class="val c-cyan">v2.0</div>
+            <div class="stat-card">
+                <div class="stat-label">BUILD</div>
+                <div class="stat-value" id="stat-build" style="font-size: 10px;">v2.0</div>
             </div>
         </div>
     </div>
 
-    <!-- LOWER LOG CONSOLE -->
-    <div id="log-box" class="ui-panel">
-        <div class="log-title">System Event Stream</div>
-        <div id="log-content"></div>
+    <!-- MAP CONTAINER -->
+    <div id="map-container">
+        <div class="map-overlay-info">💡 Drag to Pan | Scroll or Pinch to Zoom</div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <!-- SYSTEM EVENT LOGS STREAM -->
+    <div class="log-container">
+        <div class="log-title">SYSTEM EVENT STREAM</div>
+        <div id="log-stream">Connecting to AI Sovereign Neural Link...</div>
     </div>
 
     <script>
-        // ==========================================
-        // 1. PIXI.JS GRAPHICS & CAMERA ENGINE
-        // ==========================================
-        const container = document.getElementById('canvas-container');
-        const app = new PIXI.Application({
-            width: window.innerWidth,
-            height: window.innerHeight,
-            backgroundColor: 0x02040a,
-            resizeTo: window,
-            antialias: true,
-            resolution: window.devicePixelRatio || 1
-        });
-        container.appendChild(app.view);
+        // WebSocket setup
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${protocol}//${window.location.host}`);
 
-        // World Camera Container
-        const worldContainer = new PIXI.Container();
-        worldContainer.x = app.screen.width / 2;
-        worldContainer.y = app.screen.height / 3;
-        app.stage.addChild(worldContainer);
+        let worldState = {
+            day: 1, era: "Era 1", population: 10, treasury: 500,
+            techPower: 1, tanks: 0, logs: [], inWar: false
+        };
 
-        // Layers for Isometric Depth
-        const mapLayer = new PIXI.Container();
-        const gridOverlayLayer = new PIXI.Container();
-        const entitiesLayer = new PIXI.Container();
-        worldContainer.addChild(mapLayer);
-        worldContainer.addChild(gridOverlayLayer);
-        worldContainer.addChild(entitiesLayer);
+        ws.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            if (msg.type === 'WORLD_UPDATE') {
+                worldState = msg.data;
+                updateUI();
+            }
+        };
 
-        // Interactive Pan & Zoom
+        function updateUI() {
+            document.getElementById('stat-day').innerText = worldState.day;
+            document.getElementById('stat-era').innerText = worldState.era;
+            document.getElementById('stat-pop').innerText = worldState.population;
+            document.getElementById('stat-gold').innerText = worldState.treasury.toLocaleString() + ' G';
+            document.getElementById('stat-tech').innerText = Number(worldState.techPower).toFixed(2);
+            document.getElementById('stat-tanks').innerText = worldState.tanks;
+            document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
+            document.getElementById('stat-status').style.color = worldState.inWar ? '#e74c3c' : '#2ecc71';
+            document.getElementById('stat-build').innerText = worldState.engineBuild || 'v2.0';
+
+            // Logs stream update
+            const logBox = document.getElementById('log-stream');
+            if (worldState.logs && worldState.logs.length > 0) {
+                logBox.innerHTML = worldState.logs.map(l => `<div class="log-entry">${l}</div>`).join('');
+                logBox.scrollTop = logBox.scrollHeight;
+            }
+        }
+
+        // --- ISOMETRIC GRAPHICS ENGINE (CANVAS 2D) ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let camera = { x: 0, y: 0, zoom: 1.0 };
         let isDragging = false;
-        let dragStart = { x: 0, y: 0 };
+        let startX, startY;
 
-        app.stage.eventMode = 'static';
-        app.stage.hitArea = app.screen;
+        function resizeCanvas() {
+            const container = document.getElementById('map-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
-        app.stage.on('pointerdown', (e) => {
+        // Mouse controls: Pan & Zoom
+        canvas.addEventListener('mousedown', (e) => {
             isDragging = true;
-            dragStart = { x: e.global.x - worldContainer.x, y: e.global.y - worldContainer.y };
+            startX = e.clientX - camera.x;
+            startY = e.clientY - camera.y;
         });
-        app.stage.on('pointermove', (e) => {
+        window.addEventListener('mouseup', () => isDragging = false);
+        canvas.addEventListener('mousemove', (e) => {
             if (isDragging) {
-                worldContainer.x = e.global.x - dragStart.x;
-                worldContainer.y = e.global.y - dragStart.y;
+                camera.x = e.clientX - startX;
+                camera.y = e.clientY - startY;
             }
         });
-        app.stage.on('pointerup', () => isDragging = false);
-        app.stage.on('pointerupoutside', () => isDragging = false);
-
-        // Mouse Wheel Zoom
-        container.addEventListener('wheel', (e) => {
+        canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
-            const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
-            const newScale = Math.min(Math.max(0.4, worldContainer.scale.x * zoomFactor), 2.5);
-            worldContainer.scale.set(newScale);
+            const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+            camera.zoom = Math.min(Math.max(0.5, camera.zoom * zoomFactor), 2.5);
         }, { passive: false });
 
-        // ==========================================
-        // 2. ISOMETRIC MAP & BIOME GENERATOR
-        // ==========================================
-        const GRID_SIZE = 22;
-        const TILE_WIDTH = 52;
-        const TILE_HEIGHT = 26;
-
-        const BIOMES = {
-            0: { name: "Plains", color: 0x0f291e, border: 0x144531 },
-            1: { name: "Plasma Water", color: 0x0284c7, border: 0x0369a1 },
-            2: { name: "Mountains", color: 0x334155, border: 0x475569 },
-            3: { name: "Bio-Forest", color: 0x065f46, border: 0x047857 }
-        };
-
-        const mapData = [];
-        for (let x = 0; x < GRID_SIZE; x++) {
-            mapData[x] = [];
-            for (let y = 0; y < GRID_SIZE; y++) {
-                if (x === 11 || y === 11) mapData[x][y] = 1; // Center River / Cyber Canal
-                else if ((x < 3 && y < 3) || (x > 18 && y > 18)) mapData[x][y] = 2; // Mountain ranges
-                else if ((x + y) % 6 === 0) mapData[x][y] = 3; // Forests
-                else mapData[x][y] = 0;
+        // Touch controls for mobile devices
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                startX = e.touches[0].clientX - camera.x;
+                startY = e.touches[0].clientY - camera.y;
             }
-        }
-
-        function isoToScreen(x, y) {
-            return {
-                x: (x - y) * (TILE_WIDTH / 2),
-                y: (x + y) * (TILE_HEIGHT / 2)
-            };
-        }
-
-        function renderMap(techLevel = 1) {
-            mapLayer.removeChildren();
-            gridOverlayLayer.removeChildren();
-
-            const isFuturistic = techLevel >= 3;
-
-            for (let x = 0; x < GRID_SIZE; x++) {
-                for (let y = 0; y < GRID_SIZE; y++) {
-                    const biome = BIOMES[mapData[x][y]] || BIOMES[0];
-                    const pos = isoToScreen(x, y);
-
-                    const tile = new PIXI.Graphics();
-                    let tileColor = biome.color;
-                    let borderColor = biome.border;
-
-                    // Adapt tile palette to Era advancement
-                    if (isFuturistic && mapData[x][y] === 0) {
-                        tileColor = 0x0a101d; // Dark Cyber Floor
-                        borderColor = 0x1e293b;
-                    }
-
-                    tile.beginFill(tileColor, 0.9);
-                    tile.lineStyle(1, borderColor, 0.6);
-                    tile.moveTo(0, 0);
-                    tile.lineTo(TILE_WIDTH / 2, TILE_HEIGHT / 2);
-                    tile.lineTo(0, TILE_HEIGHT);
-                    tile.lineTo(-TILE_WIDTH / 2, TILE_HEIGHT / 2);
-                    tile.closePath();
-                    tile.endFill();
-
-                    tile.x = pos.x;
-                    tile.y = pos.y;
-                    mapLayer.addChild(tile);
-
-                    // Add futuristic glowing grid overlay if tech power is high
-                    if (isFuturistic && (x % 2 === 0 && y % 2 === 0)) {
-                        const gridLine = new PIXI.Graphics();
-                        gridLine.lineStyle(1, 0x38bdf8, 0.15);
-                        gridLine.drawCircle(pos.x, pos.y + TILE_HEIGHT / 2, 2);
-                        gridOverlayLayer.addChild(gridLine);
-                    }
-                }
+        });
+        canvas.addEventListener('touchend', () => isDragging = false);
+        canvas.addEventListener('touchmove', (e) => {
+            if (isDragging && e.touches.length === 1) {
+                camera.x = e.touches[0].clientX - startX;
+                camera.y = e.touches[0].clientY - startY;
             }
-        }
-
-        // ==========================================
-        // 3. MULTI-ERA DRAWING HELPERS (Stone Age -> Sci-Fi)
-        // AI HOOK: Extend graphic drawing functions here
-        // ==========================================
-
-        // --- ERA 1: PRIMITIVE / STONE AGE BUILDINGS ---
-        function drawPrimitiveHut(x, y) {
-            const container = new PIXI.Container();
-            const pos = isoToScreen(x, y);
-            container.x = pos.x; container.y = pos.y;
-            const g = new PIXI.Graphics();
-
-            // Straw/Wood Hut
-            g.beginFill(0x78350f); g.drawCircle(0, -6, 8); g.endFill();
-            g.beginFill(0xa16207); g.moveTo(-9, -6).lineTo(0, -18).lineTo(9, -6).closePath(); g.endFill();
-            // Campfire
-            g.beginFill(0xef4444); g.drawCircle(0, 2, 2.5); g.endFill();
-
-            container.addChild(g);
-            return container;
-        }
-
-        // --- ERA 2: MEDIEVAL / FEUDAL BUILDINGS ---
-        function drawMedievalCastle(x, y) {
-            const container = new PIXI.Container();
-            const pos = isoToScreen(x, y);
-            container.x = pos.x; container.y = pos.y;
-            const g = new PIXI.Graphics();
-
-            // Stone Walls
-            g.beginFill(0x334155); g.drawRect(-12, -14, 24, 14); g.endFill();
-            // Golden Spire Keep
-            g.beginFill(0xd97706); g.drawRect(-6, -26, 12, 12); g.endFill();
-            g.beginFill(0xef4444); g.moveTo(-8, -26).lineTo(0, -38).lineTo(8, -26).closePath(); g.endFill();
-
-            container.addChild(g);
-            return container;
-        }
-
-        // --- ERA 3: FUTURISTIC SCI-FI CITADEL ---
-        function drawSciFiSpire(x, y) {
-            const container = new PIXI.Container();
-            const pos = isoToScreen(x, y);
-            container.x = pos.x; container.y = pos.y;
-            const g = new PIXI.Graphics();
-
-            // Neon Base Ring
-            g.lineStyle(1.5, 0x38bdf8, 0.8);
-            g.drawEllipse(0, 0, 16, 8);
-            g.lineStyle(0);
-
-            // Metallic Tower Body
-            g.beginFill(0x0f172a);
-            g.moveTo(-10, 0).lineTo(-4, -45).lineTo(4, -45).lineTo(10, 0).closePath();
-            g.endFill();
-
-            // Cyan Hologram Energy Core
-            g.beginFill(0x38bdf8, 0.8);
-            g.drawRect(-2, -35, 4, 25);
-            g.endFill();
-
-            // Floating Apex Plasma Crystal
-            g.beginFill(0xc084fc);
-            g.moveTo(0, -58).lineTo(5, -50).lineTo(0, -42).lineTo(-5, -50).closePath();
-            g.endFill();
-
-            container.addChild(g);
-            return container;
-        }
-
-        // --- DEFENSE UNITS (Tanks / Drones) ---
-        function drawDefenseUnit(x, y, isSciFi) {
-            const container = new PIXI.Container();
-            const pos = isoToScreen(x, y);
-            container.x = pos.x; container.y = pos.y;
-            const g = new PIXI.Graphics();
-
-            if (!isSciFi) {
-                // Classic Tank
-                g.beginFill(0x1e293b); g.drawRoundRect(-7, -4, 14, 8, 2); g.endFill();
-                g.beginFill(0xef4444); g.drawCircle(0, -3, 3); g.endFill();
-                g.lineStyle(2, 0x991b1b); g.moveTo(0, -3).lineTo(6, -6); g.lineStyle(0);
-            } else {
-                // Hover Drone / Mech
-                g.beginFill(0x38bdf8, 0.9); g.drawCircle(0, -8, 4); g.endFill();
-                g.lineStyle(1, 0xc084fc); g.drawCircle(0, -8, 7); g.lineStyle(0);
-                // Thruster Glow
-                g.beginFill(0x38bdf8, 0.5); g.drawEllipse(0, -2, 3, 1.5); g.endFill();
-            }
-
-            container.addChild(g);
-            return container;
-        }
-
-        // ==========================================
-        // 4. ERA VISUAL PROGRESSION ENGINE
-        // ==========================================
-        function updateEntities(state) {
-            entitiesLayer.removeChildren();
-
-            const tech = state.techPower || 0.5;
-            let eraTier = 1; // 1: Stone/Primitive, 2: Medieval, 3+: Sci-Fi
-            if (tech >= 1.5 && tech < 4) eraTier = 2;
-            if (tech >= 4) eraTier = 3;
-
-            // Update Map Styling based on Tech Tier
-            renderMap(eraTier);
-
-            // 1. Render Main Capital / Citadel
-            let capital;
-            if (eraTier === 1) capital = drawPrimitiveHut(7, 7);
-            else if (eraTier === 2) capital = drawMedievalCastle(7, 7);
-            else capital = drawSciFiSpire(7, 7);
-            entitiesLayer.addChild(capital);
-
-            // 2. Render Citizen Housing Slots
-            const pop = state.population || 0;
-            const houseSlots = [
-                {x: 5, y: 8}, {x: 8, y: 5}, {x: 8, y: 8}, {x: 5, y: 5},
-                {x: 4, y: 7}, {x: 7, y: 4}, {x: 9, y: 8}, {x: 8, y: 9}
-            ];
-            const houseCount = Math.min(Math.ceil(pop / 2), houseSlots.length);
-
-            for (let i = 0; i < houseCount; i++) {
-                const slot = houseSlots[i];
-                let house;
-                if (eraTier === 1) house = drawPrimitiveHut(slot.x, slot.y);
-                else if (eraTier === 2) house = drawMedievalCastle(slot.x, slot.y);
-                else house = drawSciFiSpire(slot.x, slot.y);
-                entitiesLayer.addChild(house);
-            }
-
-            // 3. Render Defensive Military (Tanks or Cyber Drones)
-            const tankCount = Math.min(state.tanks || 0, 20);
-            for (let i = 0; i < tankCount; i++) {
-                const tx = 3 + (i % 5) * 2;
-                const ty = 12 + Math.floor(i / 5) * 2;
-                const unit = drawDefenseUnit(tx, ty, eraTier >= 3);
-                entitiesLayer.addChild(unit);
-            }
-
-            // Sort depth for isometric overlapping
-            entitiesLayer.children.sort((a, b) => a.y - b.y);
-        }
-
-        // Ambient Sci-Fi Starfield
-        const stars = [];
-        for (let i = 0; i < 40; i++) {
-            const s = new PIXI.Graphics();
-            s.beginFill(0x38bdf8, Math.random() * 0.6 + 0.2);
-            s.drawCircle(0, 0, Math.random() * 2 + 0.5);
-            s.endFill();
-            s.x = Math.random() * app.screen.width;
-            s.y = Math.random() * app.screen.height;
-            s.vy = Math.random() * -0.4 - 0.1;
-            app.stage.addChild(s);
-            stars.push(s);
-        }
-
-        app.ticker.add(() => {
-            stars.forEach(s => {
-                s.y += s.vy;
-                if (s.y < 0) s.y = app.screen.height;
-            });
         });
 
-        window.addEventListener('resize', () => {
-            worldContainer.x = app.screen.width / 2;
-            worldContainer.y = app.screen.height / 3;
-        });
+        // Isometric conversion helpers
+        function toIso(x, y) {
+            const isoX = (x - y) * 32;
+            const isoY = (x + y) * 16;
+            return { x: isoX, y: isoY };
+        }
 
-        // ==========================================
-        // 5. REAL-TIME WEBSOCKET SYNC
-        // ==========================================
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}`;
-        const socket = new WebSocket(wsUrl);
+        let frameCount = 0;
 
-        socket.onmessage = (event) => {
-            const message = JSON.parse(event.data);
-            if (message.type === 'WORLD_UPDATE') {
-                const data = message.data;
+        function render() {
+            frameCount++;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                // Sync HUD Stats
-                document.getElementById('val-day').innerText = data.day;
-                document.getElementById('val-era').innerText = data.era;
-                document.getElementById('val-pop').innerText = data.population;
-                document.getElementById('val-gold').innerText = `${data.treasury} G`;
-                document.getElementById('val-tech').innerText = Number(data.techPower).toFixed(2);
-                document.getElementById('val-tanks').innerText = data.tanks;
-                document.getElementById('val-build').innerText = data.engineBuild;
-                
-                const warEl = document.getElementById('val-war');
-                if (data.inWar) {
-                    warEl.innerText = 'WAR';
-                    warEl.className = 'val c-red';
-                } else {
-                    warEl.innerText = 'PEACE';
-                    warEl.className = 'val c-green';
+            ctx.save();
+            ctx.translate(canvas.width / 2 + camera.x, canvas.height / 3 + camera.y);
+            ctx.scale(camera.zoom, camera.zoom);
+
+            const gridSize = 14;
+
+            // 1. Draw Grid Terrain Tiles
+            for (let x = 0; x < gridSize; x++) {
+                for (let y = 0; y < gridSize; y++) {
+                    const pos = toIso(x, y);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(pos.x, pos.y);
+                    ctx.lineTo(pos.x + 32, pos.y + 16);
+                    ctx.lineTo(pos.x, pos.y + 32);
+                    ctx.lineTo(pos.x - 32, pos.y + 16);
+                    ctx.closePath();
+
+                    // River running through tile 6
+                    if (x === 6) {
+                        ctx.fillStyle = '#1e3799';
+                    } else {
+                        ctx.fillStyle = ((x + y) % 2 === 0) ? '#0f2027' : '#203a43';
+                    }
+                    ctx.fill();
+                    ctx.strokeStyle = '#112233';
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
                 }
-
-                // Sync Event Console Logs & Smooth Auto-Scroll
-                if (data.logs) {
-                    const logContainer = document.getElementById('log-content');
-                    logContainer.innerHTML = data.logs.map(l => `<div class="log-entry">${l}</div>`).join('');
-                    logContainer.scrollTop = logContainer.scrollHeight;
-                }
-
-                // Update Visual Map Entities & Evolution Tier
-                updateEntities(data);
             }
-        };
+
+            // 2. Render Buildings based on Population & Tech Power
+            const buildingCount = Math.min(25, Math.floor(worldState.population / 2) + 2);
+            for (let i = 0; i < buildingCount; i++) {
+                const gx = (i * 3) % gridSize;
+                const gy = Math.floor((i * 3) / gridSize) * 2 % gridSize;
+                if (gx === 6) continue; // Don't build in river
+
+                const pos = toIso(gx, gy);
+                const height = 20 + (i % 3) * 15 + Math.min(40, worldState.techPower * 2);
+
+                // Front Face
+                ctx.fillStyle = '#00d2ff';
+                ctx.beginPath();
+                ctx.moveTo(pos.x - 12, pos.y + 10);
+                ctx.lineTo(pos.x, pos.y + 16);
+                ctx.lineTo(pos.x, pos.y + 16 - height);
+                ctx.lineTo(pos.x - 12, pos.y + 10 - height);
+                ctx.closePath();
+                ctx.fill();
+
+                // Side Face
+                ctx.fillStyle = '#0083b0';
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y + 16);
+                ctx.lineTo(pos.x + 12, pos.y + 10);
+                ctx.lineTo(pos.x + 12, pos.y + 10 - height);
+                ctx.lineTo(pos.x, pos.y + 16 - height);
+                ctx.closePath();
+                ctx.fill();
+
+                // Roof
+                ctx.fillStyle = '#80d0c7';
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y + 16 - height);
+                ctx.lineTo(pos.x + 12, pos.y + 10 - height);
+                ctx.lineTo(pos.x, pos.y + 4 - height);
+                ctx.lineTo(pos.x - 12, pos.y + 10 - height);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // 3. Render Citizens (Moving Glowing Particles)
+            const citizenDots = Math.min(30, worldState.population);
+            for (let c = 0; c < citizenDots; c++) {
+                const speed = 0.02;
+                const offset = (frameCount * speed + c * 1.5) % 10;
+                const cPos = toIso(2 + (c % 4) * 2 + offset, 2 + Math.floor(c / 4) * 2);
+
+                ctx.beginPath();
+                ctx.arc(cPos.x, cPos.y + 10, 3, 0, Math.PI * 2);
+                ctx.fillStyle = '#2ecc71';
+                ctx.shadowColor = '#2ecc71';
+                ctx.shadowBlur = 5;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+
+            // 4. Render Defense Units / Tanks
+            for (let t = 0; t < Math.min(10, worldState.tanks); t++) {
+                const tPos = toIso(1, 1 + t * 1.2);
+                ctx.fillStyle = '#e74c3c';
+                ctx.fillRect(tPos.x - 6, tPos.y, 12, 8);
+                ctx.fillStyle = '#c0392b';
+                ctx.fillRect(tPos.x - 2, tPos.y - 3, 4, 4);
+            }
+
+            ctx.restore();
+            requestAnimationFrame(render);
+        }
+
+        requestAnimationFrame(render);
     </script>
 </body>
 </html>
