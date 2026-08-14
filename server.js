@@ -66,7 +66,7 @@ function broadcastState() {
 }
 
 /**
- * GEMINI API HELPER (Compatible with Google Interactions API & v1beta Fallback)
+ * GEMINI API HELPER (Multi-Model REST Fallback)
  */
 async function queryGemini(prompt) {
     if (!AI_API_KEY) {
@@ -74,44 +74,29 @@ async function queryGemini(prompt) {
         return null;
     }
 
-    // Attempt 1: New Google Interactions API
-    try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/interactions?key=${AI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: 'gemini-2.5-flash',
-                input: prompt
-            })
-        });
+    const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
 
-        if (res.ok) {
-            const data = await res.json();
-            if (data.output) return data.output;
-            if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                return data.candidates[0].content.parts[0].text;
+    for (const model of models) {
+        try {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${AI_API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }]
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (text) return text;
+            } else {
+                const errData = await res.json().catch(() => ({}));
+                console.error(`Gemini API (${model}) error:`, res.status, errData.error?.message || res.statusText);
             }
+        } catch (e) {
+            console.error(`Gemini fetch error (${model}):`, e.message);
         }
-    } catch (e) {
-        console.error("Interactions API error:", e.message);
-    }
-
-    // Attempt 2: Direct v1beta REST fallback
-    try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
-            })
-        });
-
-        if (res.ok) {
-            const data = await res.json();
-            return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
-        }
-    } catch (e) {
-        console.error("v1beta Fallback error:", e.message);
     }
 
     return null;
@@ -233,15 +218,22 @@ async function autoImproveGameCode() {
 setInterval(() => {
     worldState.day += 1;
 
+    // EMERGENCY BAILOUT MECHANISM (Poverty Trap Fix)
+    if (worldState.treasury <= 0 && worldState.happiness < 50) {
+        worldState.treasury += 300;
+        worldState.happiness = Math.min(100, worldState.happiness + 25);
+        addLog(`[RECOVERY] Sovereign Reserve injected 300 Gold & restored public confidence!`);
+    }
+
     let moraleProductivity = 1.0;
     if (worldState.happiness >= 80) {
         moraleProductivity = 1.5;
     } else if (worldState.happiness >= 50) {
         moraleProductivity = 1.0;
     } else if (worldState.happiness >= 30) {
-        moraleProductivity = 0.4;
+        moraleProductivity = 0.6;
     } else {
-        moraleProductivity = 0.05;
+        moraleProductivity = 0.35; // Prevents negative cashflow locks
     }
 
     const baseTaxPerCitizen = 12;
