@@ -165,8 +165,9 @@ async function autoImproveGameCode() {
 
     try {
         const cleanRepo = GITHUB_REPO.trim();
-        const apiDomain = 'https://' + '[api.github.com/repos/](https://api.github.com/repos/)';
+        const apiDomain = 'https://api.github.com/repos/';
         const fileUrl = apiDomain + cleanRepo + '/contents/public/index.html';
+
 
         const getFile = await fetch(fileUrl, {
             headers: { 
