@@ -159,7 +159,7 @@ async function generateAIEvents() {
 }
 
 /**
- * 2. AI GRAPHICS & CODE REFACTOR ENGINE (GITHUB AUTO-COMMIT) - ALTERNATIVE APPROACH
+ * 2. AI GRAPHICS & CODE REFACTOR ENGINE - SIMPLIFIED WITH DIAGNOSTICS
  */
 async function autoImproveGameCode() {
     if (!GITHUB_TOKEN || !GITHUB_REPO) {
@@ -168,83 +168,77 @@ async function autoImproveGameCode() {
     }
 
     console.log("🤖 AI starting Code Refactor & Graphics Upgrade cycle...");
+    console.log("🔑 Token starts with:", GITHUB_TOKEN.substring(0, 7) + "...");
+    console.log("🔑 Token length:", GITHUB_TOKEN.length);
+    console.log("📦 Repo:", GITHUB_REPO);
     addLog("[AI AUTO-CODING] Analyzing frontend engine to improve rendering & feature set...");
 
     try {
-        const cleanRepo = GITHUB_REPO.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
-        const cleanToken = GITHUB_TOKEN.trim();
-        
-        // Debug: Show token format (first 4 chars only)
-        console.log("🔑 Token format:", cleanToken.substring(0, 4) + "..." + cleanToken.substring(cleanToken.length - 4));
-        console.log("📦 Repository:", cleanRepo);
-        
-        // Method 1: Try with different auth formats
-        const authMethods = [
-            { name: 'Bearer', header: `Bearer ${cleanToken}` },
-            { name: 'token', header: `token ${cleanToken}` },
-            { name: 'Basic', header: `Basic ${Buffer.from(`x-access-token:${cleanToken}`).toString('base64')}` }
-        ];
-        
-        let fileData = null;
-        let successfulAuth = null;
-        
-        // Try to get file with different auth methods
-        for (const auth of authMethods) {
-            console.log(`🔍 Trying auth method: ${auth.name}`);
-            
-            try {
-                const response = await fetch(`https://api.github.com/repos/${cleanRepo}/contents/public/index.html`, {
-                    headers: {
-                        'Authorization': auth.header,
-                        'User-Agent': 'Node-AI-Server',
-                        'Accept': 'application/vnd.github.v3+json',
-                        'X-GitHub-Api-Version': '2022-11-28'
-                    }
-                });
-                
-                console.log(`📊 ${auth.name} status:`, response.status);
-                
-                if (response.ok) {
-                    fileData = await response.json();
-                    successfulAuth = auth.name;
-                    console.log(`✅ Success with ${auth.name} auth!`);
-                    break;
-                } else if (response.status === 401) {
-                    console.log(`❌ ${auth.name} auth failed (401 Unauthorized)`);
-                } else if (response.status === 404) {
-                    console.log(`❌ ${auth.name} auth worked but file not found (404)`);
-                    // Auth works but file not found, try to list contents
-                    const listResponse = await fetch(`https://api.github.com/repos/${cleanRepo}/contents/`, {
-                        headers: {
-                            'Authorization': auth.header,
-                            'User-Agent': 'Node-AI-Server',
-                            'Accept': 'application/vnd.github.v3+json'
-                        }
-                    });
-                    
-                    if (listResponse.ok) {
-                        const contents = await listResponse.json();
-                        console.log("📁 Repository contents:", contents.map(c => c.name).join(', '));
-                    }
-                } else {
-                    const errorBody = await response.json().catch(() => ({}));
-                    console.log(`⚠️ ${auth.name} auth error ${response.status}:`, errorBody.message || 'Unknown');
-                }
-            } catch (fetchError) {
-                console.error(`⚠️ Fetch error with ${auth.name}:`, fetchError.message);
+        // Test token validity first
+        console.log("🔍 Testing token validity...");
+        const testResponse = await fetch('https://api.github.com/user', {
+            headers: {
+                'Authorization': `Bearer ${GITHUB_TOKEN.trim()}`,
+                'User-Agent': 'Node-AI-Server',
+                'Accept': 'application/vnd.github.v3+json'
             }
-        }
+        });
         
-        if (!fileData || !fileData.sha) {
-            console.error("❌ Could not access file with any auth method");
-            addLog("[AI COMMIT ERROR] Could not access file. Check token permissions.");
+        if (!testResponse.ok) {
+            console.error("❌ Token invalid! Status:", testResponse.status);
+            const errorData = await testResponse.json().catch(() => ({}));
+            console.error("❌ Error:", errorData.message || 'Unknown error');
+            addLog(`[AI COMMIT ERROR] Invalid GitHub token. Please check token permissions.`);
             return;
         }
         
+        const userData = await testResponse.json();
+        console.log("✅ Token valid! User:", userData.login);
+        
+        // Test repository access
+        console.log("🔍 Testing repository access...");
+        const repoResponse = await fetch(`https://api.github.com/repos/edthedog-debug/dark-fantasy-civ`, {
+            headers: {
+                'Authorization': `Bearer ${GITHUB_TOKEN.trim()}`,
+                'User-Agent': 'Node-AI-Server',
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+        
+        if (!repoResponse.ok) {
+            console.error("❌ Cannot access repository! Status:", repoResponse.status);
+            addLog(`[AI COMMIT ERROR] Cannot access repository (${repoResponse.status})`);
+            return;
+        }
+        
+        const repoData = await repoResponse.json();
+        console.log("✅ Repository accessible:", repoData.full_name);
+        console.log("🔒 Private:", repoData.private);
+        
+        // Get file from public/index.html
+        console.log("🔍 Fetching public/index.html...");
+        const fileResponse = await fetch('https://api.github.com/repos/edthedog-debug/dark-fantasy-civ/contents/public/index.html', {
+            headers: {
+                'Authorization': `Bearer ${GITHUB_TOKEN.trim()}`,
+                'User-Agent': 'Node-AI-Server',
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+        
+        if (!fileResponse.ok) {
+            console.error("❌ Cannot access file! Status:", fileResponse.status);
+            const fileError = await fileResponse.json().catch(() => ({}));
+            console.error("❌ Error:", fileError.message || 'Unknown error');
+            addLog(`[AI COMMIT ERROR] Cannot access index.html (${fileResponse.status})`);
+            return;
+        }
+        
+        const fileData = await fileResponse.json();
+        console.log("✅ File found!");
+        console.log("📝 SHA:", fileData.sha);
+        console.log("📊 Size:", fileData.size, "bytes");
+        
         const currentSha = fileData.sha;
-        console.log("✅ File accessed successfully!");
-        console.log("📝 Current SHA:", currentSha);
-        console.log("📄 File path:", fileData.path);
 
         const prompt = "You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'index.html' for an autonomous isometric economic empire simulator.\n\n" +
         "CRITICAL RULES:\n" +
@@ -263,17 +257,15 @@ async function autoImproveGameCode() {
         newCode = newCode.replace(/```(?:html)?/gi, '').trim();
         const updatedContentBase64 = Buffer.from(newCode).toString('base64');
         
-        // Try to commit with the successful auth method
-        console.log(`📝 Committing using ${successfulAuth} auth...`);
+        console.log("📝 Committing changes...");
         
-        const commitResponse = await fetch(`https://api.github.com/repos/${cleanRepo}/contents/public/index.html`, {
+        const commitResponse = await fetch('https://api.github.com/repos/edthedog-debug/dark-fantasy-civ/contents/public/index.html', {
             method: 'PUT',
             headers: {
-                'Authorization': authMethods.find(a => a.name === successfulAuth).header,
+                'Authorization': `Bearer ${GITHUB_TOKEN.trim()}`,
                 'Content-Type': 'application/json',
                 'User-Agent': 'Node-AI-Server',
-                'Accept': 'application/vnd.github.v3+json',
-                'X-GitHub-Api-Version': '2022-11-28'
+                'Accept': 'application/vnd.github.v3+json'
             },
             body: JSON.stringify({
                 message: "🤖 [AI Auto-Upgrade] Refactored frontend engine to " + worldState.engineBuild,
@@ -289,112 +281,6 @@ async function autoImproveGameCode() {
             const commitErr = await commitResponse.json().catch(() => ({}));
             console.error("❌ Commit failed:", commitResponse.status, commitErr);
             addLog(`[AI COMMIT ERROR] GitHub PUT failed (${commitResponse.status}): ${commitErr.message || 'Unknown error'}`);
-            
-            // Alternative: Try using the Git Data API
-            console.log("🔍 Trying alternative Git Data API...");
-            
-            // Get the current commit SHA
-            const branchResponse = await fetch(`https://api.github.com/repos/${cleanRepo}/git/ref/heads/main`, {
-                headers: {
-                    'Authorization': authMethods.find(a => a.name === successfulAuth).header,
-                    'User-Agent': 'Node-AI-Server',
-                    'Accept': 'application/vnd.github.v3+json'
-                }
-            });
-            
-            if (branchResponse.ok) {
-                const branchData = await branchResponse.json();
-                const lastCommitSha = branchData.object.sha;
-                console.log("📝 Last commit SHA:", lastCommitSha);
-                
-                // Create a new blob
-                const blobResponse = await fetch(`https://api.github.com/repos/${cleanRepo}/git/blobs`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': authMethods.find(a => a.name === successfulAuth).header,
-                        'Content-Type': 'application/json',
-                        'User-Agent': 'Node-AI-Server',
-                        'Accept': 'application/vnd.github.v3+json'
-                    },
-                    body: JSON.stringify({
-                        content: newCode,
-                        encoding: 'utf-8'
-                    })
-                });
-                
-                if (blobResponse.ok) {
-                    const blobData = await blobResponse.json();
-                    console.log("✅ Blob created:", blobData.sha);
-                    
-                    // Create a new tree
-                    const treeResponse = await fetch(`https://api.github.com/repos/${cleanRepo}/git/trees`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': authMethods.find(a => a.name === successfulAuth).header,
-                            'Content-Type': 'application/json',
-                            'User-Agent': 'Node-AI-Server',
-                            'Accept': 'application/vnd.github.v3+json'
-                        },
-                        body: JSON.stringify({
-                            base_tree: lastCommitSha,
-                            tree: [{
-                                path: 'public/index.html',
-                                mode: '100644',
-                                type: 'blob',
-                                sha: blobData.sha
-                            }]
-                        })
-                    });
-                    
-                    if (treeResponse.ok) {
-                        const treeData = await treeResponse.json();
-                        console.log("✅ Tree created:", treeData.sha);
-                        
-                        // Create a new commit
-                        const commitDataResponse = await fetch(`https://api.github.com/repos/${cleanRepo}/git/commits`, {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': authMethods.find(a => a.name === successfulAuth).header,
-                                'Content-Type': 'application/json',
-                                'User-Agent': 'Node-AI-Server',
-                                'Accept': 'application/vnd.github.v3+json'
-                            },
-                            body: JSON.stringify({
-                                message: "🤖 [AI Auto-Upgrade] Refactored frontend engine to " + worldState.engineBuild,
-                                tree: treeData.sha,
-                                parents: [lastCommitSha]
-                            })
-                        });
-                        
-                        if (commitDataResponse.ok) {
-                            const commitData = await commitDataResponse.json();
-                            console.log("✅ Commit created:", commitData.sha);
-                            
-                            // Update the branch reference
-                            const updateBranchResponse = await fetch(`https://api.github.com/repos/${cleanRepo}/git/refs/heads/main`, {
-                                method: 'PATCH',
-                                headers: {
-                                    'Authorization': authMethods.find(a => a.name === successfulAuth).header,
-                                    'Content-Type': 'application/json',
-                                    'User-Agent': 'Node-AI-Server',
-                                    'Accept': 'application/vnd.github.v3+json'
-                                },
-                                body: JSON.stringify({
-                                    sha: commitData.sha,
-                                    force: false
-                                })
-                            });
-                            
-                            if (updateBranchResponse.ok) {
-                                addLog("[AI COMMIT SUCCESS] Pushed graphics & engine improvements using Git Data API!");
-                                console.log("✅ Successfully committed using alternative method!");
-                            } else {
-                                console.error("❌ Failed to update branch");
-                            }
-                        }
-                    }
-                }
-            }
         }
     } catch (err) {
         console.error("Auto-code commit error:", err.message);
@@ -402,7 +288,6 @@ async function autoImproveGameCode() {
     }
 }
 
-// Rest of the code remains the same...
 // ASYNC SIMULATION TICK
 async function runSimulationTick() {
     worldState.day += 1;
