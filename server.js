@@ -203,14 +203,18 @@ async function generateAIEvents() {
 }
 
 /**
- * Execute git command
+ * Execute git command with better error handling
  */
 function executeGitCommand(command) {
     return new Promise((resolve, reject) => {
+        console.log("🔧 Executing:", command);
         exec(command, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
             if (error) {
+                console.error("❌ Git error:", error.message);
+                console.error("❌ Stderr:", stderr);
                 reject(error);
             } else {
+                console.log("✅ Git success:", stdout.substring(0, 200));
                 resolve(stdout);
             }
         });
@@ -265,6 +269,97 @@ function cleanHTMLCode(code) {
     code = code.replace(/```html/gi, '').replace(/```/g, '');
     
     return code.trim();
+}
+
+/**
+ * Push to GitHub with better error handling
+ */
+async function pushToGitHub(commitMessage) {
+    console.log("\n📤 Attempting GitHub push...");
+    
+    if (!GITHUB_TOKEN) {
+        console.error("❌ No GITHUB_TOKEN configured");
+        addLog("[GITHUB ERROR] No token configured");
+        return false;
+    }
+    
+    if (!GITHUB_REPO) {
+        console.error("❌ No GITHUB_REPO configured");
+        addLog("[GITHUB ERROR] No repo configured");
+        return false;
+    }
+    
+    try {
+        const cleanToken = GITHUB_TOKEN.trim();
+        const cleanRepo = GITHUB_REPO.trim();
+        
+        // Configure git
+        await executeGitCommand('git config --global user.email "ai@example.com"');
+        await executeGitCommand('git config --global user.name "AI Auto-Improver"');
+        
+        // Check if we're in a git repo
+        let isRepo = false;
+        try {
+            await executeGitCommand('git rev-parse --is-inside-work-tree');
+            isRepo = true;
+            console.log("✅ Already in a git repo");
+        } catch (gitError) {
+            console.log("📦 Not in a git repo, initializing...");
+        }
+        
+        if (!isRepo) {
+            // Initialize new repo
+            await executeGitCommand('git init');
+            await executeGitCommand('git add .');
+            await executeGitCommand('git commit -m "Initial commit"');
+        }
+        
+        // Set remote URL
+        const repoUrl = `https://${cleanToken}@github.com/${cleanRepo}.git`;
+        console.log("🔗 Repo URL:", repoUrl.replace(cleanToken, "***TOKEN***"));
+        
+        try {
+            await executeGitCommand(`git remote remove origin`);
+        } catch (e) {
+            // No origin to remove
+        }
+        
+        await executeGitCommand(`git remote add origin ${repoUrl}`);
+        
+        // Add all files
+        await executeGitCommand('git add public/index.html');
+        await executeGitCommand('git add worldState.json');
+        await executeGitCommand('git add aiState.json');
+        
+        // Commit
+        await executeGitCommand(`git commit -m "${commitMessage}"`);
+        
+        // Push
+        try {
+            await executeGitCommand('git push -u origin main');
+            console.log("✅ Successfully pushed to GitHub!");
+            addLog("[GITHUB SUCCESS] Code pushed to repository");
+            return true;
+        } catch (pushError) {
+            console.log("⚠️ Push to main failed, trying master...");
+            try {
+                await executeGitCommand('git push -u origin master');
+                console.log("✅ Successfully pushed to GitHub (master)!");
+                addLog("[GITHUB SUCCESS] Code pushed to repository (master)");
+                return true;
+            } catch (masterError) {
+                console.log("⚠️ Push failed, trying force push...");
+                await executeGitCommand('git push -f origin main');
+                console.log("✅ Force pushed to GitHub!");
+                addLog("[GITHUB SUCCESS] Code force pushed to repository");
+                return true;
+            }
+        }
+    } catch (gitError) {
+        console.error("❌ GitHub push failed:", gitError.message);
+        addLog(`[GITHUB ERROR] ${gitError.message}`);
+        return false;
+    }
 }
 
 /**
@@ -500,45 +595,9 @@ async function autoImproveGameCode() {
         saveWorldState();
         saveAIState();
         
-        // Push to GitHub - FIXED: Don't change working directory
-        if (GITHUB_TOKEN) {
-            try {
-                const cleanToken = GITHUB_TOKEN.trim();
-                
-                await executeGitCommand('git config --global user.email "ai@example.com"');
-                await executeGitCommand('git config --global user.name "AI Auto-Improver"');
-                
-                const repoUrl = `https://${cleanToken}@github.com/edthedog-debug/dark-fantasy-civ.git`;
-                
-                // Check if we're in a git repo
-                try {
-                    await executeGitCommand('git rev-parse --is-inside-work-tree');
-                    // We're in a git repo, just update remote and push
-                    await executeGitCommand(`git remote set-url origin ${repoUrl}`);
-                } catch (gitError) {
-                    // Not in a git repo, initialize one
-                    await executeGitCommand('git init');
-                    await executeGitCommand(`git remote add origin ${repoUrl}`);
-                }
-                
-                // Add and commit files WITHOUT changing directory
-                await executeGitCommand('git add public/index.html');
-                await executeGitCommand(`git commit -m "🤖 [AI] ${improvementType} #${aiState.improvementCount} - Day ${worldState.day} - Era ${aiState.aiEra}"`);
-                
-                // Try to push, if fails, try force push
-                try {
-                    await executeGitCommand('git push origin main');
-                } catch (pushError) {
-                    console.log("⚠️ Normal push failed, trying force push...");
-                    await executeGitCommand('git push -f origin main');
-                }
-                
-                console.log("✅ Pushed to GitHub! Day continues:", worldState.day);
-            } catch (gitError) {
-                console.error("❌ Git push failed:", gitError.message);
-                // Don't let git failure stop the simulation
-            }
-        }
+        // Push to GitHub
+        const commitMessage = `🤖 [AI] ${improvementType} #${aiState.improvementCount} - Day ${worldState.day} - Era ${aiState.aiEra}`;
+        await pushToGitHub(commitMessage);
         
         // Verify state is still correct after git operations
         console.log("📅 Day verification after improvement:", worldState.day);
@@ -628,6 +687,7 @@ async function runSimulationTick() {
 
     // Code improvement every 50 days - INFINITE
     if (worldState.day % 50 === 0) {
+        console.log("\n🎯 Day 50 reached - Starting code improvement...");
         const patch = Math.floor(Math.random() * 9) + 1;
         worldState.engineBuild = `v${aiState.aiEra + 2}.${patch}.0-Gemini-2.5-Era${aiState.aiEra}`;
         
@@ -666,6 +726,8 @@ WSS.on('connection', (ws) => {
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log(`📊 AI Evolution System initialized - Day ${worldState.day}, Era ${aiState.aiEra}, ${aiState.improvementCount} improvements`);
+    console.log(`📦 GitHub Repo: ${GITHUB_REPO || 'Not configured'}`);
+    console.log(`🔑 GitHub Token: ${GITHUB_TOKEN ? 'Configured ✓' : 'Missing ✗'}`);
     
     queryGemini("Say 'OK'")
         .then(response => {
