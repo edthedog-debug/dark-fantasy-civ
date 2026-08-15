@@ -218,6 +218,56 @@ function executeGitCommand(command) {
 }
 
 /**
+ * Clean CSS code - Remove HTML tags and ensure proper CSS
+ */
+function cleanCSSCode(code) {
+    // Remove any HTML tags that might be in the code
+    code = code.replace(/<style>/gi, '').replace(/<\/style>/gi, '');
+    code = code.replace(/<script>/gi, '').replace(/<\/script>/gi, '');
+    code = code.replace(/```css/gi, '').replace(/```/g, '');
+    
+    // Remove any HTML comments
+    code = code.replace(/<!--[\s\S]*?-->/g, '');
+    
+    // Remove any JavaScript comments
+    code = code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '');
+    
+    // Ensure it looks like CSS
+    if (!code.includes('{') && !code.includes('}')) {
+        code = `body { ${code} }`;
+    }
+    
+    return code.trim();
+}
+
+/**
+ * Clean JavaScript code - Remove HTML tags and ensure proper JS
+ */
+function cleanJSCode(code) {
+    // Remove any HTML tags that might be in the code
+    code = code.replace(/<script>/gi, '').replace(/<\/script>/gi, '');
+    code = code.replace(/<style>/gi, '').replace(/<\/style>/gi, '');
+    code = code.replace(/```javascript/gi, '').replace(/```js/gi, '').replace(/```/g, '');
+    
+    // Remove any HTML comments
+    code = code.replace(/<!--[\s\S]*?-->/g, '');
+    
+    return code.trim();
+}
+
+/**
+ * Clean HTML code - Ensure proper HTML structure
+ */
+function cleanHTMLCode(code) {
+    // Remove any script or style tags if they're wrapping the content
+    code = code.replace(/<script>/gi, '').replace(/<\/script>/gi, '');
+    code = code.replace(/<style>/gi, '').replace(/<\/style>/gi, '');
+    code = code.replace(/```html/gi, '').replace(/```/g, '');
+    
+    return code.trim();
+}
+
+/**
  * 2. AI CODE IMPROVEMENT - IMPROVES ENTIRE HTML INTERFACE
  */
 async function autoImproveGameCode() {
@@ -257,42 +307,42 @@ async function autoImproveGameCode() {
                 prompt = `Generate a NEW unique JavaScript function for canvas visual effects. 
                          AI Evolution Level: ${aiState.aiEra}
                          Complexity: ${aiState.aiComplexity}
-                         Return ONLY the code. Add particle effects, weather, or magical auras.`;
+                         Return ONLY the JavaScript code without any HTML tags. Add particle effects, weather, or magical auras.`;
                 break;
                 
             case 'ui_design':
-                prompt = `Generate HTML and CSS improvements for a dark fantasy game interface.
+                prompt = `Generate HTML improvements for a dark fantasy game interface.
                          Create better panels, tooltips, or status displays.
                          AI Evolution Level: ${aiState.aiEra}
-                         Return ONLY the HTML/CSS code to add.`;
+                         Return ONLY the HTML code without any script or style tags.`;
                 break;
                 
             case 'css_styling':
                 prompt = `Generate CSS styling improvements for a dark fantasy civilization game.
                          Add gradients, shadows, borders, or animations.
                          AI Evolution Level: ${aiState.aiEra}
-                         Return ONLY the CSS code.`;
+                         Return ONLY the CSS code without any HTML tags. Example: .panel { background: linear-gradient(...); }`;
                 break;
                 
             case 'gameplay_mechanics':
                 prompt = `Create a new JavaScript function for dark fantasy game mechanics.
                          Add resource management, combat system, or diplomacy features.
                          AI Evolution Level: ${aiState.aiEra}
-                         Return ONLY the JavaScript code.`;
+                         Return ONLY the JavaScript code without any HTML tags.`;
                 break;
                 
             case 'animations':
                 prompt = `Generate JavaScript animations for UI elements.
                          Create smooth transitions, hover effects, or loading animations.
                          AI Evolution Level: ${aiState.aiEra}
-                         Return ONLY the JavaScript code.`;
+                         Return ONLY the JavaScript code without any HTML tags.`;
                 break;
                 
             case 'interactive_elements':
                 prompt = `Create interactive JavaScript elements for the game.
                          Add buttons, sliders, or clickable objects.
                          AI Evolution Level: ${aiState.aiEra}
-                         Return ONLY the JavaScript code.`;
+                         Return ONLY the JavaScript code without any HTML tags.`;
                 break;
                 
             case 'performance_optimization':
@@ -300,7 +350,7 @@ async function autoImproveGameCode() {
                          Improve rendering, reduce memory usage, or add caching.
                          Current HTML size: ${currentHtml.length} chars
                          AI Evolution Level: ${aiState.aiEra}
-                         Return ONLY the optimized code.`;
+                         Return ONLY the JavaScript code without any HTML tags.`;
                 break;
                 
             case 'new_features':
@@ -309,13 +359,13 @@ async function autoImproveGameCode() {
                          Population: ${worldState.population}, Treasury: ${worldState.treasury}
                          Tech Power: ${worldState.techPower}, Era: ${worldState.era}
                          AI Evolution Level: ${aiState.aiEra}
-                         Return ONLY the JavaScript/HTML code for the new feature.`;
+                         Return ONLY the JavaScript code without any HTML tags.`;
                 break;
                 
             default:
                 prompt = `Improve the game interface with new visual elements.
                          AI Evolution Level: ${aiState.aiEra}
-                         Return ONLY the code.`;
+                         Return ONLY the code without any HTML tags.`;
         }
         
         console.log(`🎨 Improvement Type: ${improvementType}`);
@@ -324,40 +374,91 @@ async function autoImproveGameCode() {
         
         console.log("✅ Got response! Length:", aiResponse.length);
         
-        // Clean the response
-        let codeToAdd = aiResponse.replace(/```javascript/gi, '').replace(/```js/gi, '').replace(/```html/gi, '').replace(/```css/gi, '').replace(/```/g, '').trim();
+        // Clean the response based on type
+        let codeToAdd;
+        
+        if (improvementType === 'css_styling') {
+            codeToAdd = cleanCSSCode(aiResponse);
+            console.log("🎨 Cleaned CSS:", codeToAdd.substring(0, 100));
+        } else if (improvementType === 'ui_design') {
+            codeToAdd = cleanHTMLCode(aiResponse);
+            console.log("🎨 Cleaned HTML:", codeToAdd.substring(0, 100));
+        } else {
+            codeToAdd = cleanJSCode(aiResponse);
+            console.log("🎨 Cleaned JS:", codeToAdd.substring(0, 100));
+        }
         
         if (codeToAdd.length < 10) {
-            codeToAdd = `// AI improvement #${aiState.improvementCount + 1} (${improvementType})\nconsole.log('Improved: ${improvementType}');`;
+            if (improvementType === 'css_styling') {
+                codeToAdd = `/* AI CSS improvement #${aiState.improvementCount + 1} */\n.ai-panel { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }`;
+            } else if (improvementType === 'ui_design') {
+                codeToAdd = `<div class="ai-panel">AI Enhanced Panel</div>`;
+            } else {
+                codeToAdd = `// AI improvement #${aiState.improvementCount + 1} (${improvementType})\nconsole.log('Improved: ${improvementType}');`;
+            }
         }
         
         // Apply improvement based on type
         let improvedHtml = currentHtml;
         
         if (improvementType === 'css_styling') {
-            // Add CSS
-            const cssBlock = `\n/* === AI CSS IMPROVEMENT #${aiState.improvementCount + 1} === */\n<style>\n${codeToAdd}\n</style>\n`;
-            if (improvedHtml.includes('</head>')) {
-                improvedHtml = improvedHtml.replace('</head>', cssBlock + '</head>');
+            // Add CSS to existing style block or create new one
+            const cssBlock = `\n/* === AI CSS IMPROVEMENT #${aiState.improvementCount + 1} === */\n${codeToAdd}\n`;
+            
+            // Find existing style block
+            const styleRegex = /<style[^>]*>[\s\S]*?<\/style>/gi;
+            const existingStyles = improvedHtml.match(styleRegex);
+            
+            if (existingStyles && existingStyles.length > 0) {
+                // Add to existing style block
+                const lastStyle = existingStyles[existingStyles.length - 1];
+                const updatedStyle = lastStyle.replace('</style>', cssBlock + '</style>');
+                improvedHtml = improvedHtml.replace(lastStyle, updatedStyle);
+            } else if (improvedHtml.includes('</head>')) {
+                // Create new style block before </head>
+                const newStyleBlock = `<style>\n${cssBlock}\n</style>\n`;
+                improvedHtml = improvedHtml.replace('</head>', newStyleBlock + '</head>');
             } else {
-                improvedHtml = cssBlock + improvedHtml;
+                // Add at the beginning
+                improvedHtml = `<style>\n${cssBlock}\n</style>\n` + improvedHtml;
             }
+            
+            console.log("✅ CSS applied correctly!");
+            
         } else if (improvementType === 'ui_design') {
             // Add HTML for UI
             const uiBlock = `\n<!-- === AI UI IMPROVEMENT #${aiState.improvementCount + 1} === -->\n<div id="ai-ui-${aiState.improvementCount}" class="ai-generated-ui">\n${codeToAdd}\n</div>\n`;
             if (improvedHtml.includes('</body>')) {
                 improvedHtml = improvedHtml.replace('</body>', uiBlock + '</body>');
+            } else {
+                improvedHtml += uiBlock;
             }
+            
+            console.log("✅ HTML UI applied correctly!");
+            
         } else {
             // Add JavaScript
             const jsBlock = `\n// === AI IMPROVEMENT #${aiState.improvementCount + 1} (${improvementType}) ===\n${codeToAdd}\n`;
-            if (improvedHtml.includes('</script>')) {
-                improvedHtml = improvedHtml.replace('</script>', jsBlock + '</script>');
+            
+            // Find existing script blocks
+            const scriptRegex = /<script[^>]*>[\s\S]*?<\/script>/gi;
+            const existingScripts = improvedHtml.match(scriptRegex);
+            
+            if (existingScripts && existingScripts.length > 0) {
+                // Add to the last script block
+                const lastScript = existingScripts[existingScripts.length - 1];
+                const updatedScript = lastScript.replace('</script>', jsBlock + '</script>');
+                improvedHtml = improvedHtml.replace(lastScript, updatedScript);
             } else if (improvedHtml.includes('</body>')) {
-                improvedHtml = improvedHtml.replace('</body>', `<script>${jsBlock}</script>\n</body>`);
+                // Create new script block before </body>
+                const newScriptBlock = `<script>\n${jsBlock}\n</script>\n`;
+                improvedHtml = improvedHtml.replace('</body>', newScriptBlock + '</body>');
             } else {
-                improvedHtml += `\n<script>${jsBlock}</script>`;
+                // Add at the end
+                improvedHtml += `\n<script>\n${jsBlock}\n</script>`;
             }
+            
+            console.log("✅ JavaScript applied correctly!");
         }
         
         // Write improved HTML - SAVE BEFORE GIT OPERATIONS
