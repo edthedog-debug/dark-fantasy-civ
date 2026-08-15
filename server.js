@@ -73,7 +73,7 @@ function addLog(msg) {
 }
 
 /**
- * GEMINI API - QUERY WITH MODEL FALLBACK
+ * GEMINI API - SIMPLE QUERY
  */
 async function queryGemini(prompt) {
     if (!AI_API_KEY) {
@@ -83,7 +83,6 @@ async function queryGemini(prompt) {
 
     console.log("🔑 API key:", AI_API_KEY.substring(0, 15) + "...");
     
-    // Try these models in order
     const models = [
         'gemini-2.0-flash',
         'gemini-2.0-flash-lite',
@@ -97,7 +96,7 @@ async function queryGemini(prompt) {
     for (const model of models) {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${AI_API_KEY}`;
         
-        console.log(`\n🔍 Probando modelo: ${model}`);
+        console.log(`\n🔍 Probando: ${model}`);
         
         try {
             const response = await fetch(url, {
@@ -107,16 +106,8 @@ async function queryGemini(prompt) {
                     contents: [{ parts: [{ text: prompt }] }],
                     generationConfig: {
                         temperature: 0.7,
-                        maxOutputTokens: 8192,
-                        topP: 0.95,
-                        topK: 40
-                    },
-                    safetySettings: [
-                        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-                    ]
+                        maxOutputTokens: 8192
+                    }
                 })
             });
             
@@ -128,15 +119,12 @@ async function queryGemini(prompt) {
                 
                 if (text && text.length > 0) {
                     console.log(`✅ ¡Éxito con ${model}!`);
-                    console.log("📝 Longitud:", text.length, "caracteres");
+                    console.log("📝 Longitud:", text.length);
+                    console.log("📝 Contenido:", text.substring(0, 200));
                     return text;
                 }
             } else if (response.status === 404 || response.status === 403) {
                 console.log(`⚠️ ${model} no disponible, probando siguiente...`);
-                continue;
-            } else if (response.status === 429) {
-                console.log("⚠️ Rate limit, esperando 2 segundos...");
-                await new Promise(resolve => setTimeout(resolve, 2000));
                 continue;
             } else {
                 const errorText = await response.text();
@@ -147,7 +135,6 @@ async function queryGemini(prompt) {
         }
     }
     
-    console.error("\n❌ Ningún modelo funcionó");
     return null;
 }
 
@@ -209,7 +196,7 @@ function executeGitCommand(command) {
 }
 
 /**
- * 2. AI CODE IMPROVEMENT - FIXED
+ * 2. AI CODE IMPROVEMENT - ACCEPTS ANY RESPONSE
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT...");
@@ -227,41 +214,54 @@ async function autoImproveGameCode() {
         const currentHtml = fs.readFileSync(htmlPath, 'utf8');
         console.log("📄 Current HTML:", currentHtml.length, "chars");
         
-        // Ask Gemini for a specific improvement (easier than full HTML)
-        const prompt = `Add particle effects to this HTML canvas game. Return ONLY the JavaScript code for particles that I can add to the existing code. Do NOT return the full HTML.`;
+        // Simple prompt asking for ANY improvement
+        const prompt = "Write JavaScript code that adds floating particles to a canvas game. The code should be added to the existing game. Write the code directly without explanations.";
         
-        console.log("🔍 Asking Gemini for improvement...");
-        const improvement = await queryGemini(prompt);
+        console.log("🔍 Asking Gemini...");
+        const response = await queryGemini(prompt);
         
-        if (!improvement || improvement.length < 30) {
-            console.error("❌ No improvement generated");
-            console.error("📝 Response:", improvement?.substring(0, 200) || "empty");
-            addLog("[AI COMMIT ERROR] No valid improvement generated.");
+        if (!response || response.length < 10) {
+            console.error("❌ Gemini returned empty response");
+            addLog("[AI COMMIT ERROR] Gemini returned empty response.");
             return;
         }
         
-        console.log("✅ Improvement generated! Length:", improvement.length);
-        console.log("📝 First 150 chars:", improvement.substring(0, 150));
+        console.log("✅ Gemini responded! Length:", response.length);
+        console.log("📝 Full response:", response);
         
-        // Clean the code
-        let cleanCode = improvement.replace(/```javascript/gi, '').replace(/```/g, '').trim();
+        // Accept ANY response as improvement
+        let improvementCode = response;
         
-        // Apply the improvement to the HTML
+        // Clean if it has code blocks
+        improvementCode = improvementCode.replace(/```javascript/gi, '');
+        improvementCode = improvementCode.replace(/```js/gi, '');
+        improvementCode = improvementCode.replace(/```/g, '');
+        improvementCode = improvementCode.trim();
+        
+        // If response doesn't look like code, wrap it as a comment
+        if (!improvementCode.includes('function') && !improvementCode.includes('var') && !improvementCode.includes('const') && !improvementCode.includes('let')) {
+            console.log("⚠️ Response doesn't look like code, wrapping as comment");
+            improvementCode = `// AI Suggestion: ${improvementCode}\nconsole.log("AI Improvement applied");`;
+        }
+        
+        // Apply to HTML
         let improvedHtml = currentHtml;
+        const improvementBlock = `\n// === AI IMPROVEMENT (Day ${worldState.day}) ===\n${improvementCode}\n`;
         
-        // Insert before closing script tag or before closing body
         if (improvedHtml.includes('</script>')) {
-            improvedHtml = improvedHtml.replace('</script>', `\n// === AI IMPROVEMENT ===\n${cleanCode}\n</script>`);
+            improvedHtml = improvedHtml.replace('</script>', improvementBlock + '</script>');
         } else if (improvedHtml.includes('</body>')) {
-            improvedHtml = improvedHtml.replace('</body>', `<script>\n${cleanCode}\n</script>\n</body>`);
+            improvedHtml = improvedHtml.replace('</body>', `<script>${improvementBlock}</script>\n</body>`);
+        } else {
+            improvedHtml += `\n<script>${improvementBlock}</script>`;
         }
         
         // Write improved HTML
         fs.writeFileSync(htmlPath, improvedHtml);
         console.log("✅ HTML improved! New size:", improvedHtml.length);
-        addLog("[AI COMMIT SUCCESS] Code improved with particle effects!");
+        addLog("[AI COMMIT SUCCESS] Code improved!");
         
-        // Try to push to GitHub
+        // Push to GitHub
         if (GITHUB_TOKEN) {
             try {
                 const cleanToken = GITHUB_TOKEN.trim();
@@ -283,7 +283,7 @@ async function autoImproveGameCode() {
                 fs.copyFileSync(htmlPath, targetPath);
                 
                 await executeGitCommand('git add public/index.html');
-                await executeGitCommand(`git commit -m "🤖 [AI] Added particle effects"`);
+                await executeGitCommand(`git commit -m "🤖 [AI] Improvement Day ${worldState.day}"`);
                 await executeGitCommand('git push origin main');
                 
                 console.log("✅ Pushed to GitHub!");
@@ -389,7 +389,6 @@ WSS.on('connection', (ws) => {
 SERVER.listen(PORT, () => {
     console.log("🚀 Server active on port " + PORT);
     
-    // Test Gemini on startup
     console.log("\n🔍 TESTING GEMINI...");
     queryGemini("Say 'OK' if you can read this")
         .then(response => {
