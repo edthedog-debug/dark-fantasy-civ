@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 const { exec } = require('child_process');
+const https = require('https');
 
 const APP = express();
 const PORT = process.env.PORT || 3000;
@@ -12,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 // ENVIRONMENT VARIABLES (Configured in Render)
 const AI_API_KEY = process.env.GEMINI_API_KEY; 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_REPO = process.env.GITHUB_REPO;
+const GITHUB_REPO = process.env.GITHUB_REPO || 'edthedog-debug/dark-fantasy-civ';
 
 APP.use(cors());
 APP.use(express.static(path.join(__dirname, 'public')));
@@ -35,33 +36,165 @@ let worldState = {
     economicPower: "Emerging Market",
     engineBuild: "v2.0.0-AI-Cloud",
     inWar: false,
-    improvements: [], // Historial de mejoras
+    improvements: [],
     logs: [
         "[" + new Date().toLocaleTimeString() + "] Autonomous Cloud Engine Initialized."
     ]
 };
 
-if (fs.existsSync(STATE_FILE)) {
+/**
+ * DOWNLOAD STATE FROM GITHUB
+ */
+async function downloadStateFromGitHub() {
+    if (!GITHUB_TOKEN) {
+        console.log("⚠️ No GITHUB_TOKEN, usando estado local");
+        return null;
+    }
+
+    console.log("🔍 Descargando estado desde GitHub...");
+    
+    const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/worldState.json`;
+    
     try {
-        const rawData = fs.readFileSync(STATE_FILE, 'utf8');
-        const savedState = JSON.parse(rawData);
-        if (savedState && typeof savedState.day === 'number') {
-            worldState = savedState;
-            console.log("✅ Estado cargado: Día", worldState.day);
-            console.log("🎨 Mejoras aplicadas:", worldState.improvements?.length || 0);
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'User-Agent': 'Node-AI-Server',
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            const content = Buffer.from(data.content, 'base64').toString('utf8');
+            const savedState = JSON.parse(content);
+            
+            if (savedState && typeof savedState.day === 'number') {
+                console.log("✅ Estado descargado desde GitHub: Día", savedState.day);
+                return savedState;
+            }
+        } else if (response.status === 404) {
+            console.log("⚠️ No hay estado en GitHub aún, usando estado inicial");
+        } else {
+            console.error("❌ Error descargando estado:", response.status);
         }
     } catch (e) {
-        console.error("❌ Error cargando estado:", e.message);
+        console.error("❌ Error:", e.message);
     }
+    
+    return null;
+}
+
+/**
+ * UPLOAD STATE TO GITHUB
+ */
+async function uploadStateToGitHub() {
+    if (!GITHUB_TOKEN) {
+        return;
+    }
+
+    try {
+        const content = Buffer.from(JSON.stringify(worldState, null, 2)).toString('base64');
+        
+        // Primero intentar obtener el SHA actual
+        let currentSha = null;
+        
+        try {
+            const getUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/worldState.json`;
+            const getResponse = await fetch(getUrl, {
+                headers: {
+                    'Authorization': `token ${GITHUB_TOKEN}`,
+                    'User-Agent': 'Node-AI-Server',
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+            
+            if (getResponse.ok) {
+                const getData = await getResponse.json();
+                currentSha = getData.sha;
+            }
+        } catch (e) {
+            // File doesn't exist yet
+        }
+        
+        // Subir o actualizar el archivo
+        const putUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/worldState.json`;
+        const body = {
+            message: `💾 Estado guardado: Día ${worldState.day}`,
+            content: content,
+            branch: 'main'
+        };
+        
+        if (currentSha) {
+            body.sha = currentSha;
+        }
+        
+        const putResponse = await fetch(putUrl, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Content-Type': 'application/json',
+                'User-Agent': 'Node-AI-Server',
+                'Accept': 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify(body)
+        });
+        
+        if (putResponse.ok) {
+            console.log("💾 Estado subido a GitHub: Día", worldState.day);
+        } else {
+            console.error("❌ Error subiendo estado:", putResponse.status);
+        }
+    } catch (e) {
+        console.error("❌ Error subiendo estado:", e.message);
+    }
+}
+
+/**
+ * LOAD STATE - FROM GITHUB OR LOCAL
+ */
+async function loadState() {
+    // Primero intentar desde GitHub
+    const githubState = await downloadStateFromGitHub();
+    
+    if (githubState) {
+        worldState = githubState;
+        console.log("✅ Estado restaurado desde GitHub");
+        console.log("📅 Día:", worldState.day);
+        console.log("👥 Población:", worldState.population);
+        console.log("💰 Tesoro:", worldState.treasury);
+        console.log("🎨 Mejoras:", worldState.improvements?.length || 0);
+        return;
+    }
+    
+    // Si no hay en GitHub, intentar local
+    if (fs.existsSync(STATE_FILE)) {
+        try {
+            const rawData = fs.readFileSync(STATE_FILE, 'utf8');
+            const savedState = JSON.parse(rawData);
+            if (savedState && typeof savedState.day === 'number') {
+                worldState = savedState;
+                console.log("✅ Estado restaurado localmente: Día", worldState.day);
+                return;
+            }
+        } catch (e) {
+            console.error("❌ Error cargando estado local:", e.message);
+        }
+    }
+    
+    console.log("⚠️ Usando estado inicial: Día 1");
 }
 
 function saveWorldState() {
     try {
         fs.writeFileSync(STATE_FILE, JSON.stringify(worldState, null, 2));
     } catch (err) {
-        console.error("❌ Error guardando estado:", err);
+        console.error("❌ Error guardando local:", err);
     }
 }
+
+// Guardar en GitHub cada 10 ticks (40 segundos)
+let tickCounter = 0;
 
 function broadcastState() {
     const payload = JSON.stringify({ type: 'WORLD_UPDATE', data: worldState });
@@ -95,7 +228,7 @@ async function queryGemini(prompt) {
             body: JSON.stringify({
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: {
-                    temperature: 1.0, // Máxima creatividad
+                    temperature: 1.0,
                     maxOutputTokens: 4096
                 }
             })
@@ -188,14 +321,11 @@ async function autoImproveGameCode() {
         
         const currentHtml = fs.readFileSync(htmlPath, 'utf8');
         
-        // Lista de mejoras ya aplicadas
         const appliedImprovements = worldState.improvements || [];
         const improvementNumber = appliedImprovements.length + 1;
         
         console.log("🎨 Creando mejora #" + improvementNumber + "...");
-        console.log("📜 Mejoras anteriores:", appliedImprovements.join(", ") || "ninguna");
         
-        // Prompt que pide a Gemini crear algo NUEVO y ÚNICO
         const prompt = `You are a creative game developer for a dark fantasy civilization game.
 
 Previous improvements already applied:
@@ -203,21 +333,8 @@ ${appliedImprovements.length > 0 ? appliedImprovements.map((imp, i) => `${i + 1}
 
 Create improvement #${improvementNumber} that is COMPLETELY DIFFERENT from all previous improvements.
 
-Think of something new and creative - could be:
-- New visual effects never seen before
-- Unique animations
-- Special particle systems
-- Magical phenomena
-- Weather effects
-- Terrain transformations
-- Building enhancements
-- Creature animations
-- Celestial events
-- Anything creative you can imagine
-
 Write JavaScript code for this new improvement. Return ONLY the JavaScript code.`;
         
-        console.log("🔍 Pidiendo mejora creativa a Gemini...");
         const aiResponse = await queryGemini(prompt);
         
         if (!aiResponse || aiResponse.length < 20) {
@@ -228,61 +345,24 @@ Write JavaScript code for this new improvement. Return ONLY the JavaScript code.
         
         let codeToAdd = aiResponse.replace(/```javascript/gi, '').replace(/```js/gi, '').replace(/```/g, '').trim();
         
-        // Crear nombre para la mejora
         const improvementName = `Mejora #${improvementNumber} - Día ${worldState.day}`;
-        
-        // Guardar en historial
         worldState.improvements.push(improvementName);
         
-        // Aplicar al HTML
         let improvedHtml = currentHtml;
-        const improvementBlock = `\n// === ${improvementName} ===\n// Creado por Gemini 2.5 Flash\n${codeToAdd}\n`;
+        const improvementBlock = `\n// === ${improvementName} ===\n${codeToAdd}\n`;
         
         if (improvedHtml.includes('</script>')) {
             improvedHtml = improvedHtml.replace('</script>', improvementBlock + '</script>');
         } else if (improvedHtml.includes('</body>')) {
             improvedHtml = improvedHtml.replace('</body>', `<script>${improvementBlock}</script>\n</body>`);
-        } else {
-            improvedHtml += `\n<script>${improvementBlock}</script>`;
         }
         
         saveWorldState();
+        await uploadStateToGitHub();
         fs.writeFileSync(htmlPath, improvedHtml);
         
         console.log("✅ Mejora #" + improvementNumber + " aplicada!");
-        console.log("📝 Código generado:", codeToAdd.substring(0, 200) + "...");
         addLog(`[AI CREATIVE] ${improvementName} aplicada!`);
-        
-        // Push to GitHub
-        if (GITHUB_TOKEN) {
-            try {
-                const cleanToken = GITHUB_TOKEN.trim();
-                
-                await executeGitCommand('git config --global user.email "ai@example.com"');
-                await executeGitCommand('git config --global user.name "AI Auto-Improver"');
-                
-                const repoUrl = `https://${cleanToken}@github.com/edthedog-debug/dark-fantasy-civ.git`;
-                
-                try {
-                    await executeGitCommand('git rev-parse --is-inside-work-tree');
-                    await executeGitCommand(`git remote set-url origin ${repoUrl}`);
-                } catch (gitError) {
-                    await executeGitCommand(`git clone ${repoUrl} /tmp/repo`);
-                    process.chdir('/tmp/repo');
-                }
-                
-                const targetPath = path.join(process.cwd(), 'public', 'index.html');
-                fs.copyFileSync(htmlPath, targetPath);
-                
-                await executeGitCommand('git add public/index.html');
-                await executeGitCommand(`git commit -m "🤖 [AI Creative] ${improvementName}"`);
-                await executeGitCommand('git push origin main');
-                
-                console.log("✅ Pushed to GitHub!");
-            } catch (gitError) {
-                console.error("❌ Git push failed:", gitError.message);
-            }
-        }
         
     } catch (err) {
         console.error("Error:", err.message);
@@ -293,6 +373,7 @@ Write JavaScript code for this new improvement. Return ONLY the JavaScript code.
 // ASYNC SIMULATION TICK
 async function runSimulationTick() {
     worldState.day += 1;
+    tickCounter++;
 
     if (worldState.treasury <= 0 && worldState.happiness < 50) {
         worldState.treasury += 300;
@@ -365,6 +446,12 @@ async function runSimulationTick() {
     }
 
     saveWorldState();
+    
+    // Subir a GitHub cada 10 ticks (40 segundos)
+    if (tickCounter % 10 === 0) {
+        await uploadStateToGitHub();
+    }
+    
     broadcastState();
 }
 
@@ -376,17 +463,25 @@ WSS.on('connection', (ws) => {
     }
 });
 
-SERVER.listen(PORT, () => {
+SERVER.listen(PORT, async () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
+    
+    // CARGAR ESTADO DESDE GITHUB AL INICIAR
+    await loadState();
+    
     console.log("📅 Día actual:", worldState.day);
-    console.log("🎨 Mejoras aplicadas:", worldState.improvements?.length || 0);
-    console.log("\n✨ INFINITE CREATIVE MODE ACTIVATED");
-    console.log("Cada 50 días, Gemini creará una mejora ÚNICA");
-    console.log("Nunca se repetirá - siempre será algo nuevo");
+    console.log("👥 Población:", worldState.population);
+    console.log("💰 Tesoro:", worldState.treasury);
+    console.log("🎨 Mejoras:", worldState.improvements?.length || 0);
+    
+    // Guardar estado inicial en GitHub
+    await uploadStateToGitHub();
     
     queryGemini("Say 'OK'")
         .then(response => {
-            console.log("✅ Gemini connected!");
-            addLog("[SYSTEM] Creative AI ready.");
+            if (response) {
+                console.log("✅ Gemini connected!");
+                addLog("[SYSTEM] AI System ready.");
+            }
         });
 });
