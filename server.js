@@ -35,18 +35,18 @@ let worldState = {
     economicPower: "Emerging Market",
     engineBuild: "v2.0.0-AI-Cloud",
     inWar: false,
+    aiImprovements: 0,
     logs: [
         "[" + new Date().toLocaleTimeString() + "] Autonomous Cloud Engine Initialized."
     ]
 };
 
-// Cargar progreso previo para continuar la sociedad desde el ultimo dia guardado
 if (fs.existsSync(STATE_FILE)) {
     try {
         const rawData = fs.readFileSync(STATE_FILE, 'utf8');
-        const loadedState = JSON.parse(rawData);
-        worldState = { ...worldState, ...loadedState };
-        console.log(`✅ State loaded successfully. Continuing from Day ${worldState.day}`);
+        const savedState = JSON.parse(rawData);
+        // Merge saved state with defaults to ensure new fields exist
+        worldState = { ...worldState, ...savedState };
     } catch (e) {
         console.error("Error loading state file:", e);
     }
@@ -72,7 +72,7 @@ function broadcastState() {
 function addLog(msg) {
     const time = new Date().toLocaleTimeString();
     worldState.logs.push("[" + time + "] " + msg);
-    if (worldState.logs.length > 25) worldState.logs.shift();
+    if (worldState.logs.length > 50) worldState.logs.shift();
 }
 
 /**
@@ -89,17 +89,24 @@ async function queryGemini(prompt) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${AI_API_KEY}`;
     
     try {
+        // Add timeout to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 2048
+                    temperature: 0.8,
+                    maxOutputTokens: 4096
                 }
-            })
+            }),
+            signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         
         console.log("📊 Status:", response.status);
         
@@ -126,10 +133,104 @@ async function queryGemini(prompt) {
 }
 
 /**
+ * Execute git command with Promise
+ */
+function executeGitCommand(command) {
+    return new Promise((resolve, reject) => {
+        exec(command, { maxBuffer: 1024 * 1024 * 10, timeout: 30000 }, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Git command failed: ${command}`);
+                console.error(`Error: ${error.message}`);
+                console.error(`Stderr: ${stderr}`);
+                reject(error);
+            } else {
+                console.log(`Git command success: ${command}`);
+                resolve(stdout);
+            }
+        });
+    });
+}
+
+/**
+ * Push to GitHub in background
+ */
+async function pushToGitHub(htmlPath, improvementNumber, day) {
+    if (!GITHUB_TOKEN) {
+        console.log("⚠️ No GITHUB_TOKEN, skipping git push");
+        return;
+    }
+    
+    console.log("🔄 Starting git push in background...");
+    
+    try {
+        const cleanToken = GITHUB_TOKEN.trim();
+        
+        // Configure git
+        await executeGitCommand('git config --global user.email "ai@example.com"');
+        await executeGitCommand('git config --global user.name "AI Auto-Improver"');
+        
+        const repoUrl = `https://${cleanToken}@github.com/edthedog-debug/dark-fantasy-civ.git`;
+        
+        // Check if we're in a git repo
+        try {
+            await executeGitCommand('git rev-parse --is-inside-work-tree');
+            console.log("📁 Already in git repo");
+            
+            // Ensure we're in the right directory
+            const currentDir = process.cwd();
+            console.log("📂 Current directory:", currentDir);
+            
+            // Set remote URL
+            await executeGitCommand(`git remote set-url origin ${repoUrl}`);
+            console.log("✅ Remote URL set");
+            
+        } catch (gitError) {
+            console.log("⚠️ Not in git repo, cloning...");
+            // Clone the repo to /tmp
+            try {
+                await executeGitCommand(`rm -rf /tmp/repo`);
+                await executeGitCommand(`git clone ${repoUrl} /tmp/repo`);
+                process.chdir('/tmp/repo');
+                console.log("✅ Cloned to /tmp/repo");
+            } catch (cloneError) {
+                console.error("❌ Clone failed:", cloneError.message);
+                return;
+            }
+        }
+        
+        // Copy the improved HTML
+        const targetPath = path.join(process.cwd(), 'public', 'index.html');
+        console.log("📄 Copying to:", targetPath);
+        
+        // Ensure directory exists
+        const targetDir = path.dirname(targetPath);
+        if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true });
+        }
+        
+        fs.copyFileSync(htmlPath, targetPath);
+        console.log("✅ File copied");
+        
+        // Git operations
+        await executeGitCommand('git add public/index.html');
+        console.log("✅ Added to git");
+        
+        await executeGitCommand(`git commit -m "🤖 [AI] Improvement #${improvementNumber} - Day ${day}"`);
+        console.log("✅ Committed");
+        
+        await executeGitCommand('git push origin main --force');
+        console.log("✅ Pushed to GitHub!");
+        
+    } catch (gitError) {
+        console.error("❌ Git push failed:", gitError.message);
+    }
+}
+
+/**
  * 1. AI GENERATIVE EVENTS
  */
 async function generateAIEvents() {
-    const prompt = `Generate a dark fantasy civilization event for Day ${worldState.day} of the civilization. Current Era: ${worldState.era}. Return ONLY JSON: {"event":"description","newPhilosophy":"name","goldImpact":number,"happinessImpact":number,"techImpact":number}`;
+    const prompt = "Generate a dark fantasy civilization event based on current state. Return ONLY JSON: {\"event\":\"description\",\"newPhilosophy\":\"name\",\"goldImpact\":number,\"happinessImpact\":number,\"techImpact\":number}";
     
     let parsed = null;
 
@@ -153,7 +254,9 @@ async function generateAIEvents() {
         const fallbacks = [
             { event: "Ancient dragon discovered new trade routes.", newPhilosophy: "Draconic Commerce", goldImpact: 150, happinessImpact: 5, techImpact: 0.15 },
             { event: "Dark wizards optimized mana distribution.", newPhilosophy: "Arcane Efficiency", goldImpact: 250, happinessImpact: 7, techImpact: 0.25 },
-            { event: "Goblin uprising affected resource gathering.", newPhilosophy: "Military Discipline", goldImpact: -60, happinessImpact: -8, techImpact: 0.05 }
+            { event: "Goblin uprising affected resource gathering.", newPhilosophy: "Military Discipline", goldImpact: -60, happinessImpact: -8, techImpact: 0.05 },
+            { event: "Ancient ruins revealed forgotten technologies.", newPhilosophy: "Archaeological Innovation", goldImpact: 300, happinessImpact: 10, techImpact: 0.4 },
+            { event: "Mystical plague struck the population.", newPhilosophy: "Medical Research", goldImpact: -100, happinessImpact: -15, techImpact: 0.3 }
         ];
         parsed = fallbacks[Math.floor(Math.random() * fallbacks.length)];
     }
@@ -164,29 +267,25 @@ async function generateAIEvents() {
     if (typeof parsed.goldImpact === 'number') worldState.treasury = Math.max(0, worldState.treasury + parsed.goldImpact);
     if (typeof parsed.happinessImpact === 'number') worldState.happiness = Math.min(100, Math.max(10, worldState.happiness + parsed.happinessImpact));
     if (typeof parsed.techImpact === 'number') worldState.techPower += Math.max(0, parsed.techImpact);
+    
+    // Update era based on tech power
+    if (worldState.techPower > 50) {
+        worldState.era = "Transcendent AI Era " + Math.floor(worldState.techPower / 10);
+    } else if (worldState.techPower > 20) {
+        worldState.era = "Advanced Magitech Era";
+    } else if (worldState.techPower > 10) {
+        worldState.era = "Industrial Magic Era";
+    } else if (worldState.techPower > 5) {
+        worldState.era = "Renaissance Arcana";
+    }
 }
 
 /**
- * Execute git command
- */
-function executeGitCommand(command) {
-    return new Promise((resolve, reject) => {
-        exec(command, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
-            if (error) {
-                reject(error);
-            } else {
-                resolve(stdout);
-            }
-        });
-    });
-}
-
-/**
- * 2. AI CODE IMPROVEMENT - ALWAYS WORKS & INFINITELY ACCUMULATIVE
+ * 2. AI CODE IMPROVEMENT - INFINITE IMPROVEMENTS (NON-BLOCKING)
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT...");
-    addLog("[AI AUTO-CODING] Applying AI improvement...");
+    addLog("[AI AUTO-CODING] Applying AI improvement #" + (worldState.aiImprovements + 1));
 
     try {
         const htmlPath = path.join(__dirname, 'public', 'index.html');
@@ -200,90 +299,76 @@ async function autoImproveGameCode() {
         const currentHtml = fs.readFileSync(htmlPath, 'utf8');
         console.log("📄 Current HTML:", currentHtml.length, "chars");
         
-        // Prompt optimizado para expansión infinita y segura sin romper la interfaz existente
-        const prompt = `Write pure client-side JavaScript code to continuously enhance a dark fantasy civilization browser application (Day ${worldState.day}, Era: ${worldState.era}). 
-Create a self-contained feature, complex visual effect, canvas enhancement, dynamic HUD widget, or background simulation module.
-Do not use markdown wrappers, html tags, or imports. Return ONLY raw JavaScript code wrapped inside a self-executing function or safe block.`;
+        // Use fallback immediately if no API key
+        let codeToAdd;
         
-        console.log("🔍 Asking Gemini...");
-        const aiResponse = await queryGemini(prompt);
-        
-        console.log("✅ Got response! Length:", aiResponse.length);
-        console.log("📝 Content:", aiResponse.substring(0, 200));
-        
-        // Limpiar la respuesta de bloques markdown
-        let codeToAdd = aiResponse.replace(/```javascript/gi, '').replace(/```js/gi, '').replace(/```/g, '').trim();
-        
-        if (codeToAdd.length < 10) {
-            codeToAdd = "console.log('Dark Fantasy World expanded by AI (Day " + worldState.day + ")');";
-        }
-
-        // Encapsulamiento defensivo para ejecutar cambios infinitamente sin generar Runtime Errors
-        const safeScriptBlock = `
-// === AI INFINITE IMPROVEMENT (Day ${worldState.day} - Era: ${worldState.era}) ===
-try {
-    (function() {
-        ${codeToAdd}
-    })();
-} catch (aiErr) {
-    console.warn("AI Improvement execution error at Day ${worldState.day}:", aiErr);
-}
-`;
-        
-        let improvedHtml = currentHtml;
-        
-        if (improvedHtml.includes('</script>')) {
-            const lastScriptIdx = improvedHtml.lastIndexOf('</script>');
-            improvedHtml = improvedHtml.slice(0, lastScriptIdx) + safeScriptBlock + '\n</script>' + improvedHtml.slice(lastScriptIdx + 9);
-        } else if (improvedHtml.includes('</body>')) {
-            improvedHtml = improvedHtml.replace('</body>', `<script>${safeScriptBlock}</script>\n</body>`);
+        if (!AI_API_KEY) {
+            console.log("⚠️ No API key, using fallback");
+            const fallbackImprovements = [
+                "// AI Improvement: Dynamic particle system\nfunction createParticles() {\n    const canvas = document.createElement('canvas');\n    canvas.style.position = 'fixed';\n    canvas.style.top = '0';\n    canvas.style.left = '0';\n    canvas.style.pointerEvents = 'none';\n    canvas.style.zIndex = '9999';\n    document.body.appendChild(canvas);\n    const ctx = canvas.getContext('2d');\n    canvas.width = window.innerWidth;\n    canvas.height = window.innerHeight;\n    \n    const particles = [];\n    for(let i = 0; i < 50; i++) {\n        particles.push({\n            x: Math.random() * canvas.width,\n            y: Math.random() * canvas.height,\n            vx: (Math.random() - 0.5) * 2,\n            vy: (Math.random() - 0.5) * 2,\n            size: Math.random() * 3 + 1,\n            color: `hsl(${Math.random() * 360}, 70%, 50%)`\n        });\n    }\n    \n    function animate() {\n        ctx.clearRect(0, 0, canvas.width, canvas.height);\n        particles.forEach(p => {\n            p.x += p.vx;\n            p.y += p.vy;\n            if(p.x < 0 || p.x > canvas.width) p.vx *= -1;\n            if(p.y < 0 || p.y > canvas.height) p.vy *= -1;\n            ctx.beginPath();\n            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);\n            ctx.fillStyle = p.color;\n            ctx.fill();\n        });\n        requestAnimationFrame(animate);\n    }\n    animate();\n}\ncreateParticles();",
+                
+                "// AI Improvement: Interactive tooltip system\nfunction createTooltips() {\n    const tooltip = document.createElement('div');\n    tooltip.style.cssText = 'position:fixed;background:rgba(0,0,0,0.8);color:white;padding:10px;border-radius:5px;pointer-events:none;z-index:10000;display:none;';\n    document.body.appendChild(tooltip);\n    \n    document.addEventListener('mouseover', (e) => {\n        if(e.target.textContent && e.target.textContent.length > 0) {\n            tooltip.textContent = '🏰 ' + e.target.textContent;\n            tooltip.style.display = 'block';\n            tooltip.style.left = e.pageX + 10 + 'px';\n            tooltip.style.top = e.pageY + 10 + 'px';\n        }\n    });\n    \n    document.addEventListener('mousemove', (e) => {\n        if(tooltip.style.display === 'block') {\n            tooltip.style.left = e.pageX + 10 + 'px';\n            tooltip.style.top = e.pageY + 10 + 'px';\n        }\n    });\n    \n    document.addEventListener('mouseout', () => {\n        tooltip.style.display = 'none';\n    });\n}\ncreateTooltips();",
+                
+                "// AI Improvement: Dynamic background\nfunction createDynamicBackground() {\n    const bg = document.createElement('div');\n    bg.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;';\n    document.body.insertBefore(bg, document.body.firstChild);\n    \n    function updateBackground() {\n        const hue = (Date.now() / 100) % 360;\n        bg.style.background = `linear-gradient(${hue}deg, hsl(${hue}, 30%, 20%), hsl(${(hue + 60) % 360}, 30%, 30%))`;\n        requestAnimationFrame(updateBackground);\n    }\n    updateBackground();\n}\ncreateDynamicBackground();"
+            ];
+            codeToAdd = fallbackImprovements[worldState.aiImprovements % fallbackImprovements.length];
         } else {
-            improvedHtml += `\n<script>${safeScriptBlock}</script>`;
+            // Ask for improvement based on current state with timeout
+            const prompt = `Create a unique JavaScript improvement for a dark fantasy civilization game. 
+            Current stats: Day ${worldState.day}, Population: ${worldState.population}, Tech: ${worldState.techPower}, 
+            Treasury: ${worldState.treasury}, Happiness: ${worldState.happiness}.
+            Improvement #${worldState.aiImprovements + 1}
+            Return ONLY JavaScript code that adds new visual effects, gameplay mechanics, or UI improvements.`;
+            
+            console.log("🔍 Asking Gemini...");
+            const aiResponse = await Promise.race([
+                queryGemini(prompt),
+                new Promise(resolve => setTimeout(() => resolve("// Timeout - using fallback"), 8000))
+            ]);
+            
+            console.log("✅ Got response! Length:", aiResponse.length);
+            console.log("📝 Content:", aiResponse.substring(0, 200));
+            
+            // Clean the response
+            codeToAdd = aiResponse.replace(/```javascript/gi, '').replace(/```js/gi, '').replace(/```/g, '').trim();
         }
         
-        // Guardar HTML mejorado
+        // If it's too short, add a default
+        if (!codeToAdd || codeToAdd.length < 10) {
+            const fallbackImprovements = [
+                "// AI Improvement: Dynamic particle system\nfunction createParticles() {\n    const canvas = document.createElement('canvas');\n    canvas.style.position = 'fixed';\n    canvas.style.top = '0';\n    canvas.style.left = '0';\n    canvas.style.pointerEvents = 'none';\n    canvas.style.zIndex = '9999';\n    document.body.appendChild(canvas);\n    const ctx = canvas.getContext('2d');\n    canvas.width = window.innerWidth;\n    canvas.height = window.innerHeight;\n    \n    const particles = [];\n    for(let i = 0; i < 50; i++) {\n        particles.push({\n            x: Math.random() * canvas.width,\n            y: Math.random() * canvas.height,\n            vx: (Math.random() - 0.5) * 2,\n            vy: (Math.random() - 0.5) * 2,\n            size: Math.random() * 3 + 1,\n            color: `hsl(${Math.random() * 360}, 70%, 50%)`\n        });\n    }\n    \n    function animate() {\n        ctx.clearRect(0, 0, canvas.width, canvas.height);\n        particles.forEach(p => {\n            p.x += p.vx;\n            p.y += p.vy;\n            if(p.x < 0 || p.x > canvas.width) p.vx *= -1;\n            if(p.y < 0 || p.y > canvas.height) p.vy *= -1;\n            ctx.beginPath();\n            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);\n            ctx.fillStyle = p.color;\n            ctx.fill();\n        });\n        requestAnimationFrame(animate);\n    }\n    animate();\n}\ncreateParticles();",
+                
+                "// AI Improvement: Interactive tooltip system\nfunction createTooltips() {\n    const tooltip = document.createElement('div');\n    tooltip.style.cssText = 'position:fixed;background:rgba(0,0,0,0.8);color:white;padding:10px;border-radius:5px;pointer-events:none;z-index:10000;display:none;';\n    document.body.appendChild(tooltip);\n    \n    document.addEventListener('mouseover', (e) => {\n        if(e.target.textContent && e.target.textContent.length > 0) {\n            tooltip.textContent = '🏰 ' + e.target.textContent;\n            tooltip.style.display = 'block';\n            tooltip.style.left = e.pageX + 10 + 'px';\n            tooltip.style.top = e.pageY + 10 + 'px';\n        }\n    });\n    \n    document.addEventListener('mousemove', (e) => {\n        if(tooltip.style.display === 'block') {\n            tooltip.style.left = e.pageX + 10 + 'px';\n            tooltip.style.top = e.pageY + 10 + 'px';\n        }\n    });\n    \n    document.addEventListener('mouseout', () => {\n        tooltip.style.display = 'none';\n    });\n}\ncreateTooltips();",
+                
+                "// AI Improvement: Dynamic background\nfunction createDynamicBackground() {\n    const bg = document.createElement('div');\n    bg.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;';\n    document.body.insertBefore(bg, document.body.firstChild);\n    \n    function updateBackground() {\n        const hue = (Date.now() / 100) % 360;\n        bg.style.background = `linear-gradient(${hue}deg, hsl(${hue}, 30%, 20%), hsl(${(hue + 60) % 360}, 30%, 30%))`;\n        requestAnimationFrame(updateBackground);\n    }\n    updateBackground();\n}\ncreateDynamicBackground();"
+            ];
+            codeToAdd = fallbackImprovements[worldState.aiImprovements % fallbackImprovements.length];
+        }
+        
+        // Apply to HTML
+        let improvedHtml = currentHtml;
+        const improvementBlock = `\n<!-- === AI IMPROVEMENT #${worldState.aiImprovements + 1} (Day ${worldState.day}) === -->\n<script>\n${codeToAdd}\n</script>\n`;
+        
+        if (improvedHtml.includes('</body>')) {
+            improvedHtml = improvedHtml.replace('</body>', improvementBlock + '</body>');
+        } else {
+            improvedHtml += improvementBlock;
+        }
+        
+        // Write improved HTML
         fs.writeFileSync(htmlPath, improvedHtml);
         console.log("✅ HTML improved! New size:", improvedHtml.length);
-        addLog("[AI COMMIT SUCCESS] World code upgraded for Day " + worldState.day + "!");
-
-        // Asegurar que el estado actual del mundo se guarde junto con el commit del archivo
-        saveWorldState();
         
-        // Push a GitHub preservando el repositorio intacto
-        if (GITHUB_TOKEN) {
-            try {
-                const cleanToken = GITHUB_TOKEN.trim();
-                
-                await executeGitCommand('git config --global user.email "ai@example.com"');
-                await executeGitCommand('git config --global user.name "AI Auto-Improver"');
-                
-                const repoUrl = GITHUB_REPO 
-                    ? `https://${cleanToken}@[github.com/$](https://github.com/$){GITHUB_REPO}.git`
-                    : `https://${cleanToken}@[github.com/edthedog-debug/dark-fantasy-civ.git](https://github.com/edthedog-debug/dark-fantasy-civ.git)`;
-                
-                try {
-                    await executeGitCommand('git rev-parse --is-inside-work-tree');
-                    await executeGitCommand(`git remote set-url origin ${repoUrl}`);
-                } catch (gitError) {
-                    await executeGitCommand(`git clone ${repoUrl} /tmp/repo`);
-                    process.chdir('/tmp/repo');
-                }
-                
-                const targetPath = path.join(process.cwd(), 'public', 'index.html');
-                const targetStatePath = path.join(process.cwd(), 'worldState.json');
-                
-                fs.copyFileSync(htmlPath, targetPath);
-                fs.copyFileSync(STATE_FILE, targetStatePath);
-                
-                await executeGitCommand('git add public/index.html worldState.json');
-                await executeGitCommand(`git commit -m "🤖 [AI World Upgrade] Day ${worldState.day} Progress Saved"`);
-                await executeGitCommand('git push origin main');
-                
-                console.log("✅ Pushed code and worldState to GitHub!");
-            } catch (gitError) {
-                console.error("❌ Git push failed:", gitError.message);
-            }
-        }
+        worldState.aiImprovements += 1;
+        const improvementNumber = worldState.aiImprovements;
+        const currentDay = worldState.day;
+        
+        addLog("[AI COMMIT SUCCESS] Code improvement #" + improvementNumber + " applied!");
+        
+        // Push to GitHub in background
+        pushToGitHub(htmlPath, improvementNumber, currentDay).catch(err => {
+            console.error("❌ Background git push error:", err.message);
+        });
         
     } catch (err) {
         console.error("Error:", err.message);
@@ -355,16 +440,16 @@ async function runSimulationTick() {
         worldState.economicPower = "Emerging Market";
     }
 
-    // AI Event every 30 days
+    // AI Event every 30 days (non-blocking)
     if (worldState.day % 30 === 0) {
-        await generateAIEvents();
+        generateAIEvents().catch(err => console.error("AI Event error:", err));
     }
 
-    // Code improvement every 50 days
-    if (worldState.day % 50 === 0) {
+    // Code improvement every 10 days (non-blocking)
+    if (worldState.day % 10 === 0) {
         const patch = Math.floor(Math.random() * 9) + 1;
-        worldState.engineBuild = "v2." + patch + ".0-Gemini-2.5";
-        await autoImproveGameCode();
+        worldState.engineBuild = "v" + (2 + worldState.aiImprovements) + "." + patch + ".0-Gemini-2.5";
+        autoImproveGameCode().catch(err => console.error("AI Improvement error:", err));
     }
 
     saveWorldState();
