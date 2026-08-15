@@ -72,11 +72,11 @@ async function queryGemini(prompt) {
     if (!AI_API_KEY) return null;
 
     const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
-    const geminiEndpoint = 'https://' + 'generativelanguage.googleapis.com/v1/models/';
+    const baseUrl = 'https://' + 'generativelanguage.googleapis.com/v1/models/';
 
     for (const model of models) {
         try {
-            const response = await fetch(geminiEndpoint + model + ':generateContent?key=' + AI_API_KEY, {
+            const response = await fetch(baseUrl + model + ':generateContent?key=' + AI_API_KEY, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -165,10 +165,8 @@ async function autoImproveGameCode() {
 
     try {
         const cleanRepo = GITHUB_REPO.trim();
-        
-        // Separated string components prevent markdown auto-formatting
-        const githubApiBase = 'https://' + '[api.github.com/repos/](https://api.github.com/repos/)';
-        const fileUrl = githubApiBase + cleanRepo + '/contents/public/index.html';
+        const apiDomain = 'https://' + '[api.github.com/repos/](https://api.github.com/repos/)';
+        const fileUrl = apiDomain + cleanRepo + '/contents/public/index.html';
 
         const getFile = await fetch(fileUrl, {
             headers: { 
