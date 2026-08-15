@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 const { exec } = require('child_process');
+const https = require('https');
 
 const APP = express();
 const PORT = process.env.PORT || 3000;
@@ -72,7 +73,80 @@ function addLog(msg) {
 }
 
 /**
- * GEMINI REST API HELPER - OPTIMIZED FOR LONG RESPONSES
+ * TEST GEMINI API DIRECTLY WITH HTTPS
+ */
+function testGeminiDirect() {
+    return new Promise((resolve, reject) => {
+        if (!AI_API_KEY) {
+            console.error("❌ No GEMINI_API_KEY");
+            reject(new Error("No API key"));
+            return;
+        }
+
+        console.log("🔑 Testing Gemini API with key:", AI_API_KEY.substring(0, 10) + "...");
+        
+        const postData = JSON.stringify({
+            contents: [{
+                parts: [{
+                    text: "Say 'OK'"
+                }]
+            }]
+        });
+
+        const options = {
+            hostname: 'generativelanguage.googleapis.com',
+            path: `/v1beta/models/gemini-1.5-flash:generateContent?key=${AI_API_KEY}`,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(postData)
+            }
+        };
+
+        const req = https.request(options, (res) => {
+            let data = '';
+            
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+            
+            res.on('end', () => {
+                console.log("📊 Status:", res.statusCode);
+                console.log("📝 Response:", data.substring(0, 500));
+                
+                if (res.statusCode === 200) {
+                    try {
+                        const jsonData = JSON.parse(data);
+                        const text = jsonData.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (text) {
+                            console.log("✅ Gemini works! Response:", text);
+                            resolve(text);
+                        } else {
+                            console.error("❌ No text in response");
+                            reject(new Error("No text in response"));
+                        }
+                    } catch (e) {
+                        console.error("❌ JSON parse error:", e.message);
+                        reject(e);
+                    }
+                } else {
+                    reject(new Error(`HTTP ${res.statusCode}: ${data.substring(0, 200)}`));
+                }
+            });
+        });
+
+        req.on('error', (error) => {
+            console.error("❌ HTTPS request error:", error.message);
+            reject(error);
+        });
+
+        req.write(postData);
+        req.end();
+    });
+}
+
+/**
+ * GEMINI REST API HELPER - SIMPLIFIED
  */
 async function queryGemini(prompt) {
     if (!AI_API_KEY) {
@@ -80,15 +154,12 @@ async function queryGemini(prompt) {
         return null;
     }
 
-    console.log("🔑 Gemini API Key:", AI_API_KEY.substring(0, 8) + "..." + AI_API_KEY.substring(AI_API_KEY.length - 4));
-    console.log("🔑 Key length:", AI_API_KEY.length);
+    console.log("🔑 Using API key:", AI_API_KEY.substring(0, 10) + "...");
     
-    // Use gemini-1.5-flash which has best support for long responses
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AI_API_KEY}`;
     
     try {
-        console.log("📡 Sending request to Gemini...");
-        console.log("📝 Prompt length:", prompt.length, "characters");
+        console.log("📡 Sending request...");
         
         const response = await fetch(url, {
             method: 'POST',
@@ -100,72 +171,23 @@ async function queryGemini(prompt) {
                     parts: [{
                         text: prompt
                     }]
-                }],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 8192, // Maximum for gemini-1.5-flash
-                    topP: 0.95,
-                    topK: 40
-                },
-                safetySettings: [
-                    {
-                        category: "HARM_CATEGORY_HARASSMENT",
-                        threshold: "BLOCK_NONE"
-                    },
-                    {
-                        category: "HARM_CATEGORY_HATE_SPEECH",
-                        threshold: "BLOCK_NONE"
-                    },
-                    {
-                        category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                        threshold: "BLOCK_NONE"
-                    },
-                    {
-                        category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                        threshold: "BLOCK_NONE"
-                    }
-                ]
+                }]
             })
         });
 
-        console.log("📊 Response status:", response.status);
+        console.log("📊 Status:", response.status);
         
         if (response.ok) {
             const data = await response.json();
-            console.log("✅ Response received!");
             
-            // Extract text
-            let text = null;
             if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-                if (data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
-                    text = data.candidates[0].content.parts[0].text;
-                }
-            }
-            
-            if (text && text.length > 0) {
-                console.log("✅ Extracted text length:", text.length);
-                console.log("📝 First 100 chars:", text.substring(0, 100));
-                console.log("📝 Last 100 chars:", text.substring(Math.max(0, text.length - 100)));
+                const text = data.candidates[0].content.parts[0].text;
+                console.log("✅ Got text:", text.substring(0, 100));
                 return text;
-            } else {
-                console.error("❌ No text extracted from response");
-                console.error("📦 Full response:", JSON.stringify(data).substring(0, 500));
             }
         } else {
             const errorText = await response.text();
-            console.error(`❌ Error ${response.status}:`, errorText.substring(0, 300));
-            
-            if (response.status === 400) {
-                console.error("❌ Bad Request - Check API key and model name");
-            } else if (response.status === 401) {
-                console.error("❌ Unauthorized - API key is invalid");
-            } else if (response.status === 403) {
-                console.error("❌ Forbidden - API key doesn't have access to this model");
-            } else if (response.status === 404) {
-                console.error("❌ Not Found - Model doesn't exist");
-            } else if (response.status === 429) {
-                console.error("❌ Rate Limited - Too many requests");
-            }
+            console.error("❌ Error:", response.status, errorText.substring(0, 200));
         }
     } catch (e) {
         console.error("❌ Fetch error:", e.message);
@@ -178,50 +200,33 @@ async function queryGemini(prompt) {
  * 1. AI GENERATIVE NARRATIVE, ECONOMY & PHILOSOPHY ENGINE
  */
 async function generateAIEvents() {
-    console.log("\n🎭 GENERATING AI EVENTS...");
-    
-    const prompt = `Generate a random event for a dark fantasy civilization simulator. 
-    Return ONLY a JSON object with this exact format:
-    {
-        "event": "brief event description",
-        "newPhilosophy": "philosophy name",
-        "goldImpact": number,
-        "happinessImpact": number,
-        "techImpact": number
-    }`;
+    const prompt = "Generate a random event for a dark fantasy civilization. Return ONLY JSON: {\"event\":\"description\",\"newPhilosophy\":\"name\",\"goldImpact\":number,\"happinessImpact\":number,\"techImpact\":number}";
     
     let parsed = null;
 
     try {
         const rawText = await queryGemini(prompt);
         if (rawText) {
-            console.log("📝 Raw response:", rawText.substring(0, 200));
-            
             const jsonMatch = rawText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 try {
                     parsed = JSON.parse(jsonMatch[0]);
-                    console.log("✅ Successfully parsed JSON:", parsed);
                 } catch (parseError) {
-                    console.error("❌ JSON parse error:", parseError.message);
+                    console.error("❌ Parse error:", parseError.message);
                 }
-            } else {
-                console.error("❌ No JSON found in response");
             }
         }
     } catch (err) {
-        console.error("❌ Error in generateAIEvents:", err.message);
+        console.error("❌ Error:", err.message);
     }
 
     if (!parsed || !parsed.event) {
-        console.log("⚠️ Using fallback events");
         const fallbacks = [
             { event: "Ancient dragon discovered new trade routes.", newPhilosophy: "Draconic Commerce", goldImpact: 150, happinessImpact: 5, techImpact: 0.15 },
             { event: "Dark wizards optimized mana distribution.", newPhilosophy: "Arcane Efficiency", goldImpact: 250, happinessImpact: 7, techImpact: 0.25 },
             { event: "Goblin uprising affected resource gathering.", newPhilosophy: "Military Discipline", goldImpact: -60, happinessImpact: -8, techImpact: 0.05 }
         ];
         parsed = fallbacks[Math.floor(Math.random() * fallbacks.length)];
-        console.log("📝 Using fallback:", parsed.event);
     }
 
     addLog("[AI EVENT] " + parsed.event);
@@ -240,8 +245,6 @@ function executeGitCommand(command) {
         exec(command, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
             if (error) {
                 console.error(`Git command failed: ${command}`);
-                console.error(`Error: ${error.message}`);
-                console.error(`Stderr: ${stderr}`);
                 reject(error);
             } else {
                 console.log(`Git command success: ${command}`);
@@ -252,147 +255,61 @@ function executeGitCommand(command) {
 }
 
 /**
- * 2. AI CODE IMPROVEMENT - FULL CODE GENERATION
+ * 2. AI CODE IMPROVEMENT - WITH DIRECT TEST
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT CYCLE...");
-    addLog("[AI AUTO-CODING] Asking Gemini to improve full code...");
+    addLog("[AI AUTO-CODING] Starting code improvement...");
+
+    // First, test if Gemini API works at all
+    console.log("🔍 Testing Gemini API first...");
+    try {
+        const testResult = await testGeminiDirect();
+        if (!testResult) {
+            console.error("❌ Gemini API test failed");
+            addLog("[AI COMMIT ERROR] Gemini API test failed. Check API key.");
+            return;
+        }
+        console.log("✅ Gemini API test passed!");
+    } catch (testError) {
+        console.error("❌ Gemini API test error:", testError.message);
+        addLog(`[AI COMMIT ERROR] Gemini API test error: ${testError.message}`);
+        return;
+    }
 
     try {
         // Read current HTML
         const htmlPath = path.join(__dirname, 'public', 'index.html');
+        
+        if (!fs.existsSync(htmlPath)) {
+            console.error("❌ index.html not found at:", htmlPath);
+            addLog("[AI COMMIT ERROR] index.html not found.");
+            return;
+        }
+        
         const currentHtml = fs.readFileSync(htmlPath, 'utf8');
         console.log("📄 Current HTML size:", currentHtml.length, "characters");
         
-        // Create a more specific prompt for full code improvement
-        const prompt = `You are an expert game developer specializing in HTML5 Canvas games.
-
-Here is my current game code (${currentHtml.length} characters):
-
-${currentHtml}
-
-Please improve this code by:
-1. Adding particle effects for buildings and units
-2. Adding a day/night cycle with changing colors
-3. Improving the isometric rendering with shadows
-4. Adding animated water and terrain
-5. Adding building animations
-6. Improving the UI with better styling
-7. Adding weather effects (rain, fog)
-8. Optimizing performance
-
-IMPORTANT RULES:
-- Return ONLY the complete HTML file
-- Do NOT add any explanations
-- Do NOT use markdown code blocks
-- Do NOT truncate the code
-- Make sure all JavaScript is complete
-- Keep all IDs the same: gameCanvas, ui-overlay, log-container
-- Keep the WebSocket connection logic
-- Keep all text in English
-
-START YOUR RESPONSE WITH: <!DOCTYPE html>`;
+        // Simple prompt for testing
+        const prompt = "Generate a simple HTML page with a canvas element that draws a circle. Return ONLY the HTML code.";
         
-        console.log("🔍 Sending full code to Gemini for improvement...");
-        console.log("📝 Prompt size:", prompt.length, "characters");
+        console.log("🔍 Asking Gemini to generate HTML...");
+        const generatedCode = await queryGemini(prompt);
         
-        let improvedCode = await queryGemini(prompt);
-        
-        if (!improvedCode || improvedCode.length < 100) {
-            console.error("❌ Gemini failed to generate code");
-            addLog("[AI COMMIT ERROR] Gemini API failed. Cannot improve code.");
+        if (!generatedCode) {
+            console.error("❌ Gemini returned no code");
+            addLog("[AI COMMIT ERROR] Gemini returned no code.");
             return;
         }
         
-        console.log("📝 Raw response length:", improvedCode.length);
+        console.log("✅ Generated code length:", generatedCode.length);
+        console.log("📝 First 200 chars:", generatedCode.substring(0, 200));
         
-        // Clean the response
-        let cleanCode = improvedCode;
+        // Try to write it
+        fs.writeFileSync(htmlPath, generatedCode);
+        console.log("✅ Written to file");
         
-        // Remove markdown code blocks if present
-        cleanCode = cleanCode.replace(/```html/gi, '');
-        cleanCode = cleanCode.replace(/```/g, '');
-        
-        // Find the start of HTML
-        const htmlStart = cleanCode.indexOf('<!DOCTYPE html>');
-        if (htmlStart > 0) {
-            cleanCode = cleanCode.substring(htmlStart);
-            console.log("✅ Found HTML start at position:", htmlStart);
-        }
-        
-        // Find the end of HTML
-        const htmlEnd = cleanCode.lastIndexOf('</html>');
-        if (htmlEnd > 0) {
-            cleanCode = cleanCode.substring(0, htmlEnd + 7);
-            console.log("✅ Found HTML end at position:", htmlEnd);
-        }
-        
-        // Validate the code
-        if (cleanCode.length < 1000) {
-            console.error("❌ Generated code too short:", cleanCode.length);
-            addLog("[AI COMMIT ERROR] Generated code too short.");
-            return;
-        }
-        
-        // Check essential elements
-        if (!cleanCode.includes('gameCanvas')) {
-            console.error("❌ Generated code missing gameCanvas");
-            addLog("[AI COMMIT ERROR] Generated code missing gameCanvas.");
-            return;
-        }
-        
-        if (!cleanCode.includes('WebSocket')) {
-            console.error("❌ Generated code missing WebSocket");
-            addLog("[AI COMMIT ERROR] Generated code missing WebSocket.");
-            return;
-        }
-        
-        console.log("✅ Code validation passed!");
-        console.log("📊 Final code size:", cleanCode.length, "characters");
-        
-        // Write improved HTML locally
-        fs.writeFileSync(htmlPath, cleanCode);
-        console.log("✅ Written improved HTML locally");
-        
-        // Push to GitHub
-        if (GITHUB_TOKEN) {
-            console.log("📤 Pushing to GitHub...");
-            
-            try {
-                const cleanToken = GITHUB_TOKEN.trim();
-                
-                await executeGitCommand('git config --global user.email "ai@example.com"');
-                await executeGitCommand('git config --global user.name "AI Auto-Improver"');
-                
-                const repoUrl = `https://${cleanToken}@github.com/edthedog-debug/dark-fantasy-civ.git`;
-                
-                try {
-                    await executeGitCommand('git rev-parse --is-inside-work-tree');
-                    console.log("✅ Already in git repository");
-                    await executeGitCommand(`git remote set-url origin ${repoUrl}`);
-                } catch (gitError) {
-                    console.log("📁 Cloning repository...");
-                    await executeGitCommand(`git clone ${repoUrl} /tmp/repo`);
-                    process.chdir('/tmp/repo');
-                }
-                
-                const targetPath = path.join(process.cwd(), 'public', 'index.html');
-                fs.copyFileSync(htmlPath, targetPath);
-                
-                await executeGitCommand('git add public/index.html');
-                await executeGitCommand(`git commit -m "🤖 [AI Auto-Upgrade] Full code improvement to ${worldState.engineBuild}"`);
-                await executeGitCommand('git push origin main');
-                
-                addLog("[AI COMMIT SUCCESS] Pushed full code improvements to GitHub!");
-                console.log("✅ Successfully committed and pushed!");
-            } catch (gitError) {
-                console.error("❌ Git push failed:", gitError.message);
-                addLog(`[AI COMMIT ERROR] Git push failed: ${gitError.message}`);
-            }
-        } else {
-            console.log("⚠️ No GitHub token, only local file updated");
-            addLog("[AI COMMIT WARNING] No GitHub token, only local file updated");
-        }
+        addLog("[AI COMMIT SUCCESS] Generated new code with Gemini!");
         
     } catch (err) {
         console.error("Auto-code commit error:", err.message);
@@ -490,16 +407,16 @@ WSS.on('connection', (ws) => {
 
 SERVER.listen(PORT, () => {
     console.log("🚀 AI Self-Improving Server active on port " + PORT);
-    console.log("📝 Checking Gemini API connection...");
     
-    // Test Gemini connection on startup
-    queryGemini("Say 'OK' if you can read this").then(response => {
-        if (response) {
-            console.log("✅ Gemini API is working!");
+    // Test Gemini immediately on startup
+    console.log("\n🔍 IMMEDIATE GEMINI TEST...");
+    testGeminiDirect()
+        .then(result => {
+            console.log("✅ Gemini API is working! Response:", result);
             addLog("[SYSTEM] Gemini API connected successfully.");
-        } else {
-            console.error("❌ Gemini API is not working. Check your API key.");
-            addLog("[SYSTEM ERROR] Gemini API not accessible. Check GEMINI_API_KEY.");
-        }
-    });
+        })
+        .catch(error => {
+            console.error("❌ Gemini API failed:", error.message);
+            addLog(`[SYSTEM ERROR] Gemini API failed: ${error.message}`);
+        });
 });
