@@ -203,7 +203,7 @@ async function generateAIEvents() {
 }
 
 /**
- * 2. AI CODE IMPROVEMENT - ALWAYS WORKS
+ * 2. AI CODE IMPROVEMENT - IMPROVES BOTH HTML DESIGN AND FUNCTIONALITY
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT...");
@@ -221,33 +221,118 @@ async function autoImproveGameCode() {
         const currentHtml = fs.readFileSync(htmlPath, 'utf8');
         console.log("📄 Current HTML:", currentHtml.length, "chars");
         
-        // Ask for a SIMPLE improvement
-        const prompt = "Write a JavaScript function that creates a visual effect on a canvas. Return only the code.";
+        // Alternate between different types of improvements
+        const improvementType = worldState.aiImprovements % 3;
         
-        console.log("🔍 Asking Gemini...");
+        let prompt;
+        let codeToAdd;
+        
+        switch(improvementType) {
+            case 0: // CSS/Design improvement
+                prompt = `Improve the visual design of this dark fantasy civilization game. 
+                Current stats: Day ${worldState.day}, Population: ${worldState.population}, Tech: ${worldState.techPower}.
+                Era: ${worldState.era}
+                Return ONLY CSS code that enhances the visual appearance, adds animations, or improves the layout.
+                Make it dark fantasy themed with mystical elements.`;
+                break;
+                
+            case 1: // JavaScript functionality
+                prompt = `Add new interactive functionality to this dark fantasy civilization game.
+                Current stats: Day ${worldState.day}, Population: ${worldState.population}, Tech: ${worldState.techPower}.
+                Return ONLY JavaScript code that adds new features, animations, or gameplay mechanics.`;
+                break;
+                
+            case 2: // UI/HTML structure improvement
+                prompt = `Add new UI elements to this dark fantasy civilization game.
+                Current stats: Day ${worldState.day}, Era: ${worldState.era}, Treasury: ${worldState.treasury}.
+                Return ONLY HTML code that adds new displays, panels, or information widgets.
+                Make it thematically appropriate for a dark fantasy setting.`;
+                break;
+        }
+        
+        console.log("🔍 Asking Gemini for", improvementType === 0 ? "CSS" : improvementType === 1 ? "JavaScript" : "HTML", "improvement...");
         const aiResponse = await queryGemini(prompt);
         
         console.log("✅ Got response! Length:", aiResponse.length);
         console.log("📝 Content:", aiResponse.substring(0, 200));
         
         // Clean the response
-        let codeToAdd = aiResponse.replace(/```javascript/gi, '').replace(/```js/gi, '').replace(/```/g, '').trim();
+        codeToAdd = aiResponse.replace(/```css/gi, '').replace(/```javascript/gi, '').replace(/```html/gi, '').replace(/```js/gi, '').replace(/```/g, '').trim();
         
-        // If it's too short, add a default
+        // If it's too short, add a default based on type
         if (codeToAdd.length < 10) {
-            codeToAdd = "// AI improvement applied\nconsole.log('Dark Fantasy System improved');";
+            if (improvementType === 0) {
+                codeToAdd = `
+/* AI Design Improvement - Dark Fantasy Theme */
+body {
+    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
+    color: #d4c5a0;
+    font-family: 'Cinzel', 'MedievalSharp', serif;
+    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
+}
+
+.stats-panel {
+    background: rgba(20, 10, 10, 0.8);
+    border: 2px solid #8b6914;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
+    animation: glow 3s ease-in-out infinite;
+}
+
+@keyframes glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
+    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
+}`;
+            } else if (improvementType === 1) {
+                codeToAdd = `
+// AI Functionality Improvement
+function createMagicEffect() {
+    const effect = document.createElement('div');
+    effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
+    document.body.appendChild(effect);
+    
+    const style = document.createElement('style');
+    style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
+    document.head.appendChild(style);
+}`;
+            } else {
+                codeToAdd = `
+<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
+    <h4>⚔️ AI Enhancement #${worldState.aiImprovements + 1}</h4>
+    <p>Era: ${worldState.era}</p>
+    <p>Tech Power: ${worldState.techPower.toFixed(2)}</p>
+</div>`;
+            }
         }
         
-        // Apply to HTML
+        // Apply to HTML based on type
         let improvedHtml = currentHtml;
-        const improvementBlock = `\n// === AI IMPROVEMENT (Day ${worldState.day}) ===\n${codeToAdd}\n`;
         
-        if (improvedHtml.includes('</script>')) {
-            improvedHtml = improvedHtml.replace('</script>', improvementBlock + '</script>');
-        } else if (improvedHtml.includes('</body>')) {
-            improvedHtml = improvedHtml.replace('</body>', `<script>${improvementBlock}</script>\n</body>`);
+        if (improvementType === 0) {
+            // CSS improvement
+            const cssBlock = `\n<!-- === AI CSS IMPROVEMENT (Day ${worldState.day}) === -->\n<style>\n${codeToAdd}\n</style>\n`;
+            if (improvedHtml.includes('</head>')) {
+                improvedHtml = improvedHtml.replace('</head>', cssBlock + '</head>');
+            } else {
+                improvedHtml = cssBlock + improvedHtml;
+            }
+        } else if (improvementType === 1) {
+            // JavaScript improvement
+            const jsBlock = `\n<!-- === AI JS IMPROVEMENT (Day ${worldState.day}) === -->\n<script>\n${codeToAdd}\n</script>\n`;
+            if (improvedHtml.includes('</body>')) {
+                improvedHtml = improvedHtml.replace('</body>', jsBlock + '</body>');
+            } else {
+                improvedHtml += jsBlock;
+            }
         } else {
-            improvedHtml += `\n<script>${improvementBlock}</script>`;
+            // HTML structure improvement
+            const htmlBlock = `\n<!-- === AI HTML IMPROVEMENT (Day ${worldState.day}) === -->\n${codeToAdd}\n`;
+            if (improvedHtml.includes('</body>')) {
+                improvedHtml = improvedHtml.replace('</body>', htmlBlock + '</body>');
+            } else {
+                improvedHtml += htmlBlock;
+            }
         }
         
         // Write improved HTML
@@ -255,7 +340,8 @@ async function autoImproveGameCode() {
         console.log("✅ HTML improved! New size:", improvedHtml.length);
         
         worldState.aiImprovements += 1;
-        addLog("[AI COMMIT SUCCESS] Code improved! Total: " + worldState.aiImprovements);
+        const improvementTypeName = improvementType === 0 ? "CSS Design" : improvementType === 1 ? "JavaScript Functionality" : "HTML Structure";
+        addLog(`[AI COMMIT SUCCESS] ${improvementTypeName} improved! Total: ${worldState.aiImprovements}`);
         
         // Push to GitHub
         if (GITHUB_TOKEN) {
@@ -283,7 +369,7 @@ async function autoImproveGameCode() {
                 fs.copyFileSync(STATE_FILE, stateTargetPath);
                 
                 await executeGitCommand('git add public/index.html worldState.json');
-                await executeGitCommand(`git commit -m "🤖 [AI] Improvement Day ${worldState.day}"`);
+                await executeGitCommand(`git commit -m "🤖 [AI] ${improvementTypeName} - Day ${worldState.day}"`);
                 await executeGitCommand('git push origin main');
                 
                 console.log("✅ Pushed to GitHub!");
