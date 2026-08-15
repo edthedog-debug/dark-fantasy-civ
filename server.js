@@ -159,7 +159,7 @@ async function generateAIEvents() {
 }
 
 /**
- * 2. AI GRAPHICS & CODE REFACTOR ENGINE (GITHUB AUTO-COMMIT)
+ * 2. AI GRAPHICS & CODE REFACTOR ENGINE (GITHUB AUTO-COMMIT) - ROBUST FIX
  */
 async function autoImproveGameCode() {
     if (!GITHUB_TOKEN || !GITHUB_REPO) {
@@ -171,18 +171,16 @@ async function autoImproveGameCode() {
     addLog("[AI AUTO-CODING] Analyzing frontend engine to improve rendering & feature set...");
 
     try {
-        // Sanitize repository input (removes protocol or trailing slashes if present)
         const cleanRepo = GITHUB_REPO.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
         const cleanToken = GITHUB_TOKEN.trim(); 
-        
         const apiDomain = 'https://api.github.com/repos/';
-        const filePath = 'public/index.html'; // Target explicitly to public/index.html
+        const filePath = 'public/index.html';
 
         let currentSha = null;
         let selectedBranch = 'main';
 
-        // Check 'main' branch first
-        let getUrl = `${apiDomain}${cleanRepo}/contents/${filePath}?ref=main`;
+        // Método robusto: consultar primero la carpeta 'public' para obtener el SHA exacto sin errores 404 de ruta interna
+        let getUrl = `${apiDomain}${cleanRepo}/contents/public?ref=main`;
         let getFile = await fetch(getUrl, {
             headers: { 
                 'Authorization': `Bearer ${cleanToken}`, 
@@ -192,12 +190,17 @@ async function autoImproveGameCode() {
         });
 
         if (getFile.ok) {
-            const fileData = await getFile.json();
-            currentSha = fileData.sha;
-            selectedBranch = 'main';
-        } else {
-            // Fallback to 'master' branch if 'main' returns 404
-            getUrl = `${apiDomain}${cleanRepo}/contents/${filePath}?ref=master`;
+            const folderContents = await getFile.json();
+            const indexFile = folderContents.find(f => f.name === 'index.html');
+            if (indexFile) {
+                currentSha = indexFile.sha;
+                selectedBranch = 'main';
+            }
+        }
+
+        // Si no se encuentra en main, probamos con master
+        if (!currentSha) {
+            getUrl = `${apiDomain}${cleanRepo}/contents/public?ref=master`;
             getFile = await fetch(getUrl, {
                 headers: { 
                     'Authorization': `Bearer ${cleanToken}`, 
@@ -207,14 +210,17 @@ async function autoImproveGameCode() {
             });
 
             if (getFile.ok) {
-                const fileData = await getFile.json();
-                currentSha = fileData.sha;
-                selectedBranch = 'master';
+                const folderContents = await getFile.json();
+                const indexFile = folderContents.find(f => f.name === 'index.html');
+                if (indexFile) {
+                    currentSha = indexFile.sha;
+                    selectedBranch = 'master';
+                }
             }
         }
 
         if (!currentSha) {
-            addLog("[AI COMMIT ERROR] GitHub GET failed (404): Could not locate public/index.html on main or master branch.");
+            addLog("[AI COMMIT ERROR] GitHub GET failed: Could not locate index.html inside public/ folder.");
             return;
         }
 
