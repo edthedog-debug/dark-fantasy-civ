@@ -118,7 +118,7 @@ async function queryGemini(prompt) {
 }
 
 /**
- * 1. AI GENERATIVE EVENTS - EVERY 30 DAYS (2 minutes)
+ * 1. AI GENERATIVE EVENTS
  */
 async function generateAIEvents() {
     const prompt = "Generate a dark fantasy civilization event. Return ONLY JSON: {\"event\":\"description\",\"newPhilosophy\":\"name\",\"goldImpact\":number,\"happinessImpact\":number,\"techImpact\":number}";
@@ -178,24 +178,26 @@ function executeGitCommand(command) {
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT...");
-    addLog("[AI AUTO-CODING] Starting...");
+    addLog("[AI AUTO-CODING] Gemini is improving the code...");
 
     try {
         const htmlPath = path.join(__dirname, 'public', 'index.html');
         
         if (!fs.existsSync(htmlPath)) {
             console.error("❌ index.html not found");
+            addLog("[AI COMMIT ERROR] index.html not found.");
             return;
         }
         
         const currentHtml = fs.readFileSync(htmlPath, 'utf8');
         console.log("📄 Current HTML:", currentHtml.length, "chars");
         
-        const prompt = `You are an expert game developer. Improve this HTML canvas game with better graphics. Return the complete improved HTML code.
+        const prompt = `You are an expert game developer. Improve this HTML canvas game with better graphics, animations, and visual effects. Return the complete improved HTML code.
 
 Current code:
 ${currentHtml.substring(0, 8000)}`;
         
+        console.log("🔍 Asking Gemini to improve code...");
         const improvedCode = await queryGemini(prompt);
         
         if (improvedCode && improvedCode.length > 500) {
@@ -209,9 +211,43 @@ ${currentHtml.substring(0, 8000)}`;
             
             if (cleanCode.length > 500) {
                 fs.writeFileSync(htmlPath, cleanCode);
-                console.log("✅ HTML improved! Size:", cleanCode.length);
-                addLog("[AI COMMIT SUCCESS] Code improved!");
+                console.log("✅ HTML improved! New size:", cleanCode.length);
+                addLog("[AI COMMIT SUCCESS] Code improved with Gemini!");
+                
+                // Push to GitHub
+                if (GITHUB_TOKEN) {
+                    try {
+                        const cleanToken = GITHUB_TOKEN.trim();
+                        
+                        await executeGitCommand('git config --global user.email "ai@example.com"');
+                        await executeGitCommand('git config --global user.name "AI Auto-Improver"');
+                        
+                        const repoUrl = `https://${cleanToken}@github.com/edthedog-debug/dark-fantasy-civ.git`;
+                        
+                        try {
+                            await executeGitCommand('git rev-parse --is-inside-work-tree');
+                            await executeGitCommand(`git remote set-url origin ${repoUrl}`);
+                        } catch (gitError) {
+                            await executeGitCommand(`git clone ${repoUrl} /tmp/repo`);
+                            process.chdir('/tmp/repo');
+                        }
+                        
+                        const targetPath = path.join(process.cwd(), 'public', 'index.html');
+                        fs.copyFileSync(htmlPath, targetPath);
+                        
+                        await executeGitCommand('git add public/index.html');
+                        await executeGitCommand(`git commit -m "🤖 [AI] Improved code with Gemini 2.5 Flash (Day ${worldState.day})"`);
+                        await executeGitCommand('git push origin main');
+                        
+                        console.log("✅ Pushed to GitHub!");
+                    } catch (gitError) {
+                        console.error("❌ Git push failed:", gitError.message);
+                    }
+                }
             }
+        } else {
+            console.error("❌ Gemini returned no valid code");
+            addLog("[AI COMMIT ERROR] Gemini returned no valid code.");
         }
     } catch (err) {
         console.error("Error:", err.message);
@@ -260,7 +296,6 @@ async function runSimulationTick() {
         addLog("[DEMOGRAPHICS] 1 Citizen emigrated due to poor living conditions.");
     }
 
-    // Only reinvest every 20 days (80 seconds) instead of every tick
     if (worldState.treasury > 1500 && worldState.day % 20 === 0) {
         worldState.treasury -= 400;
         worldState.techPower += 0.2;
@@ -289,8 +324,8 @@ async function runSimulationTick() {
         await generateAIEvents();
     }
 
-    // Code improvement every 200 days (13.3 minutes)
-    if (worldState.day % 200 === 0) {
+    // Code improvement every 50 days (3.3 minutes)
+    if (worldState.day % 50 === 0) {
         const patch = Math.floor(Math.random() * 9) + 1;
         worldState.engineBuild = "v2." + patch + ".0-Gemini-2.5";
         await autoImproveGameCode();
@@ -310,6 +345,8 @@ WSS.on('connection', (ws) => {
 
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
+    console.log("📅 Day 50 = Code improvement (every 3.3 minutes)");
+    console.log("📅 Day 30 = AI event (every 2 minutes)");
     
     queryGemini("Say 'OK' if you can read this")
         .then(response => {
