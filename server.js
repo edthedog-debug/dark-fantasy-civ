@@ -72,494 +72,182 @@ function addLog(msg) {
 }
 
 /**
- * GEMINI REST API HELPER - SIMPLIFIED
+ * GEMINI REST API HELPER - DIAGNOSTIC VERSION
  */
 async function queryGemini(prompt) {
     if (!AI_API_KEY) {
-        console.log("⚠️ No GEMINI_API_KEY, using fallback");
+        console.error("❌ GEMINI_API_KEY is not set");
         return null;
     }
 
-    console.log("🔑 Testing Gemini API...");
+    console.log("🔑 Gemini API Key:", AI_API_KEY.substring(0, 8) + "..." + AI_API_KEY.substring(AI_API_KEY.length - 4));
+    console.log("🔑 Key length:", AI_API_KEY.length);
     
-    try {
-        // Try with a simple test first
-        const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AI_API_KEY}`;
-        
-        const response = await fetch(testUrl, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: prompt
-                    }]
-                }]
-            })
-        });
+    // Try different API versions and models
+    const attempts = [
+        {
+            name: "v1beta-gemini-1.5-flash",
+            url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
+            model: "gemini-1.5-flash"
+        },
+        {
+            name: "v1-gemini-1.5-flash",
+            url: `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent`,
+            model: "gemini-1.5-flash"
+        },
+        {
+            name: "v1beta-gemini-1.0-pro",
+            url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent`,
+            model: "gemini-1.0-pro"
+        },
+        {
+            name: "v1-gemini-pro",
+            url: `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent`,
+            model: "gemini-pro"
+        }
+    ];
 
-        console.log("📊 Gemini status:", response.status);
+    for (const attempt of attempts) {
+        console.log(`\n🔍 Trying: ${attempt.name}`);
+        console.log(`📍 URL: ${attempt.url}`);
         
-        if (response.ok) {
-            const data = await response.json();
-            console.log("✅ Gemini response received");
+        try {
+            const response = await fetch(`${attempt.url}?key=${AI_API_KEY}`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: prompt
+                        }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 8192,
+                        topP: 0.8,
+                        topK: 10
+                    }
+                })
+            });
+
+            console.log(`📊 Status: ${response.status}`);
             
-            // Extract text from response
-            let text = null;
-            if (data.candidates && data.candidates[0]) {
-                if (data.candidates[0].content && data.candidates[0].content.parts) {
-                    text = data.candidates[0].content.parts[0].text;
+            if (response.ok) {
+                const data = await response.json();
+                console.log("✅ Response received!");
+                console.log("📦 Response keys:", Object.keys(data));
+                
+                // Extract text from different possible response formats
+                let text = null;
+                
+                if (data.candidates && data.candidates[0]) {
+                    console.log("📦 Candidate keys:", Object.keys(data.candidates[0]));
+                    
+                    if (data.candidates[0].content) {
+                        console.log("📦 Content keys:", Object.keys(data.candidates[0].content));
+                        
+                        if (data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
+                            console.log("📦 Parts keys:", Object.keys(data.candidates[0].content.parts[0]));
+                            text = data.candidates[0].content.parts[0].text;
+                        }
+                    }
+                    
+                    if (!text && data.candidates[0].output) {
+                        text = data.candidates[0].output;
+                    }
+                }
+                
+                if (text && text.length > 0) {
+                    console.log("✅ Extracted text length:", text.length);
+                    console.log("📝 First 100 chars:", text.substring(0, 100));
+                    return text;
+                } else {
+                    console.error("❌ No text extracted from response");
+                    console.error("📦 Full response:", JSON.stringify(data).substring(0, 500));
+                }
+            } else {
+                const errorText = await response.text();
+                console.error(`❌ Error ${response.status}:`, errorText.substring(0, 300));
+                
+                // Check for specific error types
+                if (response.status === 400) {
+                    console.error("❌ Bad Request - Check API key and model name");
+                } else if (response.status === 401) {
+                    console.error("❌ Unauthorized - API key is invalid");
+                } else if (response.status === 403) {
+                    console.error("❌ Forbidden - API key doesn't have access to this model");
+                } else if (response.status === 404) {
+                    console.error("❌ Not Found - Model doesn't exist");
+                } else if (response.status === 429) {
+                    console.error("❌ Rate Limited - Too many requests");
                 }
             }
-            
-            if (text && text.length > 0) {
-                console.log("📝 Generated text length:", text.length);
-                return text;
-            }
-        } else {
-            const errorText = await response.text();
-            console.error("❌ Gemini error:", response.status, errorText.substring(0, 200));
+        } catch (e) {
+            console.error(`❌ Fetch error with ${attempt.name}:`, e.message);
         }
-    } catch (e) {
-        console.error("❌ Gemini fetch error:", e.message);
     }
 
+    console.error("\n❌ All Gemini API attempts failed");
     return null;
-}
-
-/**
- * Generate improved HTML code locally
- */
-function generateImprovedCode() {
-    console.log("🔧 Generating improved HTML code locally...");
-    
-    // This is a improved version of the HTML with better graphics
-    const improvedHTML = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Dark Fantasy Civilization - AI Empire</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            background: #1a1a2e;
-            font-family: 'Arial', sans-serif;
-            overflow: hidden;
-            height: 100vh;
-            width: 100vw;
-            touch-action: none;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        
-        #gameCanvas {
-            display: block;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            cursor: grab;
-        }
-        
-        #gameCanvas:active {
-            cursor: grabbing;
-        }
-        
-        #ui-overlay {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            right: 10px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            z-index: 10;
-            pointer-events: none;
-        }
-        
-        .stat-card {
-            background: rgba(0, 0, 0, 0.8);
-            border: 1px solid #4a4a6a;
-            border-radius: 8px;
-            padding: 8px 12px;
-            color: #fff;
-            font-size: 12px;
-            pointer-events: auto;
-            backdrop-filter: blur(5px);
-        }
-        
-        .stat-label {
-            color: #8888aa;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .stat-value {
-            font-size: 16px;
-            font-weight: bold;
-            color: #ffd700;
-        }
-        
-        #log-container {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            border: 1px solid #4a4a6a;
-            border-radius: 8px;
-            padding: 10px;
-            max-height: 150px;
-            overflow-y: auto;
-            z-index: 10;
-            pointer-events: auto;
-            backdrop-filter: blur(5px);
-        }
-        
-        .log-entry {
-            color: #cccccc;
-            font-size: 11px;
-            margin-bottom: 4px;
-            font-family: monospace;
-        }
-        
-        .log-entry:last-child {
-            margin-bottom: 0;
-        }
-        
-        .building {
-            fill: #8b4513;
-            stroke: #ffd700;
-            stroke-width: 1;
-        }
-        
-        .road {
-            stroke: #666;
-            stroke-width: 2;
-            fill: none;
-        }
-        
-        .terrain {
-            fill: #2d4a2d;
-            stroke: #1a3a1a;
-            stroke-width: 1;
-        }
-        
-        .water {
-            fill: #1a3a5a;
-            stroke: #0a2a4a;
-            stroke-width: 1;
-        }
-    </style>
-</head>
-<body>
-    <canvas id="gameCanvas"></canvas>
-    
-    <div id="ui-overlay">
-        <div class="stat-card">
-            <div class="stat-label">Day</div>
-            <div class="stat-value" id="day-display">1</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Population</div>
-            <div class="stat-value" id="population-display">12</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Happiness</div>
-            <div class="stat-value" id="happiness-display">85%</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Treasury</div>
-            <div class="stat-value" id="treasury-display">500 Gold</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Tech Power</div>
-            <div class="stat-value" id="tech-display">0.5</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Economy</div>
-            <div class="stat-value" id="economy-display">Emerging Market</div>
-        </div>
-    </div>
-    
-    <div id="log-container"></div>
-    
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        
-        let worldState = {
-            day: 1,
-            population: 12,
-            happiness: 85,
-            treasury: 500,
-            techPower: 0.5,
-            economicPower: "Emerging Market",
-            logs: []
-        };
-        
-        let camera = {
-            x: 0,
-            y: 0,
-            zoom: 1
-        };
-        
-        let isDragging = false;
-        let lastX = 0;
-        let lastY = 0;
-        
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            drawGame();
-        }
-        
-        window.addEventListener('resize', resizeCanvas);
-        
-        function drawIsometricTile(x, y, size, color) {
-            ctx.save();
-            ctx.translate(canvas.width / 2 + camera.x, canvas.height / 2 + camera.y);
-            ctx.scale(camera.zoom, camera.zoom);
-            
-            const isoX = (x - y) * size;
-            const isoY = (x + y) * size / 2;
-            
-            ctx.beginPath();
-            ctx.moveTo(isoX, isoY);
-            ctx.lineTo(isoX + size, isoY + size / 2);
-            ctx.lineTo(isoX, isoY + size);
-            ctx.lineTo(isoX - size, isoY + size / 2);
-            ctx.closePath();
-            
-            ctx.fillStyle = color;
-            ctx.fill();
-            ctx.strokeStyle = '#444';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            
-            ctx.restore();
-        }
-        
-        function drawBuilding(x, y, size, height) {
-            ctx.save();
-            ctx.translate(canvas.width / 2 + camera.x, canvas.height / 2 + camera.y);
-            ctx.scale(camera.zoom, camera.zoom);
-            
-            const isoX = (x - y) * size;
-            const isoY = (x + y) * size / 2;
-            
-            // Draw building
-            ctx.fillStyle = '#8b4513';
-            ctx.fillRect(isoX - size / 2, isoY - height, size, height + size / 2);
-            
-            // Draw roof
-            ctx.beginPath();
-            ctx.moveTo(isoX - size / 2, isoY - height);
-            ctx.lineTo(isoX, isoY - height - size / 2);
-            ctx.lineTo(isoX + size / 2, isoY - height);
-            ctx.closePath();
-            ctx.fillStyle = '#a0522d';
-            ctx.fill();
-            
-            ctx.restore();
-        }
-        
-        function drawGame() {
-            // Clear canvas
-            ctx.fillStyle = '#1a1a2e';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw grid
-            const gridSize = 8;
-            const tileSize = 30;
-            
-            for (let x = 0; x < gridSize; x++) {
-                for (let y = 0; y < gridSize; y++) {
-                    const color = (x + y) % 2 === 0 ? '#2d4a2d' : '#2a442a';
-                    drawIsometricTile(x, y, tileSize, color);
-                }
-            }
-            
-            // Draw some buildings
-            drawBuilding(3, 3, 20, 30);
-            drawBuilding(4, 4, 25, 40);
-            drawBuilding(5, 3, 15, 25);
-            
-            // Draw roads
-            ctx.save();
-            ctx.translate(canvas.width / 2 + camera.x, canvas.height / 2 + camera.y);
-            ctx.scale(camera.zoom, camera.zoom);
-            
-            ctx.strokeStyle = '#666';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(200, 100);
-            ctx.stroke();
-            
-            ctx.restore();
-        }
-        
-        function updateUI() {
-            document.getElementById('day-display').textContent = worldState.day;
-            document.getElementById('population-display').textContent = worldState.population;
-            document.getElementById('happiness-display').textContent = worldState.happiness + '%';
-            document.getElementById('treasury-display').textContent = worldState.treasury + ' Gold';
-            document.getElementById('tech-display').textContent = worldState.techPower.toFixed(2);
-            document.getElementById('economy-display').textContent = worldState.economicPower;
-            
-            // Update logs
-            const logContainer = document.getElementById('log-container');
-            logContainer.innerHTML = '';
-            worldState.logs.slice(-10).forEach(log => {
-                const logEntry = document.createElement('div');
-                logEntry.className = 'log-entry';
-                logEntry.textContent = log;
-                logContainer.appendChild(logEntry);
-            });
-        }
-        
-        // WebSocket connection
-        function connectWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = protocol + '//' + window.location.host;
-            const ws = new WebSocket(wsUrl);
-            
-            ws.onopen = () => {
-                console.log('WebSocket connected');
-            };
-            
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.type === 'WORLD_UPDATE') {
-                    worldState = data.data;
-                    updateUI();
-                    drawGame();
-                }
-            };
-            
-            ws.onclose = () => {
-                console.log('WebSocket disconnected, reconnecting...');
-                setTimeout(connectWebSocket, 3000);
-            };
-            
-            ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
-            };
-        }
-        
-        // Touch/Mouse controls
-        canvas.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            lastX = e.clientX;
-            lastY = e.clientY;
-        });
-        
-        canvas.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                camera.x += e.clientX - lastX;
-                camera.y += e.clientY - lastY;
-                lastX = e.clientX;
-                lastY = e.clientY;
-                drawGame();
-            }
-        });
-        
-        canvas.addEventListener('mouseup', () => {
-            isDragging = false;
-        });
-        
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (e.touches.length === 1) {
-                isDragging = true;
-                lastX = e.touches[0].clientX;
-                lastY = e.touches[0].clientY;
-            }
-        });
-        
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            if (isDragging && e.touches.length === 1) {
-                camera.x += e.touches[0].clientX - lastX;
-                camera.y += e.touches[0].clientY - lastY;
-                lastX = e.touches[0].clientX;
-                lastY = e.touches[0].clientY;
-                drawGame();
-            }
-        });
-        
-        canvas.addEventListener('touchend', () => {
-            isDragging = false;
-        });
-        
-        // Pinch zoom
-        canvas.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-            camera.zoom = Math.max(0.5, Math.min(2, camera.zoom * zoomFactor));
-            drawGame();
-        });
-        
-        // Initialize
-        resizeCanvas();
-        connectWebSocket();
-        drawGame();
-        updateUI();
-    </script>
-</body>
-</html>`;
-    
-    return improvedHTML;
 }
 
 /**
  * 1. AI GENERATIVE NARRATIVE, ECONOMY & PHILOSOPHY ENGINE
  */
 async function generateAIEvents() {
-    const prompt = "Generate a brief event for a civilization simulator. Return JSON with fields: event, newPhilosophy, goldImpact, happinessImpact, techImpact";
+    console.log("\n🎭 GENERATING AI EVENTS...");
+    
+    const prompt = `Generate a random event for a dark fantasy civilization simulator. 
+    Return ONLY a JSON object with this exact format:
+    {
+        "event": "brief event description",
+        "newPhilosophy": "philosophy name",
+        "goldImpact": number,
+        "happinessImpact": number,
+        "techImpact": number
+    }`;
     
     let parsed = null;
 
     try {
         const rawText = await queryGemini(prompt);
         if (rawText) {
-            console.log("📝 Raw response:", rawText.substring(0, 200));
+            console.log("📝 Raw response:", rawText);
             
+            // Try to find JSON in the response
             const jsonMatch = rawText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
-                parsed = JSON.parse(jsonMatch[0]);
-                console.log("✅ Parsed JSON:", parsed);
+                try {
+                    parsed = JSON.parse(jsonMatch[0]);
+                    console.log("✅ Successfully parsed JSON:", parsed);
+                } catch (parseError) {
+                    console.error("❌ JSON parse error:", parseError.message);
+                    console.error("📝 Attempted to parse:", jsonMatch[0]);
+                }
+            } else {
+                console.error("❌ No JSON found in response");
             }
         }
     } catch (err) {
-        console.error("❌ JSON parse error:", err.message);
-        parsed = null;
+        console.error("❌ Error in generateAIEvents:", err.message);
     }
 
-    // Always use fallback if parsing fails
+    // Use fallback if parsing failed
     if (!parsed || !parsed.event) {
         console.log("⚠️ Using fallback events");
         const fallbacks = [
-            { event: "Automated trade routes expanded to neighboring sectors.", newPhilosophy: "Rational Pragmatism", goldImpact: 120, happinessImpact: 4, techImpact: 0.1 },
-            { event: "R&D labs optimized grid distribution efficiency.", newPhilosophy: "Technological Supremacy", goldImpact: 200, happinessImpact: 6, techImpact: 0.2 },
-            { event: "Minor bureaucratic delay affected fiscal allocations.", newPhilosophy: "Adaptive Bureaucracy", goldImpact: -40, happinessImpact: -2, techImpact: 0.05 }
+            { event: "Ancient dragon discovered new trade routes.", newPhilosophy: "Draconic Commerce", goldImpact: 150, happinessImpact: 5, techImpact: 0.15 },
+            { event: "Dark wizards optimized mana distribution.", newPhilosophy: "Arcane Efficiency", goldImpact: 250, happinessImpact: 7, techImpact: 0.25 },
+            { event: "Goblin uprising affected resource gathering.", newPhilosophy: "Military Discipline", goldImpact: -60, happinessImpact: -8, techImpact: 0.05 }
         ];
         parsed = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+        console.log("📝 Using fallback:", parsed.event);
     }
 
-    addLog("[AI THOUGHT] " + parsed.event);
-
+    addLog("[AI EVENT] " + parsed.event);
+    
     if (parsed.newPhilosophy) worldState.philosophy = parsed.newPhilosophy;
     if (typeof parsed.goldImpact === 'number') worldState.treasury = Math.max(0, worldState.treasury + parsed.goldImpact);
     if (typeof parsed.happinessImpact === 'number') worldState.happiness = Math.min(100, Math.max(10, worldState.happiness + parsed.happinessImpact));
@@ -575,6 +263,7 @@ function executeGitCommand(command) {
             if (error) {
                 console.error(`Git command failed: ${command}`);
                 console.error(`Error: ${error.message}`);
+                console.error(`Stderr: ${stderr}`);
                 reject(error);
             } else {
                 console.log(`Git command success: ${command}`);
@@ -585,37 +274,63 @@ function executeGitCommand(command) {
 }
 
 /**
- * 2. AI GRAPHICS & CODE REFACTOR ENGINE - LOCAL GENERATION
+ * 2. AI GRAPHICS & CODE REFACTOR ENGINE - USING GEMINI
  */
 async function autoImproveGameCode() {
-    console.log("🤖 AI starting Code Refactor & Graphics Upgrade cycle...");
-    addLog("[AI AUTO-CODING] Generating improved frontend code...");
+    console.log("\n🤖 AI CODE IMPROVEMENT CYCLE...");
+    addLog("[AI AUTO-CODING] Starting code improvement...");
 
     try {
-        // Generate improved code locally
-        const newCode = generateImprovedCode();
+        // Read current HTML
+        const currentHtmlPath = path.join(__dirname, 'public', 'index.html');
+        const currentHtml = fs.readFileSync(currentHtmlPath, 'utf8');
+        console.log("📄 Current HTML size:", currentHtml.length, "characters");
         
-        if (!newCode || newCode.length < 100) {
-            console.error("❌ Generated code too short");
+        // Create prompt for Gemini to improve the code
+        const prompt = `Improve this HTML canvas game code. Add better graphics, animations, and visual effects.
+        Current code:
+        ${currentHtml.substring(0, 5000)}
+        
+        Requirements:
+        1. Keep canvas ID as 'gameCanvas'
+        2. Keep WebSocket connection logic
+        3. Keep all UI text in English
+        4. Add better isometric rendering
+        5. Add particle effects
+        6. Add day/night cycle
+        7. Return ONLY the complete HTML code`;
+        
+        console.log("🔍 Asking Gemini to improve code...");
+        let improvedCode = await queryGemini(prompt);
+        
+        if (!improvedCode || improvedCode.length < 100) {
+            console.error("❌ Gemini failed to generate code");
+            addLog("[AI COMMIT ERROR] Gemini API failed. Cannot improve code.");
+            return;
+        }
+        
+        // Clean the code
+        improvedCode = improvedCode.replace(/```html/gi, '').replace(/```/g, '').trim();
+        
+        if (improvedCode.length < 500) {
+            console.error("❌ Generated code too short:", improvedCode.length);
             addLog("[AI COMMIT ERROR] Generated code too short.");
             return;
         }
         
-        console.log("✅ Generated code length:", newCode.length, "characters");
+        console.log("✅ Generated code length:", improvedCode.length, "characters");
         
         // Write to local file
-        const localPath = path.join(__dirname, 'public', 'index.html');
-        fs.writeFileSync(localPath, newCode);
-        console.log("✅ Written to local file:", localPath);
+        fs.writeFileSync(currentHtmlPath, improvedCode);
+        console.log("✅ Written to local file");
         
-        // Try to push to GitHub
+        // Push to GitHub
         if (GITHUB_TOKEN) {
             console.log("📤 Pushing to GitHub...");
             
             try {
                 const cleanToken = GITHUB_TOKEN.trim();
                 
-                // Configure git
                 await executeGitCommand('git config --global user.email "ai@example.com"');
                 await executeGitCommand('git config --global user.name "AI Auto-Improver"');
                 
@@ -631,13 +346,11 @@ async function autoImproveGameCode() {
                     process.chdir('/tmp/repo');
                 }
                 
-                // Copy the file
                 const targetPath = path.join(process.cwd(), 'public', 'index.html');
-                fs.copyFileSync(localPath, targetPath);
+                fs.copyFileSync(currentHtmlPath, targetPath);
                 
-                // Git operations
                 await executeGitCommand('git add public/index.html');
-                await executeGitCommand(`git commit -m "🤖 [AI Auto-Upgrade] Improved frontend to ${worldState.engineBuild}"`);
+                await executeGitCommand(`git commit -m "🤖 [AI Auto-Upgrade] Improved code to ${worldState.engineBuild}"`);
                 await executeGitCommand('git push origin main');
                 
                 addLog("[AI COMMIT SUCCESS] Pushed improvements to GitHub!");
@@ -646,9 +359,6 @@ async function autoImproveGameCode() {
                 console.error("❌ Git push failed:", gitError.message);
                 addLog(`[AI COMMIT ERROR] Git push failed: ${gitError.message}`);
             }
-        } else {
-            console.log("⚠️ No GitHub token, only local file updated");
-            addLog("[AI COMMIT WARNING] No GitHub token, only local file updated");
         }
         
     } catch (err) {
@@ -727,7 +437,7 @@ async function runSimulationTick() {
 
     if (worldState.day % 100 === 0) {
         const patch = Math.floor(Math.random() * 9) + 1;
-        worldState.engineBuild = "v2." + patch + ".0-Local-Generation";
+        worldState.engineBuild = "v2." + patch + ".0-Gemini-AI";
         await autoImproveGameCode();
     }
 
@@ -747,4 +457,16 @@ WSS.on('connection', (ws) => {
 
 SERVER.listen(PORT, () => {
     console.log("🚀 AI Self-Improving Server active on port " + PORT);
+    console.log("📝 Checking Gemini API connection...");
+    
+    // Test Gemini connection on startup
+    queryGemini("Say 'OK' if you can read this").then(response => {
+        if (response) {
+            console.log("✅ Gemini API is working!");
+            addLog("[SYSTEM] Gemini API connected successfully.");
+        } else {
+            console.error("❌ Gemini API is not working. Check your API key.");
+            addLog("[SYSTEM ERROR] Gemini API not accessible. Check GEMINI_API_KEY.");
+        }
+    });
 });
