@@ -48,7 +48,8 @@ let aiState = {
     aiEra: 1,
     aiComplexity: 1.0,
     aiCapabilities: ["basic_economy", "basic_simulation"],
-    evolutionHistory: []
+    evolutionHistory: [],
+    improvementHistory: []
 };
 
 // Load world state
@@ -214,7 +215,7 @@ function executeGitCommand(command) {
 }
 
 /**
- * 2. AI CODE IMPROVEMENT - ALWAYS WORKS - INFINITE IMPROVEMENTS
+ * 2. AI CODE IMPROVEMENT - IMPROVES ENTIRE HTML INTERFACE
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT...");
@@ -232,63 +233,163 @@ async function autoImproveGameCode() {
         const currentHtml = fs.readFileSync(htmlPath, 'utf8');
         console.log("📄 Current HTML:", currentHtml.length, "chars");
         
-        // Ask for improvement based on AI evolution level
-        const prompt = `Generate a NEW unique JavaScript function that adds a visual effect to a canvas game. 
-                       AI Evolution Level: ${aiState.aiEra}
-                       Complexity: ${aiState.aiComplexity}
-                       Previous improvements: ${aiState.improvementCount}
-                       Return ONLY the code. Make it more complex than previous improvements.`;
+        // Determine improvement type based on counter and era
+        const improvementTypes = [
+            'visual_effects',      // Canvas visual effects
+            'ui_design',           // Interface design
+            'css_styling',         // CSS styles
+            'gameplay_mechanics',  // Game mechanics
+            'animations',          // Animations
+            'interactive_elements', // Interactive elements
+            'performance_optimization', // Performance optimization
+            'new_features'         // New features
+        ];
         
+        const improvementType = improvementTypes[aiState.improvementCount % improvementTypes.length];
+        
+        let prompt = "";
+        
+        switch(improvementType) {
+            case 'visual_effects':
+                prompt = `Generate a NEW unique JavaScript function for canvas visual effects. 
+                         AI Evolution Level: ${aiState.aiEra}
+                         Complexity: ${aiState.aiComplexity}
+                         Return ONLY the code. Add particle effects, weather, or magical auras.`;
+                break;
+                
+            case 'ui_design':
+                prompt = `Generate HTML and CSS improvements for a dark fantasy game interface.
+                         Create better panels, tooltips, or status displays.
+                         AI Evolution Level: ${aiState.aiEra}
+                         Return ONLY the HTML/CSS code to add.`;
+                break;
+                
+            case 'css_styling':
+                prompt = `Generate CSS styling improvements for a dark fantasy civilization game.
+                         Add gradients, shadows, borders, or animations.
+                         AI Evolution Level: ${aiState.aiEra}
+                         Return ONLY the CSS code.`;
+                break;
+                
+            case 'gameplay_mechanics':
+                prompt = `Create a new JavaScript function for dark fantasy game mechanics.
+                         Add resource management, combat system, or diplomacy features.
+                         AI Evolution Level: ${aiState.aiEra}
+                         Return ONLY the JavaScript code.`;
+                break;
+                
+            case 'animations':
+                prompt = `Generate JavaScript animations for UI elements.
+                         Create smooth transitions, hover effects, or loading animations.
+                         AI Evolution Level: ${aiState.aiEra}
+                         Return ONLY the JavaScript code.`;
+                break;
+                
+            case 'interactive_elements':
+                prompt = `Create interactive JavaScript elements for the game.
+                         Add buttons, sliders, or clickable objects.
+                         AI Evolution Level: ${aiState.aiEra}
+                         Return ONLY the JavaScript code.`;
+                break;
+                
+            case 'performance_optimization':
+                prompt = `Optimize the existing game code.
+                         Improve rendering, reduce memory usage, or add caching.
+                         Current HTML size: ${currentHtml.length} chars
+                         AI Evolution Level: ${aiState.aiEra}
+                         Return ONLY the optimized code.`;
+                break;
+                
+            case 'new_features':
+                prompt = `Add a completely new feature to the dark fantasy game.
+                         Create something innovative based on the current state.
+                         Population: ${worldState.population}, Treasury: ${worldState.treasury}
+                         Tech Power: ${worldState.techPower}, Era: ${worldState.era}
+                         AI Evolution Level: ${aiState.aiEra}
+                         Return ONLY the JavaScript/HTML code for the new feature.`;
+                break;
+                
+            default:
+                prompt = `Improve the game interface with new visual elements.
+                         AI Evolution Level: ${aiState.aiEra}
+                         Return ONLY the code.`;
+        }
+        
+        console.log(`🎨 Improvement Type: ${improvementType}`);
         console.log("🔍 Asking Gemini...");
         const aiResponse = await queryGemini(prompt);
         
         console.log("✅ Got response! Length:", aiResponse.length);
-        console.log("📝 Content:", aiResponse.substring(0, 200));
         
         // Clean the response
-        let codeToAdd = aiResponse.replace(/```javascript/gi, '').replace(/```js/gi, '').replace(/```/g, '').trim();
+        let codeToAdd = aiResponse.replace(/```javascript/gi, '').replace(/```js/gi, '').replace(/```html/gi, '').replace(/```css/gi, '').replace(/```/g, '').trim();
         
-        // If it's too short, add a default
         if (codeToAdd.length < 10) {
-            codeToAdd = `// AI improvement #${aiState.improvementCount + 1}\nconsole.log('Dark Fantasy System improved to Era ${aiState.aiEra}');`;
+            codeToAdd = `// AI improvement #${aiState.improvementCount + 1} (${improvementType})\nconsole.log('Improved: ${improvementType}');`;
         }
         
-        // Apply to HTML
+        // Apply improvement based on type
         let improvedHtml = currentHtml;
-        const improvementBlock = `\n// === AI IMPROVEMENT #${aiState.improvementCount + 1} (Day ${worldState.day} - AI Era ${aiState.aiEra}) ===\n${codeToAdd}\n`;
         
-        if (improvedHtml.includes('</script>')) {
-            improvedHtml = improvedHtml.replace('</script>', improvementBlock + '</script>');
-        } else if (improvedHtml.includes('</body>')) {
-            improvedHtml = improvedHtml.replace('</body>', `<script>${improvementBlock}</script>\n</body>`);
+        if (improvementType === 'css_styling') {
+            // Add CSS
+            const cssBlock = `\n/* === AI CSS IMPROVEMENT #${aiState.improvementCount + 1} === */\n<style>\n${codeToAdd}\n</style>\n`;
+            if (improvedHtml.includes('</head>')) {
+                improvedHtml = improvedHtml.replace('</head>', cssBlock + '</head>');
+            } else {
+                improvedHtml = cssBlock + improvedHtml;
+            }
+        } else if (improvementType === 'ui_design') {
+            // Add HTML for UI
+            const uiBlock = `\n<!-- === AI UI IMPROVEMENT #${aiState.improvementCount + 1} === -->\n<div id="ai-ui-${aiState.improvementCount}" class="ai-generated-ui">\n${codeToAdd}\n</div>\n`;
+            if (improvedHtml.includes('</body>')) {
+                improvedHtml = improvedHtml.replace('</body>', uiBlock + '</body>');
+            }
         } else {
-            improvedHtml += `\n<script>${improvementBlock}</script>`;
+            // Add JavaScript
+            const jsBlock = `\n// === AI IMPROVEMENT #${aiState.improvementCount + 1} (${improvementType}) ===\n${codeToAdd}\n`;
+            if (improvedHtml.includes('</script>')) {
+                improvedHtml = improvedHtml.replace('</script>', jsBlock + '</script>');
+            } else if (improvedHtml.includes('</body>')) {
+                improvedHtml = improvedHtml.replace('</body>', `<script>${jsBlock}</script>\n</body>`);
+            } else {
+                improvedHtml += `\n<script>${jsBlock}</script>`;
+            }
         }
         
         // Write improved HTML
         fs.writeFileSync(htmlPath, improvedHtml);
         console.log("✅ HTML improved! New size:", improvedHtml.length);
-        addLog("[AI COMMIT SUCCESS] Code improved!");
+        addLog(`[AI COMMIT SUCCESS] ${improvementType} improved!`);
         
         // Update AI State
         aiState.improvementCount++;
         aiState.lastImprovementDay = worldState.day;
-        aiState.aiComplexity *= 1.1; // Increase complexity by 10% each time
+        aiState.aiComplexity *= 1.15; // 15% more complex each time
+        
+        // Record improvement type
+        aiState.improvementHistory.push({
+            id: aiState.improvementCount,
+            type: improvementType,
+            day: worldState.day,
+            complexity: aiState.aiComplexity
+        });
         
         // Evolve AI Era every 10 improvements
         if (aiState.improvementCount % 10 === 0) {
             aiState.aiEra++;
-            aiState.aiCapabilities.push(`advanced_system_${aiState.aiEra}`);
-            worldState.era = `Aetheric Civilization Era ${aiState.aiEra + 1}`;
+            aiState.aiCapabilities.push(`advanced_${improvementType}_era${aiState.aiEra}`);
+            worldState.era = `Transcendent Civilization Era ${aiState.aiEra + 1}`;
             
             aiState.evolutionHistory.push({
                 day: worldState.day,
                 era: aiState.aiEra,
                 improvements: aiState.improvementCount,
+                lastType: improvementType,
                 complexity: aiState.aiComplexity
             });
             
-            addLog(`[AI EVOLUTION] AI evolved to Era ${aiState.aiEra}!`);
+            addLog(`[AI EVOLUTION] AI evolved to Era ${aiState.aiEra}! New capabilities unlocked!`);
         }
         
         // Save AI state
@@ -316,7 +417,7 @@ async function autoImproveGameCode() {
                 fs.copyFileSync(htmlPath, targetPath);
                 
                 await executeGitCommand('git add public/index.html');
-                await executeGitCommand(`git commit -m "🤖 [AI] Improvement #${aiState.improvementCount} - Day ${worldState.day} - Era ${aiState.aiEra}"`);
+                await executeGitCommand(`git commit -m "🤖 [AI] ${improvementType} #${aiState.improvementCount} - Day ${worldState.day} - Era ${aiState.aiEra}"`);
                 await executeGitCommand('git push origin main');
                 
                 console.log("✅ Pushed to GitHub!");
