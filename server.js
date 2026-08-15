@@ -159,7 +159,7 @@ async function generateAIEvents() {
 }
 
 /**
- * 2. AI GRAPHICS & CODE REFACTOR ENGINE (GITHUB AUTO-COMMIT) - FIXED FOR edthedog-debug/dark-fantasy-civ
+ * 2. AI GRAPHICS & CODE REFACTOR ENGINE (GITHUB AUTO-COMMIT) - FIXED
  */
 async function autoImproveGameCode() {
     if (!GITHUB_TOKEN || !GITHUB_REPO) {
@@ -174,135 +174,33 @@ async function autoImproveGameCode() {
         const cleanRepo = GITHUB_REPO.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
         const cleanToken = GITHUB_TOKEN.trim(); 
         const apiDomain = 'https://api.github.com/repos/';
+        const filePath = 'public/index.html'; // CONFIRMED: File is at public/index.html
         
-        // Get repository info to find default branch
-        console.log("🔍 Getting repository info...");
-        const repoUrl = `${apiDomain}${cleanRepo}`;
-        const repoResponse = await fetch(repoUrl, {
+        // Get the file directly from public/index.html
+        console.log("🔍 Fetching file from:", `${apiDomain}${cleanRepo}/contents/${filePath}`);
+        
+        const getUrl = `${apiDomain}${cleanRepo}/contents/${filePath}`;
+        const getFile = await fetch(getUrl, {
             headers: { 
-                'Authorization': `Bearer ${cleanToken}`, 
+                'Authorization': `token ${cleanToken}`, 
                 'User-Agent': 'Node-AI-Server',
                 'Accept': 'application/vnd.github.v3+json'
             }
         });
-        
-        if (!repoResponse.ok) {
-            const errorData = await repoResponse.json();
-            console.error("❌ Repository access failed:", repoResponse.status, errorData.message);
-            addLog(`[AI COMMIT ERROR] Repository access failed (${repoResponse.status}): ${errorData.message}`);
-            return;
-        }
-        
-        const repoInfo = await repoResponse.json();
-        const defaultBranch = repoInfo.default_branch || 'main';
-        console.log("✅ Repository found:", repoInfo.full_name);
-        console.log("📊 Default branch:", defaultBranch);
 
-        // Try to get the file directly from common locations
-        const possiblePaths = [
-            'public/index.html',
-            'index.html',
-            'src/index.html',
-            'dist/index.html',
-            'web/index.html',
-            'app/index.html'
-        ];
-        
-        let fileFound = false;
-        let currentSha = null;
-        let selectedBranch = defaultBranch;
-        let selectedPath = null;
-
-        // First, try the most likely path for this repository
-        console.log("🔍 Trying to find index.html...");
-        
-        for (const filePath of possiblePaths) {
-            const getUrl = `${apiDomain}${cleanRepo}/contents/${filePath}?ref=${defaultBranch}`;
-            
-            try {
-                const getFile = await fetch(getUrl, {
-                    headers: { 
-                        'Authorization': `Bearer ${cleanToken}`, 
-                        'User-Agent': 'Node-AI-Server',
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
-                
-                if (getFile.ok) {
-                    const fileData = await getFile.json();
-                    if (fileData.type === 'file') {
-                        currentSha = fileData.sha;
-                        selectedPath = filePath;
-                        fileFound = true;
-                        console.log(`✅ Found index.html at: ${filePath}`);
-                        break;
-                    }
-                } else if (getFile.status === 404) {
-                    console.log(`⚠️ Not found at: ${filePath}`);
-                } else {
-                    console.log(`⚠️ Error ${getFile.status} checking: ${filePath}`);
-                }
-            } catch (fetchError) {
-                console.log(`⚠️ Fetch error for ${filePath}:`, fetchError.message);
-            }
-        }
-
-        // If not found, try to list the repository contents
-        if (!fileFound) {
-            console.log("🔍 Listing repository contents to find index.html...");
-            
-            // List root directory
-            const rootUrl = `${apiDomain}${cleanRepo}/contents/?ref=${defaultBranch}`;
-            const rootResponse = await fetch(rootUrl, {
-                headers: { 
-                    'Authorization': `Bearer ${cleanToken}`, 
-                    'User-Agent': 'Node-AI-Server',
-                    'Accept': 'application/vnd.github.v3+json'
-                }
-            });
-            
-            if (rootResponse.ok) {
-                const rootContents = await rootResponse.json();
-                console.log("📁 Root contents:", rootContents.map(item => `${item.type}:${item.name}`).join(', '));
-                
-                // Look for directories and search in them
-                for (const item of rootContents) {
-                    if (item.type === 'dir' && !['node_modules', '.git', '.github'].includes(item.name)) {
-                        const dirUrl = `${apiDomain}${cleanRepo}/contents/${item.name}?ref=${defaultBranch}`;
-                        const dirResponse = await fetch(dirUrl, {
-                            headers: { 
-                                'Authorization': `Bearer ${cleanToken}`, 
-                                'User-Agent': 'Node-AI-Server',
-                                'Accept': 'application/vnd.github.v3+json'
-                            }
-                        });
-                        
-                        if (dirResponse.ok) {
-                            const dirContents = await dirResponse.json();
-                            const indexFile = dirContents.find(f => f.type === 'file' && f.name === 'index.html');
-                            
-                            if (indexFile) {
-                                currentSha = indexFile.sha;
-                                selectedPath = `${item.name}/index.html`;
-                                fileFound = true;
-                                console.log(`✅ Found index.html in ${item.name}/ folder`);
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if (!fileFound || !currentSha) {
-            console.error("❌ Could not find index.html in repository");
-            addLog("[AI COMMIT ERROR] Could not locate index.html in repository. Please check file structure.");
+        if (!getFile.ok) {
+            const errorData = await getFile.json().catch(() => ({}));
+            console.error("❌ Cannot access file:", getFile.status, errorData.message || 'Unknown error');
+            addLog(`[AI COMMIT ERROR] Cannot access index.html (${getFile.status}): ${errorData.message || 'Unknown error'}`);
             return;
         }
 
-        console.log(`🎯 Using file: ${selectedPath}`);
-        console.log(`🎯 Branch: ${selectedBranch}`);
-        console.log(`🎯 SHA: ${currentSha}`);
+        const fileData = await getFile.json();
+        const currentSha = fileData.sha;
+        
+        console.log("✅ File found:", fileData.path);
+        console.log("📝 SHA:", currentSha);
+        console.log("📊 Size:", fileData.size, "bytes");
 
         const prompt = "You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'index.html' for an autonomous isometric economic empire simulator.\n\n" +
         "CRITICAL RULES:\n" +
@@ -320,14 +218,14 @@ async function autoImproveGameCode() {
 
         newCode = newCode.replace(/```(?:html)?/gi, '').trim();
         const updatedContentBase64 = Buffer.from(newCode).toString('base64');
-        const putUrl = `${apiDomain}${cleanRepo}/contents/${selectedPath}`;
+        const putUrl = `${apiDomain}${cleanRepo}/contents/${filePath}`;
 
-        console.log(`📝 Committing to: ${selectedPath} on ${selectedBranch} branch`);
+        console.log(`📝 Committing to: ${filePath}`);
 
         const commitResponse = await fetch(putUrl, {
             method: 'PUT',
             headers: {
-                'Authorization': `Bearer ${cleanToken}`,
+                'Authorization': `token ${cleanToken}`,
                 'Content-Type': 'application/json',
                 'User-Agent': 'Node-AI-Server',
                 'Accept': 'application/vnd.github.v3+json'
@@ -336,7 +234,7 @@ async function autoImproveGameCode() {
                 message: "🤖 [AI Auto-Upgrade] Refactored frontend engine to " + worldState.engineBuild,
                 content: updatedContentBase64,
                 sha: currentSha,
-                branch: selectedBranch
+                branch: 'main'
             })
         });
 
