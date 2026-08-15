@@ -165,17 +165,15 @@ async function autoImproveGameCode() {
 
     try {
         const cleanRepo = GITHUB_REPO.trim();
-        const cleanToken = GITHUB_TOKEN.trim(); // Clean invisible spaces from environment variable
+        const cleanToken = GITHUB_TOKEN.trim(); 
         
-        const apiDomain = 'https://api.github.com/repos/';
-
+        const apiDomain = '[https://api.github.com/repos/](https://api.github.com/repos/)';
         
-        // Add ?ref=main to explicitly force reading from the correct branch
-        const getUrl = apiDomain + cleanRepo + '/contents/public/index.html?ref=main';
+        const getUrl = apiDomain + cleanRepo + '/contents/index.html?ref=main';
 
         const getFile = await fetch(getUrl, {
             headers: { 
-                'Authorization': `Bearer ${cleanToken}`, // Use Bearer, the current standard
+                'Authorization': `Bearer ${cleanToken}`, 
                 'User-Agent': 'Node-AI-Server',
                 'Accept': 'application/vnd.github.v3+json'
             }
@@ -190,7 +188,7 @@ async function autoImproveGameCode() {
         const fileData = await getFile.json();
         const currentSha = fileData.sha;
 
-        const prompt = "You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'public/index.html' for an autonomous isometric economic empire simulator.\n\n" +
+        const prompt = "You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'index.html' for an autonomous isometric economic empire simulator.\n\n" +
         "CRITICAL RULES:\n" +
         "1. Keep the HTML structure, canvas element ID ('gameCanvas'), and WebSocket listener logic intact so the map never renders blank or loses server updates.\n" +
         "2. Keep ALL UI text, labels, status badges, and logs strictly in ENGLISH.\n" +
@@ -208,8 +206,7 @@ async function autoImproveGameCode() {
 
         const updatedContentBase64 = Buffer.from(newCode).toString('base64');
         
-        // Clean URL without parameters for the PUT method
-        const putUrl = apiDomain + cleanRepo + '/contents/public/index.html';
+        const putUrl = apiDomain + cleanRepo + '/contents/index.html';
 
         const commitResponse = await fetch(putUrl, {
             method: 'PUT',
@@ -223,7 +220,7 @@ async function autoImproveGameCode() {
                 message: "🤖 [AI Auto-Upgrade] Refactored frontend engine to " + worldState.engineBuild,
                 content: updatedContentBase64,
                 sha: currentSha,
-                branch: "main" // Ensures the commit is made to the correct branch
+                branch: "main"
             })
         });
 
@@ -235,7 +232,7 @@ async function autoImproveGameCode() {
         }
     } catch (err) {
         console.error("Auto-code commit error:", err.message);
-        addLog("[AI COMMIT ERROR] " + err.message);
+        addLog(`[AI COMMIT ERROR] ${err.message}`);
     }
 }
 
