@@ -384,8 +384,8 @@ function createMagicEffect() {
     }
 }
 
-// ASYNC SIMULATION TICK
-async function runSimulationTick() {
+// ASYNC SIMULATION TICK - Non-blocking version
+function runSimulationTick() {
     worldState.day += 1;
 
     if (worldState.treasury <= 0 && worldState.happiness < 50) {
@@ -448,16 +448,16 @@ async function runSimulationTick() {
         worldState.economicPower = "Emerging Market";
     }
 
-    // AI Event every 30 days
+    // AI Event every 30 days (non-blocking)
     if (worldState.day % 30 === 0) {
-        await generateAIEvents();
+        generateAIEvents().catch(err => console.error("AI Event error:", err));
     }
 
-    // Code improvement every 50 days
+    // Code improvement every 50 days (non-blocking)
     if (worldState.day % 50 === 0) {
         const patch = Math.floor(Math.random() * 9) + 1;
         worldState.engineBuild = "v2." + patch + ".0-Gemini-2.5";
-        await autoImproveGameCode();
+        autoImproveGameCode().catch(err => console.error("AI Improvement error:", err));
     }
 
     saveWorldState();
