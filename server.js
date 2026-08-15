@@ -159,86 +159,100 @@ async function generateAIEvents() {
 }
 
 /**
- * 2. AI GRAPHICS & CODE REFACTOR ENGINE - SIMPLIFIED WITH DIAGNOSTICS
+ * 2. AI GRAPHICS & CODE REFACTOR ENGINE - TESTING WITHOUT AUTH FIRST
  */
 async function autoImproveGameCode() {
-    if (!GITHUB_TOKEN || !GITHUB_REPO) {
-        addLog("[AI COMMIT ERROR] Missing GITHUB_TOKEN or GITHUB_REPO in Render variables.");
-        return;
-    }
-
     console.log("🤖 AI starting Code Refactor & Graphics Upgrade cycle...");
-    console.log("🔑 Token starts with:", GITHUB_TOKEN.substring(0, 7) + "...");
-    console.log("🔑 Token length:", GITHUB_TOKEN.length);
-    console.log("📦 Repo:", GITHUB_REPO);
     addLog("[AI AUTO-CODING] Analyzing frontend engine to improve rendering & feature set...");
 
     try {
-        // Test token validity first
-        console.log("🔍 Testing token validity...");
-        const testResponse = await fetch('https://api.github.com/user', {
+        const cleanRepo = GITHUB_REPO ? GITHUB_REPO.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '') : 'edthedog-debug/dark-fantasy-civ';
+        const cleanToken = GITHUB_TOKEN ? GITHUB_TOKEN.trim() : '';
+        
+        console.log("📦 Using repository:", cleanRepo);
+        console.log("🔑 Token available:", cleanToken ? "Yes (starts with " + cleanToken.substring(0, 7) + "...)" : "No");
+        
+        // Test 1: Without authentication (for public repos)
+        console.log("🔍 Test 1: Accessing without authentication...");
+        let response = await fetch(`https://api.github.com/repos/${cleanRepo}/contents/public/index.html`, {
             headers: {
-                'Authorization': `Bearer ${GITHUB_TOKEN.trim()}`,
                 'User-Agent': 'Node-AI-Server',
                 'Accept': 'application/vnd.github.v3+json'
             }
         });
         
-        if (!testResponse.ok) {
-            console.error("❌ Token invalid! Status:", testResponse.status);
-            const errorData = await testResponse.json().catch(() => ({}));
-            console.error("❌ Error:", errorData.message || 'Unknown error');
-            addLog(`[AI COMMIT ERROR] Invalid GitHub token. Please check token permissions.`);
-            return;
-        }
+        let fileData = null;
         
-        const userData = await testResponse.json();
-        console.log("✅ Token valid! User:", userData.login);
-        
-        // Test repository access
-        console.log("🔍 Testing repository access...");
-        const repoResponse = await fetch(`https://api.github.com/repos/edthedog-debug/dark-fantasy-civ`, {
-            headers: {
-                'Authorization': `Bearer ${GITHUB_TOKEN.trim()}`,
-                'User-Agent': 'Node-AI-Server',
-                'Accept': 'application/vnd.github.v3+json'
+        if (response.ok) {
+            fileData = await response.json();
+            console.log("✅ Success without authentication!");
+        } else {
+            console.log("⚠️ Without auth failed with status:", response.status);
+            
+            // Test 2: With Bearer token
+            if (cleanToken) {
+                console.log("🔍 Test 2: Accessing with Bearer token...");
+                response = await fetch(`https://api.github.com/repos/${cleanRepo}/contents/public/index.html`, {
+                    headers: {
+                        'Authorization': `Bearer ${cleanToken}`,
+                        'User-Agent': 'Node-AI-Server',
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                if (response.ok) {
+                    fileData = await response.json();
+                    console.log("✅ Success with Bearer token!");
+                } else {
+                    console.log("⚠️ Bearer token failed with status:", response.status);
+                    
+                    // Test 3: With token keyword
+                    console.log("🔍 Test 3: Accessing with token keyword...");
+                    response = await fetch(`https://api.github.com/repos/${cleanRepo}/contents/public/index.html`, {
+                        headers: {
+                            'Authorization': `token ${cleanToken}`,
+                            'User-Agent': 'Node-AI-Server',
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        fileData = await response.json();
+                        console.log("✅ Success with token keyword!");
+                    } else {
+                        console.log("⚠️ Token keyword failed with status:", response.status);
+                        
+                        // Test 4: Try to list repository root
+                        console.log("🔍 Test 4: Listing repository root...");
+                        response = await fetch(`https://api.github.com/repos/${cleanRepo}/contents/`, {
+                            headers: {
+                                'User-Agent': 'Node-AI-Server',
+                                'Accept': 'application/vnd.github.v3+json'
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const contents = await response.json();
+                            console.log("📁 Repository contents:", contents.map(c => c.name).join(', '));
+                        } else {
+                            console.log("❌ Cannot list repository contents. Status:", response.status);
+                        }
+                    }
+                }
             }
-        });
-        
-        if (!repoResponse.ok) {
-            console.error("❌ Cannot access repository! Status:", repoResponse.status);
-            addLog(`[AI COMMIT ERROR] Cannot access repository (${repoResponse.status})`);
-            return;
         }
         
-        const repoData = await repoResponse.json();
-        console.log("✅ Repository accessible:", repoData.full_name);
-        console.log("🔒 Private:", repoData.private);
-        
-        // Get file from public/index.html
-        console.log("🔍 Fetching public/index.html...");
-        const fileResponse = await fetch('https://api.github.com/repos/edthedog-debug/dark-fantasy-civ/contents/public/index.html', {
-            headers: {
-                'Authorization': `Bearer ${GITHUB_TOKEN.trim()}`,
-                'User-Agent': 'Node-AI-Server',
-                'Accept': 'application/vnd.github.v3+json'
-            }
-        });
-        
-        if (!fileResponse.ok) {
-            console.error("❌ Cannot access file! Status:", fileResponse.status);
-            const fileError = await fileResponse.json().catch(() => ({}));
-            console.error("❌ Error:", fileError.message || 'Unknown error');
-            addLog(`[AI COMMIT ERROR] Cannot access index.html (${fileResponse.status})`);
+        if (!fileData || !fileData.sha) {
+            console.error("❌ Could not access file with any method");
+            addLog("[AI COMMIT ERROR] Could not access index.html. Check if repository is public and file exists.");
             return;
         }
-        
-        const fileData = await fileResponse.json();
-        console.log("✅ File found!");
-        console.log("📝 SHA:", fileData.sha);
-        console.log("📊 Size:", fileData.size, "bytes");
         
         const currentSha = fileData.sha;
+        console.log("✅ File accessed successfully!");
+        console.log("📝 SHA:", currentSha);
+        console.log("📄 Path:", fileData.path);
+        console.log("📊 Size:", fileData.size, "bytes");
 
         const prompt = "You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'index.html' for an autonomous isometric economic empire simulator.\n\n" +
         "CRITICAL RULES:\n" +
@@ -259,14 +273,20 @@ async function autoImproveGameCode() {
         
         console.log("📝 Committing changes...");
         
-        const commitResponse = await fetch('https://api.github.com/repos/edthedog-debug/dark-fantasy-civ/contents/public/index.html', {
+        // Try commit with token if available
+        const headers = {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Node-AI-Server',
+            'Accept': 'application/vnd.github.v3+json'
+        };
+        
+        if (cleanToken) {
+            headers['Authorization'] = `Bearer ${cleanToken}`;
+        }
+        
+        const commitResponse = await fetch(`https://api.github.com/repos/${cleanRepo}/contents/public/index.html`, {
             method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${GITHUB_TOKEN.trim()}`,
-                'Content-Type': 'application/json',
-                'User-Agent': 'Node-AI-Server',
-                'Accept': 'application/vnd.github.v3+json'
-            },
+            headers: headers,
             body: JSON.stringify({
                 message: "🤖 [AI Auto-Upgrade] Refactored frontend engine to " + worldState.engineBuild,
                 content: updatedContentBase64,
