@@ -106,6 +106,7 @@ async function queryGemini(prompt) {
                 const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (text && text.length > 0) {
                     console.log(`✅ Gemini (${model}) responded:`, text.length, "chars");
+                    console.log("📝 First 200 chars:", text.substring(0, 200));
                     return text;
                 }
             }
@@ -174,7 +175,7 @@ function executeGitCommand(command) {
 }
 
 /**
- * 2. AI CODE IMPROVEMENT
+ * 2. AI CODE IMPROVEMENT - ACCEPTS ANY RESPONSE
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT...");
@@ -192,63 +193,72 @@ async function autoImproveGameCode() {
         const currentHtml = fs.readFileSync(htmlPath, 'utf8');
         console.log("📄 Current HTML:", currentHtml.length, "chars");
         
-        const prompt = `You are an expert game developer. Improve this HTML canvas game with better graphics, animations, and visual effects. Return the complete improved HTML code.
-
-Current code:
-${currentHtml.substring(0, 8000)}`;
+        // Ask Gemini for a SPECIFIC improvement (not full HTML)
+        const prompt = `Write JavaScript code that adds floating particle effects to a canvas game. The particles should float around the screen. Write ONLY the JavaScript code, no explanations.`;
         
-        console.log("🔍 Asking Gemini to improve code...");
-        const improvedCode = await queryGemini(prompt);
+        console.log("🔍 Asking Gemini for particle code...");
+        const particleCode = await queryGemini(prompt);
         
-        if (improvedCode && improvedCode.length > 500) {
-            let cleanCode = improvedCode.replace(/```html/gi, '').replace(/```/g, '').trim();
-            
-            const htmlStart = cleanCode.indexOf('<!DOCTYPE html>');
-            if (htmlStart > 0) cleanCode = cleanCode.substring(htmlStart);
-            
-            const htmlEnd = cleanCode.lastIndexOf('</html>');
-            if (htmlEnd > 0) cleanCode = cleanCode.substring(0, htmlEnd + 7);
-            
-            if (cleanCode.length > 500) {
-                fs.writeFileSync(htmlPath, cleanCode);
-                console.log("✅ HTML improved! New size:", cleanCode.length);
-                addLog("[AI COMMIT SUCCESS] Code improved with Gemini!");
-                
-                // Push to GitHub
-                if (GITHUB_TOKEN) {
-                    try {
-                        const cleanToken = GITHUB_TOKEN.trim();
-                        
-                        await executeGitCommand('git config --global user.email "ai@example.com"');
-                        await executeGitCommand('git config --global user.name "AI Auto-Improver"');
-                        
-                        const repoUrl = `https://${cleanToken}@github.com/edthedog-debug/dark-fantasy-civ.git`;
-                        
-                        try {
-                            await executeGitCommand('git rev-parse --is-inside-work-tree');
-                            await executeGitCommand(`git remote set-url origin ${repoUrl}`);
-                        } catch (gitError) {
-                            await executeGitCommand(`git clone ${repoUrl} /tmp/repo`);
-                            process.chdir('/tmp/repo');
-                        }
-                        
-                        const targetPath = path.join(process.cwd(), 'public', 'index.html');
-                        fs.copyFileSync(htmlPath, targetPath);
-                        
-                        await executeGitCommand('git add public/index.html');
-                        await executeGitCommand(`git commit -m "🤖 [AI] Improved code with Gemini 2.5 Flash (Day ${worldState.day})"`);
-                        await executeGitCommand('git push origin main');
-                        
-                        console.log("✅ Pushed to GitHub!");
-                    } catch (gitError) {
-                        console.error("❌ Git push failed:", gitError.message);
-                    }
-                }
-            }
-        } else {
-            console.error("❌ Gemini returned no valid code");
-            addLog("[AI COMMIT ERROR] Gemini returned no valid code.");
+        if (!particleCode || particleCode.length < 20) {
+            console.error("❌ Gemini returned no code");
+            addLog("[AI COMMIT ERROR] Gemini returned no code.");
+            return;
         }
+        
+        console.log("✅ Got particle code! Length:", particleCode.length);
+        console.log("📝 Code:", particleCode.substring(0, 300));
+        
+        // Clean the code
+        let cleanCode = particleCode.replace(/```javascript/gi, '').replace(/```js/gi, '').replace(/```/g, '').trim();
+        
+        // Apply to HTML - insert before </script>
+        let improvedHtml = currentHtml;
+        const improvementBlock = `\n// === AI PARTICLES (Day ${worldState.day}) ===\n${cleanCode}\n`;
+        
+        if (improvedHtml.includes('</script>')) {
+            improvedHtml = improvedHtml.replace('</script>', improvementBlock + '</script>');
+        } else if (improvedHtml.includes('</body>')) {
+            improvedHtml = improvedHtml.replace('</body>', `<script>${improvementBlock}</script>\n</body>`);
+        } else {
+            improvedHtml += `\n<script>${improvementBlock}</script>`;
+        }
+        
+        // Write improved HTML
+        fs.writeFileSync(htmlPath, improvedHtml);
+        console.log("✅ HTML improved! New size:", improvedHtml.length);
+        addLog("[AI COMMIT SUCCESS] Particle effects added!");
+        
+        // Push to GitHub
+        if (GITHUB_TOKEN) {
+            try {
+                const cleanToken = GITHUB_TOKEN.trim();
+                
+                await executeGitCommand('git config --global user.email "ai@example.com"');
+                await executeGitCommand('git config --global user.name "AI Auto-Improver"');
+                
+                const repoUrl = `https://${cleanToken}@github.com/edthedog-debug/dark-fantasy-civ.git`;
+                
+                try {
+                    await executeGitCommand('git rev-parse --is-inside-work-tree');
+                    await executeGitCommand(`git remote set-url origin ${repoUrl}`);
+                } catch (gitError) {
+                    await executeGitCommand(`git clone ${repoUrl} /tmp/repo`);
+                    process.chdir('/tmp/repo');
+                }
+                
+                const targetPath = path.join(process.cwd(), 'public', 'index.html');
+                fs.copyFileSync(htmlPath, targetPath);
+                
+                await executeGitCommand('git add public/index.html');
+                await executeGitCommand(`git commit -m "🤖 [AI] Added particle effects (Day ${worldState.day})"`);
+                await executeGitCommand('git push origin main');
+                
+                console.log("✅ Pushed to GitHub!");
+            } catch (gitError) {
+                console.error("❌ Git push failed:", gitError.message);
+            }
+        }
+        
     } catch (err) {
         console.error("Error:", err.message);
         addLog(`[AI COMMIT ERROR] ${err.message}`);
@@ -319,12 +329,12 @@ async function runSimulationTick() {
         worldState.economicPower = "Emerging Market";
     }
 
-    // AI Event every 30 days (2 minutes)
+    // AI Event every 30 days
     if (worldState.day % 30 === 0) {
         await generateAIEvents();
     }
 
-    // Code improvement every 50 days (3.3 minutes)
+    // Code improvement every 50 days
     if (worldState.day % 50 === 0) {
         const patch = Math.floor(Math.random() * 9) + 1;
         worldState.engineBuild = "v2." + patch + ".0-Gemini-2.5";
@@ -345,7 +355,7 @@ WSS.on('connection', (ws) => {
 
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
-    console.log("📅 Day 50 = Code improvement (every 3.3 minutes)");
+    console.log("📅 Day 50 = Particle effects (every 3.3 minutes)");
     console.log("📅 Day 30 = AI event (every 2 minutes)");
     
     queryGemini("Say 'OK' if you can read this")
