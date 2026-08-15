@@ -35,7 +35,7 @@ let worldState = {
     engineBuild: "v2.0.0-AI-Cloud",
     inWar: false,
     logs: [
-        `[${new Date().toLocaleTimeString()}] Autonomous Cloud Engine Initialized.`
+        "[" + new Date().toLocaleTimeString() + "] Autonomous Cloud Engine Initialized."
     ]
 };
 
@@ -75,7 +75,7 @@ async function queryGemini(prompt) {
 
     for (const model of models) {
         try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${AI_API_KEY}`, {
+            const response = await fetch('https://generativelanguage.googleapis.com/v1/models/' + model + ':generateContent?key=' + AI_API_KEY, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -100,27 +100,26 @@ async function queryGemini(prompt) {
  * 1. AI GENERATIVE NARRATIVE, ECONOMY & PHILOSOPHY ENGINE
  */
 async function generateAIEvents() {
-    const prompt = `You are the Sovereign AI governing a nation. The ultimate goal is to build a highly profitable, technologically advanced global economic powerhouse with happy citizens, resilient to all hardships and disasters.
-    Current World State:
-    - Day: ${worldState.day}
-    - Era: ${worldState.era}
-    - Population: ${worldState.population}
-    - Happiness: ${worldState.happiness}%
-    - Treasury: ${worldState.treasury} Gold
-    - Tech Power: ${worldState.techPower}
-    - Economic Rank: ${worldState.economicPower}
-    - In War: ${worldState.inWar}
-    - Philosophy: ${worldState.philosophy}
-
-    Generate 1 concise event (hardship, economic opportunity, or tech breakthrough) and show how society adapts. 
-    Return strictly JSON format: 
-    {
-      "event": "string (max 25 words)",
-      "newPhilosophy": "string",
-      "goldImpact": number (can be positive or negative),
-      "happinessImpact": number (can be positive or negative),
-      "techImpact": number (positive decimal)
-    }`;
+    const prompt = "You are the Sovereign AI governing a nation. The ultimate goal is to build a highly profitable, technologically advanced global economic powerhouse with happy citizens, resilient to all hardships and disasters.\n" +
+    "Current World State:\n" +
+    "- Day: " + worldState.day + "\n" +
+    "- Era: " + worldState.era + "\n" +
+    "- Population: " + worldState.population + "\n" +
+    "- Happiness: " + worldState.happiness + "%\n" +
+    "- Treasury: " + worldState.treasury + " Gold\n" +
+    "- Tech Power: " + worldState.techPower + "\n" +
+    "- Economic Rank: " + worldState.economicPower + "\n" +
+    "- In War: " + worldState.inWar + "\n" +
+    "- Philosophy: " + worldState.philosophy + "\n\n" +
+    "Generate 1 concise event (hardship, economic opportunity, or tech breakthrough) and show how society adapts.\n" +
+    "Return strictly JSON format:\n" +
+    "{\n" +
+    '  "event": "string (max 25 words)",\n' +
+    '  "newPhilosophy": "string",\n' +
+    '  "goldImpact": number,\n' +
+    '  "happinessImpact": number,\n' +
+    '  "techImpact": number\n' +
+    "}";
 
     let parsed = null;
 
@@ -143,7 +142,7 @@ async function generateAIEvents() {
         parsed = fallbacks[Math.floor(Math.random() * fallbacks.length)];
     }
 
-    addLog(`[AI THOUGHT] ${parsed.event}`);
+    addLog("[AI THOUGHT] " + parsed.event);
 
     if (parsed.newPhilosophy) worldState.philosophy = parsed.newPhilosophy;
     if (typeof parsed.goldImpact === 'number') worldState.treasury = Math.max(0, worldState.treasury + parsed.goldImpact);
@@ -156,20 +155,21 @@ async function generateAIEvents() {
  */
 async function autoImproveGameCode() {
     if (!GITHUB_TOKEN || !GITHUB_REPO) {
-        addLog(`[AI COMMIT ERROR] Missing GITHUB_TOKEN or GITHUB_REPO variables in Render.`);
+        addLog("[AI COMMIT ERROR] Missing GITHUB_TOKEN or GITHUB_REPO in Render variables.");
         return;
     }
 
     console.log("🤖 AI starting Code Refactor & Graphics Upgrade cycle...");
-    addLog(`[AI AUTO-CODING] Analyzing frontend engine to improve rendering & feature set...`);
+    addLog("[AI AUTO-CODING] Analyzing frontend engine to improve rendering & feature set...");
 
     try {
-        // Clean, valid API endpoint URL
-        const fileUrl = `[https://api.github.com/repos/$](https://api.github.com/repos/$){GITHUB_REPO}/contents/public/index.html`;
+        // String concatenation prevents markdown parsing corruption
+        const cleanRepo = GITHUB_REPO.trim();
+        const fileUrl = '[https://api.github.com/repos/](https://api.github.com/repos/)' + cleanRepo + '/contents/public/index.html';
 
         const getFile = await fetch(fileUrl, {
             headers: { 
-                'Authorization': `token ${GITHUB_TOKEN}`, 
+                'Authorization': 'token ' + GITHUB_TOKEN, 
                 'User-Agent': 'Node-AI-Server',
                 'Accept': 'application/vnd.github.v3+json'
             }
@@ -177,25 +177,24 @@ async function autoImproveGameCode() {
 
         if (!getFile.ok) {
             const getErr = await getFile.json();
-            addLog(`[AI COMMIT ERROR] GitHub GET failed (${getFile.status}): ${getErr.message}`);
+            addLog("[AI COMMIT ERROR] GitHub GET failed (" + getFile.status + "): " + getErr.message);
             return;
         }
 
         const fileData = await getFile.json();
         const currentSha = fileData.sha;
 
-        const prompt = `You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'public/index.html' for an autonomous isometric economic empire simulator.
-        
-        CRITICAL RULES:
-        1. Keep the HTML structure, canvas element ID ('gameCanvas'), and WebSocket listener logic intact so the map never renders blank or loses server updates.
-        2. Keep ALL UI text, labels, status badges, and logs strictly in ENGLISH.
-        3. Use native HTML5 2D Canvas rendering for isometric buildings, animated citizen particles, river/terrain tiles, and defense vehicles.
-        4. Maintain mobile touch gesture controls (drag pan and zoom).
-        5. Return ONLY the raw, complete, valid HTML file code without markdown syntax or triple backticks.`;
+        const prompt = "You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'public/index.html' for an autonomous isometric economic empire simulator.\n\n" +
+        "CRITICAL RULES:\n" +
+        "1. Keep the HTML structure, canvas element ID ('gameCanvas'), and WebSocket listener logic intact so the map never renders blank or loses server updates.\n" +
+        "2. Keep ALL UI text, labels, status badges, and logs strictly in ENGLISH.\n" +
+        "3. Use native HTML5 2D Canvas rendering for isometric buildings, animated citizen particles, river/terrain tiles, and defense vehicles.\n" +
+        "4. Maintain mobile touch gesture controls (drag pan and zoom).\n" +
+        "5. Return ONLY the raw, complete, valid HTML file code without markdown syntax or triple backticks.";
 
         let newCode = await queryGemini(prompt);
         if (!newCode) {
-            addLog(`[AI COMMIT ERROR] Gemini API did not return code.`);
+            addLog("[AI COMMIT ERROR] Gemini API returned empty code.");
             return;
         }
 
@@ -205,27 +204,27 @@ async function autoImproveGameCode() {
         const commitResponse = await fetch(fileUrl, {
             method: 'PUT',
             headers: {
-                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Authorization': 'token ' + GITHUB_TOKEN,
                 'Content-Type': 'application/json',
                 'User-Agent': 'Node-AI-Server',
                 'Accept': 'application/vnd.github.v3+json'
             },
             body: JSON.stringify({
-                message: `🤖 [AI Auto-Upgrade] Refactored frontend engine to ${worldState.engineBuild}`,
+                message: "🤖 [AI Auto-Upgrade] Refactored frontend engine to " + worldState.engineBuild,
                 content: updatedContentBase64,
                 sha: currentSha
             })
         });
 
         if (commitResponse.ok) {
-            addLog(`[AI COMMIT SUCCESS] Pushed graphics & engine improvements to GitHub! Auto-deploying...`);
+            addLog("[AI COMMIT SUCCESS] Pushed graphics & engine improvements to GitHub!");
         } else {
             const commitErr = await commitResponse.json();
-            addLog(`[AI COMMIT ERROR] GitHub PUT failed (${commitResponse.status}): ${commitErr.message}`);
+            addLog("[AI COMMIT ERROR] GitHub PUT failed (" + commitResponse.status + "): " + commitErr.message);
         }
     } catch (err) {
         console.error("Auto-code commit error:", err.message);
-        addLog(`[AI COMMIT ERROR] ${err.message}`);
+        addLog("[AI COMMIT ERROR] " + err.message);
     }
 }
 
@@ -236,7 +235,7 @@ setInterval(() => {
     if (worldState.treasury <= 0 && worldState.happiness < 50) {
         worldState.treasury += 300;
         worldState.happiness = Math.min(100, worldState.happiness + 25);
-        addLog(`[RECOVERY] Sovereign Reserve injected 300 Gold & restored public confidence!`);
+        addLog("[RECOVERY] Sovereign Reserve injected 300 Gold & restored public confidence!");
     }
 
     let moraleProductivity = 1.0;
@@ -257,30 +256,30 @@ setInterval(() => {
     worldState.treasury = Math.max(0, worldState.treasury + netProfit);
 
     if (netProfit < 0 && worldState.day % 6 === 0) {
-        addLog(`[ECONOMY ALERT] Fiscal deficit! Daily net loss: ${netProfit} Gold.`);
+        addLog("[ECONOMY ALERT] Fiscal deficit! Daily net loss: " + netProfit + " Gold.");
     }
 
     worldState.techPower += 0.01;
 
     if (worldState.happiness > 75 && worldState.treasury > 100 && worldState.day % 4 === 0) {
         worldState.population += 1;
-        addLog(`[DEMOGRAPHICS] Prosperous conditions attracted 1 immigrant. Pop: ${worldState.population}`);
+        addLog("[DEMOGRAPHICS] Prosperous conditions attracted 1 immigrant. Pop: " + worldState.population);
     } else if (worldState.happiness < 35 && worldState.population > 1 && worldState.day % 4 === 0) {
         worldState.population -= 1;
-        addLog(`[DEMOGRAPHICS] 1 Citizen emigrated due to poor living conditions.`);
+        addLog("[DEMOGRAPHICS] 1 Citizen emigrated due to poor living conditions.");
     }
 
     if (worldState.treasury > 1500) {
         worldState.treasury -= 400;
         worldState.techPower += 0.2;
         worldState.happiness = Math.min(100, worldState.happiness + 4);
-        addLog(`[ECONOMY] Reinvested 400 Gold into Tech R&D and Public Services.`);
+        addLog("[ECONOMY] Reinvested 400 Gold into Tech R&D and Public Services.");
     }
 
     if (worldState.treasury > 2500 && worldState.tanks < 12) {
         worldState.treasury -= 600;
         worldState.tanks += 1;
-        addLog(`[DEFENSE] Manufactured 1 Heavy Defense Unit for 600 Gold.`);
+        addLog("[DEFENSE] Manufactured 1 Heavy Defense Unit for 600 Gold.");
     }
 
     if (worldState.treasury > 15000) {
@@ -299,7 +298,7 @@ setInterval(() => {
 
     if (worldState.day % 100 === 0) {
         const patch = Math.floor(Math.random() * 9) + 1;
-        worldState.engineBuild = `v2.${patch}.0-Generative-AI`;
+        worldState.engineBuild = "v2." + patch + ".0-Generative-AI";
         autoImproveGameCode();
     }
 
@@ -311,7 +310,7 @@ setInterval(() => {
 
 function addLog(msg) {
     const time = new Date().toLocaleTimeString();
-    worldState.logs.push(`[${time}] ${msg}`);
+    worldState.logs.push("[" + time + "] " + msg);
 }
 
 WSS.on('connection', (ws) => {
@@ -319,5 +318,5 @@ WSS.on('connection', (ws) => {
 });
 
 SERVER.listen(PORT, () => {
-    console.log(`🚀 AI Self-Improving Server active on port ${PORT}`);
+    console.log("🚀 AI Self-Improving Server active on port " + PORT);
 });
