@@ -165,13 +165,16 @@ async function autoImproveGameCode() {
 
     try {
         const cleanRepo = GITHUB_REPO.trim();
-        const apiDomain = 'https://api.github.com/repos/';
-        const fileUrl = apiDomain + cleanRepo + '/contents/public/index.html';
+        const cleanToken = GITHUB_TOKEN.trim(); // Clean invisible spaces from environment variable
+        
+        const apiDomain = '[https://api.github.com/repos/](https://api.github.com/repos/)';
+        
+        // Add ?ref=main to explicitly force reading from the correct branch
+        const getUrl = apiDomain + cleanRepo + '/contents/public/index.html?ref=main';
 
-
-        const getFile = await fetch(fileUrl, {
+        const getFile = await fetch(getUrl, {
             headers: { 
-                'Authorization': 'token ' + GITHUB_TOKEN, 
+                'Authorization': `Bearer ${cleanToken}`, // Use Bearer, the current standard
                 'User-Agent': 'Node-AI-Server',
                 'Accept': 'application/vnd.github.v3+json'
             }
@@ -179,7 +182,7 @@ async function autoImproveGameCode() {
 
         if (!getFile.ok) {
             const getErr = await getFile.json();
-            addLog("[AI COMMIT ERROR] GitHub GET failed (" + getFile.status + "): " + getErr.message);
+            addLog("[AI COMMIT ERROR] GitHub GET failed (" + getFile.status + "): " + (getErr.message || 'Not Found'));
             return;
         }
 
@@ -203,10 +206,14 @@ async function autoImproveGameCode() {
         newCode = newCode.replace(/```(?:html)?/gi, '').trim();
 
         const updatedContentBase64 = Buffer.from(newCode).toString('base64');
-        const commitResponse = await fetch(fileUrl, {
+        
+        // Clean URL without parameters for the PUT method
+        const putUrl = apiDomain + cleanRepo + '/contents/public/index.html';
+
+        const commitResponse = await fetch(putUrl, {
             method: 'PUT',
             headers: {
-                'Authorization': 'token ' + GITHUB_TOKEN,
+                'Authorization': `Bearer ${cleanToken}`,
                 'Content-Type': 'application/json',
                 'User-Agent': 'Node-AI-Server',
                 'Accept': 'application/vnd.github.v3+json'
@@ -214,7 +221,8 @@ async function autoImproveGameCode() {
             body: JSON.stringify({
                 message: "🤖 [AI Auto-Upgrade] Refactored frontend engine to " + worldState.engineBuild,
                 content: updatedContentBase64,
-                sha: currentSha
+                sha: currentSha,
+                branch: "main" // Ensures the commit is made to the correct branch
             })
         });
 
