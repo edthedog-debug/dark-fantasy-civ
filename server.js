@@ -171,44 +171,50 @@ async function autoImproveGameCode() {
     addLog("[AI AUTO-CODING] Analyzing frontend engine to improve rendering & feature set...");
 
     try {
+        // Sanitize repository input (removes protocol or trailing slashes if present)
         const cleanRepo = GITHUB_REPO.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
         const cleanToken = GITHUB_TOKEN.trim(); 
         
         const apiDomain = 'https://api.github.com/repos/';
+        const filePath = 'public/index.html'; // Target directly to public/index.html
 
-        // Lista de rutas y ramas para encontrar index.html dinámicamente
-        const targetPaths = ['public/index.html', 'index.html'];
-        const targetBranches = ['main', 'master'];
-
-        let selectedPath = null;
-        let selectedBranch = null;
         let currentSha = null;
+        let selectedBranch = 'main';
 
-        // Búsqueda inteligente del archivo index.html en el repositorio
-        searchLoop:
-        for (const filePath of targetPaths) {
-            for (const branch of targetBranches) {
-                const getUrl = `${apiDomain}${cleanRepo}/contents/${filePath}?ref=${branch}`;
-                const getFile = await fetch(getUrl, {
-                    headers: { 
-                        'Authorization': `Bearer ${cleanToken}`, 
-                        'User-Agent': 'Node-AI-Server',
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
-                });
+        // Check 'main' branch first
+        let getUrl = `${apiDomain}${cleanRepo}/contents/${filePath}?ref=main`;
+        let getFile = await fetch(getUrl, {
+            headers: { 
+                'Authorization': `Bearer ${cleanToken}`, 
+                'User-Agent': 'Node-AI-Server',
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
 
-                if (getFile.ok) {
-                    const fileData = await getFile.json();
-                    currentSha = fileData.sha;
-                    selectedPath = filePath;
-                    selectedBranch = branch;
-                    break searchLoop;
+        if (getFile.ok) {
+            const fileData = await getFile.json();
+            currentSha = fileData.sha;
+            selectedBranch = 'main';
+        } else {
+            // Fallback to 'master' branch if 'main' returns 404
+            getUrl = `${apiDomain}${cleanRepo}/contents/${filePath}?ref=master`;
+            getFile = await fetch(getUrl, {
+                headers: { 
+                    'Authorization': `Bearer ${cleanToken}`, 
+                    'User-Agent': 'Node-AI-Server',
+                    'Accept': 'application/vnd.github.v3+json'
                 }
+            });
+
+            if (getFile.ok) {
+                const fileData = await getFile.json();
+                currentSha = fileData.sha;
+                selectedBranch = 'master';
             }
         }
 
         if (!currentSha) {
-            addLog("[AI COMMIT ERROR] GitHub GET failed (404): Could not locate index.html in root or public/ folder.");
+            addLog("[AI COMMIT ERROR] GitHub GET failed (404): Could not locate public/index.html on main or master branch.");
             return;
         }
 
@@ -228,7 +234,7 @@ async function autoImproveGameCode() {
 
         newCode = newCode.replace(/```(?:html)?/gi, '').trim();
         const updatedContentBase64 = Buffer.from(newCode).toString('base64');
-        const putUrl = `${apiDomain}${cleanRepo}/contents/${selectedPath}`;
+        const putUrl = `${apiDomain}${cleanRepo}/contents/${filePath}`;
 
         const commitResponse = await fetch(putUrl, {
             method: 'PUT',
