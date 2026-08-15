@@ -4,6 +4,7 @@ const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
+const https = require('https'); // Para fetch manual
 
 const APP = express();
 const PORT = process.env.PORT || 3000;
@@ -103,6 +104,46 @@ async function queryGemini(prompt) {
 }
 
 /**
+ * Función auxiliar para hacer fetch con https nativo
+ */
+function httpsFetch(url, options = {}) {
+    return new Promise((resolve, reject) => {
+        const urlObj = new URL(url);
+        const requestOptions = {
+            hostname: urlObj.hostname,
+            port: urlObj.port || 443,
+            path: urlObj.pathname + urlObj.search,
+            method: options.method || 'GET',
+            headers: options.headers || {}
+        };
+
+        const req = https.request(requestOptions, (res) => {
+            let data = '';
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+            res.on('end', () => {
+                resolve({
+                    ok: res.statusCode >= 200 && res.statusCode < 300,
+                    status: res.statusCode,
+                    json: () => JSON.parse(data),
+                    text: () => data
+                });
+            });
+        });
+
+        req.on('error', (error) => {
+            reject(error);
+        });
+
+        if (options.body) {
+            req.write(options.body);
+        }
+        req.end();
+    });
+}
+
+/**
  * 1. AI GENERATIVE NARRATIVE, ECONOMY & PHILOSOPHY ENGINE
  */
 async function generateAIEvents() {
@@ -159,148 +200,154 @@ async function generateAIEvents() {
 }
 
 /**
- * 2. AI GRAPHICS & CODE REFACTOR ENGINE - TESTING WITHOUT AUTH FIRST
+ * 2. AI GRAPHICS & CODE REFACTOR ENGINE - USING NATIVE HTTPS
  */
 async function autoImproveGameCode() {
     console.log("🤖 AI starting Code Refactor & Graphics Upgrade cycle...");
     addLog("[AI AUTO-CODING] Analyzing frontend engine to improve rendering & feature set...");
 
     try {
-        const cleanRepo = GITHUB_REPO ? GITHUB_REPO.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '') : 'edthedog-debug/dark-fantasy-civ';
+        const cleanRepo = 'edthedog-debug/dark-fantasy-civ'; // Hardcoded
         const cleanToken = GITHUB_TOKEN ? GITHUB_TOKEN.trim() : '';
         
-        console.log("📦 Using repository:", cleanRepo);
-        console.log("🔑 Token available:", cleanToken ? "Yes (starts with " + cleanToken.substring(0, 7) + "...)" : "No");
+        console.log("📦 Repository:", cleanRepo);
+        console.log("🔑 Token:", cleanToken ? cleanToken.substring(0, 10) + "..." : "Not provided");
         
-        // Test 1: Without authentication (for public repos)
-        console.log("🔍 Test 1: Accessing without authentication...");
-        let response = await fetch(`https://api.github.com/repos/${cleanRepo}/contents/public/index.html`, {
-            headers: {
-                'User-Agent': 'Node-AI-Server',
-                'Accept': 'application/vnd.github.v3+json'
-            }
-        });
+        // Try native https first
+        console.log("🔍 Method 1: Native HTTPS module...");
+        let response;
         
-        let fileData = null;
-        
-        if (response.ok) {
-            fileData = await response.json();
-            console.log("✅ Success without authentication!");
-        } else {
-            console.log("⚠️ Without auth failed with status:", response.status);
+        try {
+            response = await httpsFetch(`https://api.github.com/repos/${cleanRepo}/contents/public/index.html`, {
+                headers: {
+                    'User-Agent': 'Node-AI-Server',
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
             
-            // Test 2: With Bearer token
-            if (cleanToken) {
-                console.log("🔍 Test 2: Accessing with Bearer token...");
-                response = await fetch(`https://api.github.com/repos/${cleanRepo}/contents/public/index.html`, {
+            console.log("📊 Status:", response.status);
+            
+            if (response.ok) {
+                const fileData = response.json();
+                console.log("✅ Success with native HTTPS!");
+                
+                // Continue with the file data
+                const currentSha = fileData.sha;
+                console.log("📝 SHA:", currentSha);
+                
+                const prompt = "You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'index.html' for an autonomous isometric economic empire simulator.\n\n" +
+                "CRITICAL RULES:\n" +
+                "1. Keep the HTML structure, canvas element ID ('gameCanvas'), and WebSocket listener logic intact so the map never renders blank or loses server updates.\n" +
+                "2. Keep ALL UI text, labels, status badges, and logs strictly in ENGLISH.\n" +
+                "3. Use native HTML5 2D Canvas rendering for isometric buildings, animated citizen particles, river/terrain tiles, and defense vehicles.\n" +
+                "4. Maintain mobile touch gesture controls (drag pan and zoom).\n" +
+                "5. Return ONLY the raw, complete, valid HTML file code without markdown syntax or triple backticks.";
+
+                let newCode = await queryGemini(prompt);
+                if (!newCode) {
+                    addLog("[AI COMMIT ERROR] Gemini API returned empty code.");
+                    return;
+                }
+
+                newCode = newCode.replace(/```(?:html)?/gi, '').trim();
+                const updatedContentBase64 = Buffer.from(newCode).toString('base64');
+                
+                console.log("📝 Committing changes...");
+                
+                const commitResponse = await httpsFetch(`https://api.github.com/repos/${cleanRepo}/contents/public/index.html`, {
+                    method: 'PUT',
                     headers: {
                         'Authorization': `Bearer ${cleanToken}`,
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'Node-AI-Server',
+                        'Accept': 'application/vnd.github.v3+json'
+                    },
+                    body: JSON.stringify({
+                        message: "🤖 [AI Auto-Upgrade] Refactored frontend engine to " + worldState.engineBuild,
+                        content: updatedContentBase64,
+                        sha: currentSha
+                    })
+                });
+
+                if (commitResponse.ok) {
+                    addLog("[AI COMMIT SUCCESS] Pushed graphics & engine improvements to GitHub!");
+                    console.log("✅ Commit successful!");
+                } else {
+                    console.error("❌ Commit failed:", commitResponse.status);
+                    const errData = commitResponse.json().catch(() => ({}));
+                    console.error("❌ Error:", errData);
+                    addLog(`[AI COMMIT ERROR] GitHub PUT failed (${commitResponse.status})`);
+                }
+            } else {
+                console.log("⚠️ Native HTTPS failed, trying fetch...");
+                
+                // Try global fetch
+                response = await fetch(`https://api.github.com/repos/${cleanRepo}/contents/public/index.html`, {
+                    headers: {
                         'User-Agent': 'Node-AI-Server',
                         'Accept': 'application/vnd.github.v3+json'
                     }
                 });
                 
+                console.log("📊 Fetch status:", response.status);
+                
                 if (response.ok) {
-                    fileData = await response.json();
-                    console.log("✅ Success with Bearer token!");
-                } else {
-                    console.log("⚠️ Bearer token failed with status:", response.status);
+                    const fileData = await response.json();
+                    console.log("✅ Success with global fetch!");
+                    console.log("📝 SHA:", fileData.sha);
                     
-                    // Test 3: With token keyword
-                    console.log("🔍 Test 3: Accessing with token keyword...");
-                    response = await fetch(`https://api.github.com/repos/${cleanRepo}/contents/public/index.html`, {
+                    // Continue with commit using fetch
+                    const currentSha = fileData.sha;
+                    
+                    const prompt = "You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'index.html' for an autonomous isometric economic empire simulator.\n\n" +
+                    "CRITICAL RULES:\n" +
+                    "1. Keep the HTML structure, canvas element ID ('gameCanvas'), and WebSocket listener logic intact so the map never renders blank or loses server updates.\n" +
+                    "2. Keep ALL UI text, labels, status badges, and logs strictly in ENGLISH.\n" +
+                    "3. Use native HTML5 2D Canvas rendering for isometric buildings, animated citizen particles, river/terrain tiles, and defense vehicles.\n" +
+                    "4. Maintain mobile touch gesture controls (drag pan and zoom).\n" +
+                    "5. Return ONLY the raw, complete, valid HTML file code without markdown syntax or triple backticks.";
+
+                    let newCode = await queryGemini(prompt);
+                    if (!newCode) {
+                        addLog("[AI COMMIT ERROR] Gemini API returned empty code.");
+                        return;
+                    }
+
+                    newCode = newCode.replace(/```(?:html)?/gi, '').trim();
+                    const updatedContentBase64 = Buffer.from(newCode).toString('base64');
+                    
+                    console.log("📝 Committing changes...");
+                    
+                    const commitResponse = await fetch(`https://api.github.com/repos/${cleanRepo}/contents/public/index.html`, {
+                        method: 'PUT',
                         headers: {
-                            'Authorization': `token ${cleanToken}`,
+                            'Authorization': `Bearer ${cleanToken}`,
+                            'Content-Type': 'application/json',
                             'User-Agent': 'Node-AI-Server',
                             'Accept': 'application/vnd.github.v3+json'
-                        }
+                        },
+                        body: JSON.stringify({
+                            message: "🤖 [AI Auto-Upgrade] Refactored frontend engine to " + worldState.engineBuild,
+                            content: updatedContentBase64,
+                            sha: currentSha
+                        })
                     });
-                    
-                    if (response.ok) {
-                        fileData = await response.json();
-                        console.log("✅ Success with token keyword!");
+
+                    if (commitResponse.ok) {
+                        addLog("[AI COMMIT SUCCESS] Pushed graphics & engine improvements to GitHub!");
+                        console.log("✅ Commit successful!");
                     } else {
-                        console.log("⚠️ Token keyword failed with status:", response.status);
-                        
-                        // Test 4: Try to list repository root
-                        console.log("🔍 Test 4: Listing repository root...");
-                        response = await fetch(`https://api.github.com/repos/${cleanRepo}/contents/`, {
-                            headers: {
-                                'User-Agent': 'Node-AI-Server',
-                                'Accept': 'application/vnd.github.v3+json'
-                            }
-                        });
-                        
-                        if (response.ok) {
-                            const contents = await response.json();
-                            console.log("📁 Repository contents:", contents.map(c => c.name).join(', '));
-                        } else {
-                            console.log("❌ Cannot list repository contents. Status:", response.status);
-                        }
+                        console.error("❌ Commit failed:", commitResponse.status);
+                        addLog(`[AI COMMIT ERROR] GitHub PUT failed (${commitResponse.status})`);
                     }
+                } else {
+                    console.error("❌ Both methods failed. Status:", response.status);
+                    addLog("[AI COMMIT ERROR] Cannot access GitHub API from Render environment");
                 }
             }
-        }
-        
-        if (!fileData || !fileData.sha) {
-            console.error("❌ Could not access file with any method");
-            addLog("[AI COMMIT ERROR] Could not access index.html. Check if repository is public and file exists.");
-            return;
-        }
-        
-        const currentSha = fileData.sha;
-        console.log("✅ File accessed successfully!");
-        console.log("📝 SHA:", currentSha);
-        console.log("📄 Path:", fileData.path);
-        console.log("📊 Size:", fileData.size, "bytes");
-
-        const prompt = "You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'index.html' for an autonomous isometric economic empire simulator.\n\n" +
-        "CRITICAL RULES:\n" +
-        "1. Keep the HTML structure, canvas element ID ('gameCanvas'), and WebSocket listener logic intact so the map never renders blank or loses server updates.\n" +
-        "2. Keep ALL UI text, labels, status badges, and logs strictly in ENGLISH.\n" +
-        "3. Use native HTML5 2D Canvas rendering for isometric buildings, animated citizen particles, river/terrain tiles, and defense vehicles.\n" +
-        "4. Maintain mobile touch gesture controls (drag pan and zoom).\n" +
-        "5. Return ONLY the raw, complete, valid HTML file code without markdown syntax or triple backticks.";
-
-        let newCode = await queryGemini(prompt);
-        if (!newCode) {
-            addLog("[AI COMMIT ERROR] Gemini API returned empty code.");
-            return;
-        }
-
-        newCode = newCode.replace(/```(?:html)?/gi, '').trim();
-        const updatedContentBase64 = Buffer.from(newCode).toString('base64');
-        
-        console.log("📝 Committing changes...");
-        
-        // Try commit with token if available
-        const headers = {
-            'Content-Type': 'application/json',
-            'User-Agent': 'Node-AI-Server',
-            'Accept': 'application/vnd.github.v3+json'
-        };
-        
-        if (cleanToken) {
-            headers['Authorization'] = `Bearer ${cleanToken}`;
-        }
-        
-        const commitResponse = await fetch(`https://api.github.com/repos/${cleanRepo}/contents/public/index.html`, {
-            method: 'PUT',
-            headers: headers,
-            body: JSON.stringify({
-                message: "🤖 [AI Auto-Upgrade] Refactored frontend engine to " + worldState.engineBuild,
-                content: updatedContentBase64,
-                sha: currentSha
-            })
-        });
-
-        if (commitResponse.ok) {
-            addLog("[AI COMMIT SUCCESS] Pushed graphics & engine improvements to GitHub!");
-            console.log("✅ Commit successful!");
-        } else {
-            const commitErr = await commitResponse.json().catch(() => ({}));
-            console.error("❌ Commit failed:", commitResponse.status, commitErr);
-            addLog(`[AI COMMIT ERROR] GitHub PUT failed (${commitResponse.status}): ${commitErr.message || 'Unknown error'}`);
+        } catch (error) {
+            console.error("❌ HTTPS request failed:", error.message);
+            addLog(`[AI COMMIT ERROR] Network error: ${error.message}`);
         }
     } catch (err) {
         console.error("Auto-code commit error:", err.message);
