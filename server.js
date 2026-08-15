@@ -72,7 +72,7 @@ function addLog(msg) {
 }
 
 /**
- * GEMINI REST API HELPER - DIAGNOSTIC VERSION
+ * GEMINI REST API HELPER - OPTIMIZED FOR LONG RESPONSES
  */
 async function queryGemini(prompt) {
     if (!AI_API_KEY) {
@@ -83,113 +83,94 @@ async function queryGemini(prompt) {
     console.log("🔑 Gemini API Key:", AI_API_KEY.substring(0, 8) + "..." + AI_API_KEY.substring(AI_API_KEY.length - 4));
     console.log("🔑 Key length:", AI_API_KEY.length);
     
-    // Try different API versions and models
-    const attempts = [
-        {
-            name: "v1beta-gemini-1.5-flash",
-            url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
-            model: "gemini-1.5-flash"
-        },
-        {
-            name: "v1-gemini-1.5-flash",
-            url: `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent`,
-            model: "gemini-1.5-flash"
-        },
-        {
-            name: "v1beta-gemini-1.0-pro",
-            url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent`,
-            model: "gemini-1.0-pro"
-        },
-        {
-            name: "v1-gemini-pro",
-            url: `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent`,
-            model: "gemini-pro"
-        }
-    ];
-
-    for (const attempt of attempts) {
-        console.log(`\n🔍 Trying: ${attempt.name}`);
-        console.log(`📍 URL: ${attempt.url}`);
+    // Use gemini-1.5-flash which has best support for long responses
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AI_API_KEY}`;
+    
+    try {
+        console.log("📡 Sending request to Gemini...");
+        console.log("📝 Prompt length:", prompt.length, "characters");
         
-        try {
-            const response = await fetch(`${attempt.url}?key=${AI_API_KEY}`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json'
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 8192, // Maximum for gemini-1.5-flash
+                    topP: 0.95,
+                    topK: 40
                 },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: prompt
-                        }]
-                    }],
-                    generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 8192,
-                        topP: 0.8,
-                        topK: 10
+                safetySettings: [
+                    {
+                        category: "HARM_CATEGORY_HARASSMENT",
+                        threshold: "BLOCK_NONE"
+                    },
+                    {
+                        category: "HARM_CATEGORY_HATE_SPEECH",
+                        threshold: "BLOCK_NONE"
+                    },
+                    {
+                        category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                        threshold: "BLOCK_NONE"
+                    },
+                    {
+                        category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                        threshold: "BLOCK_NONE"
                     }
-                })
-            });
+                ]
+            })
+        });
 
-            console.log(`📊 Status: ${response.status}`);
+        console.log("📊 Response status:", response.status);
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log("✅ Response received!");
             
-            if (response.ok) {
-                const data = await response.json();
-                console.log("✅ Response received!");
-                console.log("📦 Response keys:", Object.keys(data));
-                
-                // Extract text from different possible response formats
-                let text = null;
-                
-                if (data.candidates && data.candidates[0]) {
-                    console.log("📦 Candidate keys:", Object.keys(data.candidates[0]));
-                    
-                    if (data.candidates[0].content) {
-                        console.log("📦 Content keys:", Object.keys(data.candidates[0].content));
-                        
-                        if (data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
-                            console.log("📦 Parts keys:", Object.keys(data.candidates[0].content.parts[0]));
-                            text = data.candidates[0].content.parts[0].text;
-                        }
-                    }
-                    
-                    if (!text && data.candidates[0].output) {
-                        text = data.candidates[0].output;
-                    }
-                }
-                
-                if (text && text.length > 0) {
-                    console.log("✅ Extracted text length:", text.length);
-                    console.log("📝 First 100 chars:", text.substring(0, 100));
-                    return text;
-                } else {
-                    console.error("❌ No text extracted from response");
-                    console.error("📦 Full response:", JSON.stringify(data).substring(0, 500));
-                }
-            } else {
-                const errorText = await response.text();
-                console.error(`❌ Error ${response.status}:`, errorText.substring(0, 300));
-                
-                // Check for specific error types
-                if (response.status === 400) {
-                    console.error("❌ Bad Request - Check API key and model name");
-                } else if (response.status === 401) {
-                    console.error("❌ Unauthorized - API key is invalid");
-                } else if (response.status === 403) {
-                    console.error("❌ Forbidden - API key doesn't have access to this model");
-                } else if (response.status === 404) {
-                    console.error("❌ Not Found - Model doesn't exist");
-                } else if (response.status === 429) {
-                    console.error("❌ Rate Limited - Too many requests");
+            // Extract text
+            let text = null;
+            if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                if (data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
+                    text = data.candidates[0].content.parts[0].text;
                 }
             }
-        } catch (e) {
-            console.error(`❌ Fetch error with ${attempt.name}:`, e.message);
+            
+            if (text && text.length > 0) {
+                console.log("✅ Extracted text length:", text.length);
+                console.log("📝 First 100 chars:", text.substring(0, 100));
+                console.log("📝 Last 100 chars:", text.substring(Math.max(0, text.length - 100)));
+                return text;
+            } else {
+                console.error("❌ No text extracted from response");
+                console.error("📦 Full response:", JSON.stringify(data).substring(0, 500));
+            }
+        } else {
+            const errorText = await response.text();
+            console.error(`❌ Error ${response.status}:`, errorText.substring(0, 300));
+            
+            if (response.status === 400) {
+                console.error("❌ Bad Request - Check API key and model name");
+            } else if (response.status === 401) {
+                console.error("❌ Unauthorized - API key is invalid");
+            } else if (response.status === 403) {
+                console.error("❌ Forbidden - API key doesn't have access to this model");
+            } else if (response.status === 404) {
+                console.error("❌ Not Found - Model doesn't exist");
+            } else if (response.status === 429) {
+                console.error("❌ Rate Limited - Too many requests");
+            }
         }
+    } catch (e) {
+        console.error("❌ Fetch error:", e.message);
     }
-
-    console.error("\n❌ All Gemini API attempts failed");
+    
     return null;
 }
 
@@ -214,9 +195,8 @@ async function generateAIEvents() {
     try {
         const rawText = await queryGemini(prompt);
         if (rawText) {
-            console.log("📝 Raw response:", rawText);
+            console.log("📝 Raw response:", rawText.substring(0, 200));
             
-            // Try to find JSON in the response
             const jsonMatch = rawText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 try {
@@ -224,7 +204,6 @@ async function generateAIEvents() {
                     console.log("✅ Successfully parsed JSON:", parsed);
                 } catch (parseError) {
                     console.error("❌ JSON parse error:", parseError.message);
-                    console.error("📝 Attempted to parse:", jsonMatch[0]);
                 }
             } else {
                 console.error("❌ No JSON found in response");
@@ -234,7 +213,6 @@ async function generateAIEvents() {
         console.error("❌ Error in generateAIEvents:", err.message);
     }
 
-    // Use fallback if parsing failed
     if (!parsed || !parsed.event) {
         console.log("⚠️ Using fallback events");
         const fallbacks = [
@@ -274,33 +252,50 @@ function executeGitCommand(command) {
 }
 
 /**
- * 2. AI GRAPHICS & CODE REFACTOR ENGINE - USING GEMINI
+ * 2. AI CODE IMPROVEMENT - FULL CODE GENERATION
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT CYCLE...");
-    addLog("[AI AUTO-CODING] Starting code improvement...");
+    addLog("[AI AUTO-CODING] Asking Gemini to improve full code...");
 
     try {
         // Read current HTML
-        const currentHtmlPath = path.join(__dirname, 'public', 'index.html');
-        const currentHtml = fs.readFileSync(currentHtmlPath, 'utf8');
+        const htmlPath = path.join(__dirname, 'public', 'index.html');
+        const currentHtml = fs.readFileSync(htmlPath, 'utf8');
         console.log("📄 Current HTML size:", currentHtml.length, "characters");
         
-        // Create prompt for Gemini to improve the code
-        const prompt = `Improve this HTML canvas game code. Add better graphics, animations, and visual effects.
-        Current code:
-        ${currentHtml.substring(0, 5000)}
+        // Create a more specific prompt for full code improvement
+        const prompt = `You are an expert game developer specializing in HTML5 Canvas games.
+
+Here is my current game code (${currentHtml.length} characters):
+
+${currentHtml}
+
+Please improve this code by:
+1. Adding particle effects for buildings and units
+2. Adding a day/night cycle with changing colors
+3. Improving the isometric rendering with shadows
+4. Adding animated water and terrain
+5. Adding building animations
+6. Improving the UI with better styling
+7. Adding weather effects (rain, fog)
+8. Optimizing performance
+
+IMPORTANT RULES:
+- Return ONLY the complete HTML file
+- Do NOT add any explanations
+- Do NOT use markdown code blocks
+- Do NOT truncate the code
+- Make sure all JavaScript is complete
+- Keep all IDs the same: gameCanvas, ui-overlay, log-container
+- Keep the WebSocket connection logic
+- Keep all text in English
+
+START YOUR RESPONSE WITH: <!DOCTYPE html>`;
         
-        Requirements:
-        1. Keep canvas ID as 'gameCanvas'
-        2. Keep WebSocket connection logic
-        3. Keep all UI text in English
-        4. Add better isometric rendering
-        5. Add particle effects
-        6. Add day/night cycle
-        7. Return ONLY the complete HTML code`;
+        console.log("🔍 Sending full code to Gemini for improvement...");
+        console.log("📝 Prompt size:", prompt.length, "characters");
         
-        console.log("🔍 Asking Gemini to improve code...");
         let improvedCode = await queryGemini(prompt);
         
         if (!improvedCode || improvedCode.length < 100) {
@@ -309,20 +304,55 @@ async function autoImproveGameCode() {
             return;
         }
         
-        // Clean the code
-        improvedCode = improvedCode.replace(/```html/gi, '').replace(/```/g, '').trim();
+        console.log("📝 Raw response length:", improvedCode.length);
         
-        if (improvedCode.length < 500) {
-            console.error("❌ Generated code too short:", improvedCode.length);
+        // Clean the response
+        let cleanCode = improvedCode;
+        
+        // Remove markdown code blocks if present
+        cleanCode = cleanCode.replace(/```html/gi, '');
+        cleanCode = cleanCode.replace(/```/g, '');
+        
+        // Find the start of HTML
+        const htmlStart = cleanCode.indexOf('<!DOCTYPE html>');
+        if (htmlStart > 0) {
+            cleanCode = cleanCode.substring(htmlStart);
+            console.log("✅ Found HTML start at position:", htmlStart);
+        }
+        
+        // Find the end of HTML
+        const htmlEnd = cleanCode.lastIndexOf('</html>');
+        if (htmlEnd > 0) {
+            cleanCode = cleanCode.substring(0, htmlEnd + 7);
+            console.log("✅ Found HTML end at position:", htmlEnd);
+        }
+        
+        // Validate the code
+        if (cleanCode.length < 1000) {
+            console.error("❌ Generated code too short:", cleanCode.length);
             addLog("[AI COMMIT ERROR] Generated code too short.");
             return;
         }
         
-        console.log("✅ Generated code length:", improvedCode.length, "characters");
+        // Check essential elements
+        if (!cleanCode.includes('gameCanvas')) {
+            console.error("❌ Generated code missing gameCanvas");
+            addLog("[AI COMMIT ERROR] Generated code missing gameCanvas.");
+            return;
+        }
         
-        // Write to local file
-        fs.writeFileSync(currentHtmlPath, improvedCode);
-        console.log("✅ Written to local file");
+        if (!cleanCode.includes('WebSocket')) {
+            console.error("❌ Generated code missing WebSocket");
+            addLog("[AI COMMIT ERROR] Generated code missing WebSocket.");
+            return;
+        }
+        
+        console.log("✅ Code validation passed!");
+        console.log("📊 Final code size:", cleanCode.length, "characters");
+        
+        // Write improved HTML locally
+        fs.writeFileSync(htmlPath, cleanCode);
+        console.log("✅ Written improved HTML locally");
         
         // Push to GitHub
         if (GITHUB_TOKEN) {
@@ -347,18 +377,21 @@ async function autoImproveGameCode() {
                 }
                 
                 const targetPath = path.join(process.cwd(), 'public', 'index.html');
-                fs.copyFileSync(currentHtmlPath, targetPath);
+                fs.copyFileSync(htmlPath, targetPath);
                 
                 await executeGitCommand('git add public/index.html');
-                await executeGitCommand(`git commit -m "🤖 [AI Auto-Upgrade] Improved code to ${worldState.engineBuild}"`);
+                await executeGitCommand(`git commit -m "🤖 [AI Auto-Upgrade] Full code improvement to ${worldState.engineBuild}"`);
                 await executeGitCommand('git push origin main');
                 
-                addLog("[AI COMMIT SUCCESS] Pushed improvements to GitHub!");
+                addLog("[AI COMMIT SUCCESS] Pushed full code improvements to GitHub!");
                 console.log("✅ Successfully committed and pushed!");
             } catch (gitError) {
                 console.error("❌ Git push failed:", gitError.message);
                 addLog(`[AI COMMIT ERROR] Git push failed: ${gitError.message}`);
             }
+        } else {
+            console.log("⚠️ No GitHub token, only local file updated");
+            addLog("[AI COMMIT WARNING] No GitHub token, only local file updated");
         }
         
     } catch (err) {
