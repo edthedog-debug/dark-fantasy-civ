@@ -72,31 +72,78 @@ function addLog(msg) {
 }
 
 /**
- * GEMINI REST API HELPER
+ * GEMINI REST API HELPER - CORRECTED
  */
 async function queryGemini(prompt) {
-    if (!AI_API_KEY) return null;
+    if (!AI_API_KEY) {
+        console.error("❌ No GEMINI_API_KEY provided");
+        return null;
+    }
 
-    const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
-    const baseUrl = 'https://generativelanguage.googleapis.com/v1/models/';
-
+    console.log("🔑 Gemini API Key:", AI_API_KEY.substring(0, 10) + "...");
+    
+    // Use only gemini-1.5-flash which is more stable
+    const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-001'];
+    
     for (const model of models) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${AI_API_KEY}`;
+        
+        console.log(`🔍 Trying model: ${model}`);
+        
         try {
-            const response = await fetch(baseUrl + model + ':generateContent?key=' + AI_API_KEY, {
+            const response = await fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }]
+                    contents: [{
+                        parts: [{
+                            text: prompt
+                        }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 2048,
+                    }
                 })
             });
 
+            console.log(`📊 ${model} status:`, response.status);
+            
             if (response.ok) {
                 const data = await response.json();
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (text) return text;
+                console.log("✅ Gemini response received");
+                
+                // Check different response formats
+                let text = null;
+                
+                if (data.candidates && data.candidates[0]) {
+                    if (data.candidates[0].content && data.candidates[0].content.parts) {
+                        text = data.candidates[0].content.parts[0].text;
+                    } else if (data.candidates[0].output) {
+                        text = data.candidates[0].output;
+                    }
+                }
+                
+                if (text) {
+                    console.log("📝 Text length:", text.length);
+                    return text;
+                } else {
+                    console.error("❌ No text in response:", JSON.stringify(data).substring(0, 200));
+                }
+            } else {
+                const errorText = await response.text();
+                console.error(`❌ Gemini API error (${response.status}):`, errorText.substring(0, 200));
+                
+                // If 404, the model doesn't exist
+                if (response.status === 404) {
+                    console.log("⚠️ Model not found, trying next model...");
+                    continue;
+                }
             }
         } catch (e) {
-            // Continue to next model on failure
+            console.error(`❌ Fetch error with ${model}:`, e.message);
         }
     }
 
@@ -104,65 +151,36 @@ async function queryGemini(prompt) {
 }
 
 /**
- * Execute git command
- */
-function executeGitCommand(command) {
-    return new Promise((resolve, reject) => {
-        exec(command, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`Git command failed: ${command}`);
-                console.error(`Error: ${error.message}`);
-                console.error(`Stderr: ${stderr}`);
-                reject(error);
-            } else {
-                console.log(`Git command success: ${command}`);
-                console.log(`Output: ${stdout}`);
-                resolve(stdout);
-            }
-        });
-    });
-}
-
-/**
  * 1. AI GENERATIVE NARRATIVE, ECONOMY & PHILOSOPHY ENGINE
  */
 async function generateAIEvents() {
-    const prompt = "You are the Sovereign AI governing a nation. The ultimate goal is to build a highly profitable, technologically advanced global economic powerhouse with happy citizens, resilient to all hardships and disasters.\n" +
-    "Current World State:\n" +
-    "- Day: " + worldState.day + "\n" +
-    "- Era: " + worldState.era + "\n" +
-    "- Population: " + worldState.population + "\n" +
-    "- Happiness: " + worldState.happiness + "%\n" +
-    "- Treasury: " + worldState.treasury + " Gold\n" +
-    "- Tech Power: " + worldState.techPower + "\n" +
-    "- Economic Rank: " + worldState.economicPower + "\n" +
-    "- In War: " + worldState.inWar + "\n" +
-    "- Philosophy: " + worldState.philosophy + "\n\n" +
-    "Generate 1 concise event (hardship, economic opportunity, or tech breakthrough) and show how society adapts.\n" +
-    "Return strictly JSON format:\n" +
-    "{\n" +
-    '  "event": "string (max 25 words)",\n' +
-    '  "newPhilosophy": "string",\n' +
-    '  "goldImpact": number,\n' +
-    '  "happinessImpact": number,\n' +
-    '  "techImpact": number\n' +
-    "}";
-
+    const prompt = "You are the Sovereign AI governing a nation. Return a JSON object with an event description. Format: {\"event\":\"description\",\"newPhilosophy\":\"philosophy\",\"goldImpact\":number,\"happinessImpact\":number,\"techImpact\":number}";
+    
     let parsed = null;
 
     try {
         const rawText = await queryGemini(prompt);
         if (rawText) {
+            console.log("📝 Raw response:", rawText.substring(0, 200));
+            
             const jsonMatch = rawText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 parsed = JSON.parse(jsonMatch[0]);
+                console.log("✅ Parsed JSON:", parsed);
+            } else {
+                console.error("❌ No JSON found in response");
             }
+        } else {
+            console.error("❌ Gemini returned null");
         }
     } catch (err) {
+        console.error("❌ JSON parse error:", err.message);
         parsed = null;
     }
 
+    // Always use fallback if parsing fails
     if (!parsed || !parsed.event) {
+        console.log("⚠️ Using fallback events");
         const fallbacks = [
             { event: "Automated trade routes expanded to neighboring sectors.", newPhilosophy: "Rational Pragmatism", goldImpact: 120, happinessImpact: 4, techImpact: 0.1 },
             { event: "R&D labs optimized grid distribution efficiency.", newPhilosophy: "Technological Supremacy", goldImpact: 200, happinessImpact: 6, techImpact: 0.2 },
@@ -180,7 +198,25 @@ async function generateAIEvents() {
 }
 
 /**
- * 2. AI GRAPHICS & CODE REFACTOR ENGINE - USING GIT COMMANDS
+ * Execute git command
+ */
+function executeGitCommand(command) {
+    return new Promise((resolve, reject) => {
+        exec(command, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Git command failed: ${command}`);
+                console.error(`Error: ${error.message}`);
+                reject(error);
+            } else {
+                console.log(`Git command success: ${command}`);
+                resolve(stdout);
+            }
+        });
+    });
+}
+
+/**
+ * 2. AI GRAPHICS & CODE REFACTOR ENGINE - FIXED
  */
 async function autoImproveGameCode() {
     console.log("🤖 AI starting Code Refactor & Graphics Upgrade cycle...");
@@ -188,75 +224,85 @@ async function autoImproveGameCode() {
 
     try {
         const cleanToken = GITHUB_TOKEN ? GITHUB_TOKEN.trim() : '';
-        const repoUrl = `https://${cleanToken}@github.com/edthedog-debug/dark-fantasy-civ.git`;
         
-        console.log("📦 Repository URL:", repoUrl.replace(cleanToken, '***'));
+        // First, generate the improved code
+        const prompt = "You are an expert WebGL/Canvas frontend developer. Create a complete HTML file for an autonomous isometric economic empire simulator.\n\n" +
+        "REQUIREMENTS:\n" +
+        "1. Include a canvas element with ID 'gameCanvas'\n" +
+        "2. Include WebSocket connection logic\n" +
+        "3. Use English for all UI text\n" +
+        "4. Use native HTML5 2D Canvas rendering for isometric buildings and terrain\n" +
+        "5. Include mobile touch gesture controls\n" +
+        "6. Return ONLY the raw HTML code without markdown syntax";
         
-        // Configure git
-        await executeGitCommand('git config --global user.email "ai@example.com"');
-        await executeGitCommand('git config --global user.name "AI Auto-Improver"');
-        
-        // Check if we're in a git repository
-        try {
-            await executeGitCommand('git rev-parse --is-inside-work-tree');
-            console.log("✅ Already in a git repository");
-            
-            // Update remote URL
-            await executeGitCommand(`git remote set-url origin ${repoUrl}`);
-        } catch (error) {
-            console.log("📁 Not in a git repository, cloning...");
-            
-            // Clone the repository
-            await executeGitCommand(`git clone ${repoUrl} /tmp/repo`);
-            process.chdir('/tmp/repo');
-        }
-        
-        // Pull latest changes
-        console.log("📥 Pulling latest changes...");
-        await executeGitCommand('git pull origin main');
-        
-        // Read the current index.html
-        const indexPath = path.join(process.cwd(), 'public', 'index.html');
-        console.log("📄 Reading index.html from:", indexPath);
-        
-        if (!fs.existsSync(indexPath)) {
-            console.error("❌ index.html not found at:", indexPath);
-            addLog("[AI COMMIT ERROR] index.html not found in cloned repository");
-            return;
-        }
-        
-        const prompt = "You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'index.html' for an autonomous isometric economic empire simulator.\n\n" +
-        "CRITICAL RULES:\n" +
-        "1. Keep the HTML structure, canvas element ID ('gameCanvas'), and WebSocket listener logic intact so the map never renders blank or loses server updates.\n" +
-        "2. Keep ALL UI text, labels, status badges, and logs strictly in ENGLISH.\n" +
-        "3. Use native HTML5 2D Canvas rendering for isometric buildings, animated citizen particles, river/terrain tiles, and defense vehicles.\n" +
-        "4. Maintain mobile touch gesture controls (drag pan and zoom).\n" +
-        "5. Return ONLY the raw, complete, valid HTML file code without markdown syntax or triple backticks.";
-
+        console.log("🔍 Querying Gemini for code improvements...");
         let newCode = await queryGemini(prompt);
+        
         if (!newCode) {
-            addLog("[AI COMMIT ERROR] Gemini API returned empty code.");
+            console.error("❌ Gemini returned empty response");
+            addLog("[AI COMMIT ERROR] Gemini API returned empty code. Using fallback.");
             return;
         }
-
-        newCode = newCode.replace(/```(?:html)?/gi, '').trim();
         
-        // Write the new code to index.html
-        console.log("📝 Writing new code to index.html...");
-        fs.writeFileSync(indexPath, newCode);
+        // Clean the code
+        newCode = newCode.replace(/```(?:html)?/gi, '').replace(/```/g, '').trim();
         
-        // Git add, commit, and push
-        console.log("📦 Staging changes...");
-        await executeGitCommand('git add public/index.html');
+        if (newCode.length < 100) {
+            console.error("❌ Generated code too short:", newCode.length, "characters");
+            addLog("[AI COMMIT ERROR] Generated code too short.");
+            return;
+        }
         
-        console.log("💾 Committing changes...");
-        await executeGitCommand(`git commit -m "🤖 [AI Auto-Upgrade] Refactored frontend engine to ${worldState.engineBuild}"`);
+        console.log("✅ Generated code length:", newCode.length, "characters");
         
-        console.log("📤 Pushing to GitHub...");
-        await executeGitCommand('git push origin main');
+        // Write to local file first
+        const localPath = path.join(__dirname, 'public', 'index.html');
+        fs.writeFileSync(localPath, newCode);
+        console.log("✅ Written to local file:", localPath);
         
-        addLog("[AI COMMIT SUCCESS] Pushed graphics & engine improvements to GitHub!");
-        console.log("✅ Successfully committed and pushed!");
+        // Try to push to GitHub using git
+        if (cleanToken) {
+            console.log("📤 Pushing to GitHub...");
+            
+            try {
+                // Configure git
+                await executeGitCommand('git config --global user.email "ai@example.com"');
+                await executeGitCommand('git config --global user.name "AI Auto-Improver"');
+                
+                // Check if git repo exists
+                const repoUrl = `https://${cleanToken}@github.com/edthedog-debug/dark-fantasy-civ.git`;
+                
+                try {
+                    await executeGitCommand('git rev-parse --is-inside-work-tree');
+                    console.log("✅ Already in git repository");
+                    
+                    // Update remote
+                    await executeGitCommand(`git remote set-url origin ${repoUrl}`);
+                } catch (gitError) {
+                    console.log("📁 Cloning repository...");
+                    await executeGitCommand(`git clone ${repoUrl} /tmp/repo`);
+                    process.chdir('/tmp/repo');
+                }
+                
+                // Copy the file
+                const targetPath = path.join(process.cwd(), 'public', 'index.html');
+                fs.copyFileSync(localPath, targetPath);
+                
+                // Git operations
+                await executeGitCommand('git add public/index.html');
+                await executeGitCommand(`git commit -m "🤖 [AI Auto-Upgrade] Refactored frontend engine to ${worldState.engineBuild}"`);
+                await executeGitCommand('git push origin main');
+                
+                addLog("[AI COMMIT SUCCESS] Pushed graphics & engine improvements to GitHub!");
+                console.log("✅ Successfully committed and pushed!");
+            } catch (gitError) {
+                console.error("❌ Git push failed:", gitError.message);
+                addLog(`[AI COMMIT ERROR] Git push failed: ${gitError.message}`);
+            }
+        } else {
+            console.log("⚠️ No GitHub token, only local file updated");
+            addLog("[AI COMMIT WARNING] No GitHub token, only local file updated");
+        }
         
     } catch (err) {
         console.error("Auto-code commit error:", err.message);
