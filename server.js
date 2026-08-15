@@ -69,10 +69,11 @@ function broadcastState() {
 function addLog(msg) {
     const time = new Date().toLocaleTimeString();
     worldState.logs.push("[" + time + "] " + msg);
+    if (worldState.logs.length > 25) worldState.logs.shift();
 }
 
 /**
- * GEMINI API - USING CORRECT MODEL
+ * GEMINI API - USING gemini-2.5-flash
  */
 async function queryGemini(prompt) {
     if (!AI_API_KEY) {
@@ -80,31 +81,17 @@ async function queryGemini(prompt) {
         return null;
     }
 
-    console.log("🔑 API key:", AI_API_KEY.substring(0, 10) + "...");
-    
-    // Use the correct models from your available list
-    const models = [
-        'gemini-2.5-flash',      // Stable, fast, good for code
-        'gemini-3.5-flash',      // Newest flash
-        'gemini-2.5-flash-lite', // Lighter version
-        'gemini-flash-latest'    // Latest flash
-    ];
+    const models = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-2.5-flash-lite'];
     
     for (const model of models) {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${AI_API_KEY}`;
-        
-        console.log(`\n🔍 Probando: ${model}`);
         
         try {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: prompt
-                        }]
-                    }],
+                    contents: [{ parts: [{ text: prompt }] }],
                     generationConfig: {
                         temperature: 0.7,
                         maxOutputTokens: 8192,
@@ -114,27 +101,16 @@ async function queryGemini(prompt) {
                 })
             });
             
-            console.log("📊 Status:", response.status);
-            
             if (response.ok) {
                 const data = await response.json();
                 const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                
                 if (text && text.length > 0) {
-                    console.log(`✅ ¡Éxito con ${model}!`);
-                    console.log("📝 Longitud:", text.length);
-                    console.log("📝 Primeros 100 chars:", text.substring(0, 100));
+                    console.log(`✅ Gemini (${model}) responded:`, text.length, "chars");
                     return text;
-                } else {
-                    console.error("❌ No text in response");
-                    console.error("📦 Full response:", JSON.stringify(data).substring(0, 300));
                 }
-            } else {
-                const errorText = await response.text();
-                console.error(`❌ Error ${response.status}:`, errorText.substring(0, 200));
             }
         } catch (e) {
-            console.error(`❌ Error con ${model}:`, e.message);
+            console.error(`❌ Error with ${model}:`, e.message);
         }
     }
     
@@ -142,10 +118,10 @@ async function queryGemini(prompt) {
 }
 
 /**
- * 1. AI GENERATIVE NARRATIVE, ECONOMY & PHILOSOPHY ENGINE
+ * 1. AI GENERATIVE EVENTS - EVERY 30 DAYS (2 minutes)
  */
 async function generateAIEvents() {
-    const prompt = "Generate a random event for a dark fantasy civilization. Return ONLY JSON: {\"event\":\"description\",\"newPhilosophy\":\"name\",\"goldImpact\":number,\"happinessImpact\":number,\"techImpact\":number}";
+    const prompt = "Generate a dark fantasy civilization event. Return ONLY JSON: {\"event\":\"description\",\"newPhilosophy\":\"name\",\"goldImpact\":number,\"happinessImpact\":number,\"techImpact\":number}";
     
     let parsed = null;
 
@@ -156,7 +132,6 @@ async function generateAIEvents() {
             if (jsonMatch) {
                 try {
                     parsed = JSON.parse(jsonMatch[0]);
-                    console.log("✅ Evento:", parsed.event);
                 } catch (parseError) {
                     console.error("❌ Parse error:", parseError.message);
                 }
@@ -199,7 +174,7 @@ function executeGitCommand(command) {
 }
 
 /**
- * 2. AI CODE IMPROVEMENT - WITH GEMINI 2.5 FLASH
+ * 2. AI CODE IMPROVEMENT
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT...");
@@ -216,81 +191,28 @@ async function autoImproveGameCode() {
         const currentHtml = fs.readFileSync(htmlPath, 'utf8');
         console.log("📄 Current HTML:", currentHtml.length, "chars");
         
-        // Ask Gemini to improve the code
-        const prompt = `You are an expert game developer. Here is my HTML canvas game. Add visual improvements like particles, animations, and better graphics. Return the complete improved HTML code.
+        const prompt = `You are an expert game developer. Improve this HTML canvas game with better graphics. Return the complete improved HTML code.
 
 Current code:
 ${currentHtml.substring(0, 8000)}`;
         
-        console.log("🔍 Asking Gemini 2.5 Flash...");
         const improvedCode = await queryGemini(prompt);
         
-        if (!improvedCode || improvedCode.length < 100) {
-            console.error("❌ No improvement generated");
-            addLog("[AI COMMIT ERROR] No improvement generated.");
-            return;
-        }
-        
-        console.log("✅ Got improvement! Length:", improvedCode.length);
-        
-        // Clean the code
-        let cleanCode = improvedCode;
-        cleanCode = cleanCode.replace(/```html/gi, '').replace(/```/g, '').trim();
-        
-        // Find HTML start
-        const htmlStart = cleanCode.indexOf('<!DOCTYPE html>');
-        if (htmlStart > 0) {
-            cleanCode = cleanCode.substring(htmlStart);
-        }
-        
-        // Find HTML end
-        const htmlEnd = cleanCode.lastIndexOf('</html>');
-        if (htmlEnd > 0) {
-            cleanCode = cleanCode.substring(0, htmlEnd + 7);
-        }
-        
-        if (cleanCode.length < 500) {
-            console.error("❌ Code too short after cleaning:", cleanCode.length);
-            addLog("[AI COMMIT ERROR] Code too short.");
-            return;
-        }
-        
-        // Write improved HTML
-        fs.writeFileSync(htmlPath, cleanCode);
-        console.log("✅ HTML improved! New size:", cleanCode.length);
-        addLog("[AI COMMIT SUCCESS] Code improved with Gemini!");
-        
-        // Push to GitHub
-        if (GITHUB_TOKEN) {
-            try {
-                const cleanToken = GITHUB_TOKEN.trim();
-                
-                await executeGitCommand('git config --global user.email "ai@example.com"');
-                await executeGitCommand('git config --global user.name "AI Auto-Improver"');
-                
-                const repoUrl = `https://${cleanToken}@github.com/edthedog-debug/dark-fantasy-civ.git`;
-                
-                try {
-                    await executeGitCommand('git rev-parse --is-inside-work-tree');
-                    await executeGitCommand(`git remote set-url origin ${repoUrl}`);
-                } catch (gitError) {
-                    await executeGitCommand(`git clone ${repoUrl} /tmp/repo`);
-                    process.chdir('/tmp/repo');
-                }
-                
-                const targetPath = path.join(process.cwd(), 'public', 'index.html');
-                fs.copyFileSync(htmlPath, targetPath);
-                
-                await executeGitCommand('git add public/index.html');
-                await executeGitCommand(`git commit -m "🤖 [AI] Improved code with Gemini 2.5 Flash"`);
-                await executeGitCommand('git push origin main');
-                
-                console.log("✅ Pushed to GitHub!");
-            } catch (gitError) {
-                console.error("❌ Git push failed:", gitError.message);
+        if (improvedCode && improvedCode.length > 500) {
+            let cleanCode = improvedCode.replace(/```html/gi, '').replace(/```/g, '').trim();
+            
+            const htmlStart = cleanCode.indexOf('<!DOCTYPE html>');
+            if (htmlStart > 0) cleanCode = cleanCode.substring(htmlStart);
+            
+            const htmlEnd = cleanCode.lastIndexOf('</html>');
+            if (htmlEnd > 0) cleanCode = cleanCode.substring(0, htmlEnd + 7);
+            
+            if (cleanCode.length > 500) {
+                fs.writeFileSync(htmlPath, cleanCode);
+                console.log("✅ HTML improved! Size:", cleanCode.length);
+                addLog("[AI COMMIT SUCCESS] Code improved!");
             }
         }
-        
     } catch (err) {
         console.error("Error:", err.message);
         addLog(`[AI COMMIT ERROR] ${err.message}`);
@@ -338,14 +260,15 @@ async function runSimulationTick() {
         addLog("[DEMOGRAPHICS] 1 Citizen emigrated due to poor living conditions.");
     }
 
-    if (worldState.treasury > 1500) {
+    // Only reinvest every 20 days (80 seconds) instead of every tick
+    if (worldState.treasury > 1500 && worldState.day % 20 === 0) {
         worldState.treasury -= 400;
         worldState.techPower += 0.2;
         worldState.happiness = Math.min(100, worldState.happiness + 4);
         addLog("[ECONOMY] Reinvested 400 Gold into Tech R&D and Public Services.");
     }
 
-    if (worldState.treasury > 2500 && worldState.tanks < 12) {
+    if (worldState.treasury > 2500 && worldState.tanks < 12 && worldState.day % 25 === 0) {
         worldState.treasury -= 600;
         worldState.tanks += 1;
         addLog("[DEFENSE] Manufactured 1 Heavy Defense Unit for 600 Gold.");
@@ -361,17 +284,17 @@ async function runSimulationTick() {
         worldState.economicPower = "Emerging Market";
     }
 
-    if (worldState.day % 10 === 0) {
+    // AI Event every 30 days (2 minutes)
+    if (worldState.day % 30 === 0) {
         await generateAIEvents();
     }
 
-    if (worldState.day % 100 === 0) {
+    // Code improvement every 200 days (13.3 minutes)
+    if (worldState.day % 200 === 0) {
         const patch = Math.floor(Math.random() * 9) + 1;
         worldState.engineBuild = "v2." + patch + ".0-Gemini-2.5";
         await autoImproveGameCode();
     }
-
-    if (worldState.logs.length > 25) worldState.logs.shift();
 
     saveWorldState();
     broadcastState();
@@ -386,18 +309,13 @@ WSS.on('connection', (ws) => {
 });
 
 SERVER.listen(PORT, () => {
-    console.log("🚀 Server active on port " + PORT);
-    console.log("\n🔍 TESTING GEMINI 2.5 FLASH...");
+    console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     
     queryGemini("Say 'OK' if you can read this")
         .then(response => {
             if (response) {
-                console.log("\n✅ GEMINI WORKS!");
-                console.log("📝 Response:", response.substring(0, 50));
-                addLog("[SYSTEM] Gemini 2.5 Flash connected!");
-            } else {
-                console.log("\n❌ Gemini failed");
-                addLog("[SYSTEM ERROR] Gemini failed.");
+                console.log("✅ Gemini connected!");
+                addLog("[SYSTEM] Gemini 2.5 Flash connected.");
             }
         });
 });
