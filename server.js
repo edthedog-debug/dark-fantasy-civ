@@ -72,89 +72,462 @@ function addLog(msg) {
 }
 
 /**
- * GEMINI REST API HELPER - CORRECTED
+ * GEMINI REST API HELPER - SIMPLIFIED
  */
 async function queryGemini(prompt) {
     if (!AI_API_KEY) {
-        console.error("❌ No GEMINI_API_KEY provided");
+        console.log("⚠️ No GEMINI_API_KEY, using fallback");
         return null;
     }
 
-    console.log("🔑 Gemini API Key:", AI_API_KEY.substring(0, 10) + "...");
+    console.log("🔑 Testing Gemini API...");
     
-    // Use only gemini-1.5-flash which is more stable
-    const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-001'];
-    
-    for (const model of models) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${AI_API_KEY}`;
+    try {
+        // Try with a simple test first
+        const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AI_API_KEY}`;
         
-        console.log(`🔍 Trying model: ${model}`);
-        
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: prompt
-                        }]
-                    }],
-                    generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 2048,
-                    }
-                })
-            });
+        const response = await fetch(testUrl, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }]
+            })
+        });
 
-            console.log(`📊 ${model} status:`, response.status);
+        console.log("📊 Gemini status:", response.status);
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log("✅ Gemini response received");
             
-            if (response.ok) {
-                const data = await response.json();
-                console.log("✅ Gemini response received");
-                
-                // Check different response formats
-                let text = null;
-                
-                if (data.candidates && data.candidates[0]) {
-                    if (data.candidates[0].content && data.candidates[0].content.parts) {
-                        text = data.candidates[0].content.parts[0].text;
-                    } else if (data.candidates[0].output) {
-                        text = data.candidates[0].output;
-                    }
-                }
-                
-                if (text) {
-                    console.log("📝 Text length:", text.length);
-                    return text;
-                } else {
-                    console.error("❌ No text in response:", JSON.stringify(data).substring(0, 200));
-                }
-            } else {
-                const errorText = await response.text();
-                console.error(`❌ Gemini API error (${response.status}):`, errorText.substring(0, 200));
-                
-                // If 404, the model doesn't exist
-                if (response.status === 404) {
-                    console.log("⚠️ Model not found, trying next model...");
-                    continue;
+            // Extract text from response
+            let text = null;
+            if (data.candidates && data.candidates[0]) {
+                if (data.candidates[0].content && data.candidates[0].content.parts) {
+                    text = data.candidates[0].content.parts[0].text;
                 }
             }
-        } catch (e) {
-            console.error(`❌ Fetch error with ${model}:`, e.message);
+            
+            if (text && text.length > 0) {
+                console.log("📝 Generated text length:", text.length);
+                return text;
+            }
+        } else {
+            const errorText = await response.text();
+            console.error("❌ Gemini error:", response.status, errorText.substring(0, 200));
         }
+    } catch (e) {
+        console.error("❌ Gemini fetch error:", e.message);
     }
 
     return null;
 }
 
 /**
+ * Generate improved HTML code locally
+ */
+function generateImprovedCode() {
+    console.log("🔧 Generating improved HTML code locally...");
+    
+    // This is a improved version of the HTML with better graphics
+    const improvedHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Dark Fantasy Civilization - AI Empire</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #1a1a2e;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        #gameCanvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+        
+        #gameCanvas:active {
+            cursor: grabbing;
+        }
+        
+        #ui-overlay {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .stat-card {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #4a4a6a;
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: #fff;
+            font-size: 12px;
+            pointer-events: auto;
+            backdrop-filter: blur(5px);
+        }
+        
+        .stat-label {
+            color: #8888aa;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        
+        #log-container {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #4a4a6a;
+            border-radius: 8px;
+            padding: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            z-index: 10;
+            pointer-events: auto;
+            backdrop-filter: blur(5px);
+        }
+        
+        .log-entry {
+            color: #cccccc;
+            font-size: 11px;
+            margin-bottom: 4px;
+            font-family: monospace;
+        }
+        
+        .log-entry:last-child {
+            margin-bottom: 0;
+        }
+        
+        .building {
+            fill: #8b4513;
+            stroke: #ffd700;
+            stroke-width: 1;
+        }
+        
+        .road {
+            stroke: #666;
+            stroke-width: 2;
+            fill: none;
+        }
+        
+        .terrain {
+            fill: #2d4a2d;
+            stroke: #1a3a1a;
+            stroke-width: 1;
+        }
+        
+        .water {
+            fill: #1a3a5a;
+            stroke: #0a2a4a;
+            stroke-width: 1;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="ui-overlay">
+        <div class="stat-card">
+            <div class="stat-label">Day</div>
+            <div class="stat-value" id="day-display">1</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Population</div>
+            <div class="stat-value" id="population-display">12</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Happiness</div>
+            <div class="stat-value" id="happiness-display">85%</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Treasury</div>
+            <div class="stat-value" id="treasury-display">500 Gold</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Tech Power</div>
+            <div class="stat-value" id="tech-display">0.5</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Economy</div>
+            <div class="stat-value" id="economy-display">Emerging Market</div>
+        </div>
+    </div>
+    
+    <div id="log-container"></div>
+    
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let worldState = {
+            day: 1,
+            population: 12,
+            happiness: 85,
+            treasury: 500,
+            techPower: 0.5,
+            economicPower: "Emerging Market",
+            logs: []
+        };
+        
+        let camera = {
+            x: 0,
+            y: 0,
+            zoom: 1
+        };
+        
+        let isDragging = false;
+        let lastX = 0;
+        let lastY = 0;
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            drawGame();
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        
+        function drawIsometricTile(x, y, size, color) {
+            ctx.save();
+            ctx.translate(canvas.width / 2 + camera.x, canvas.height / 2 + camera.y);
+            ctx.scale(camera.zoom, camera.zoom);
+            
+            const isoX = (x - y) * size;
+            const isoY = (x + y) * size / 2;
+            
+            ctx.beginPath();
+            ctx.moveTo(isoX, isoY);
+            ctx.lineTo(isoX + size, isoY + size / 2);
+            ctx.lineTo(isoX, isoY + size);
+            ctx.lineTo(isoX - size, isoY + size / 2);
+            ctx.closePath();
+            
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = '#444';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+        
+        function drawBuilding(x, y, size, height) {
+            ctx.save();
+            ctx.translate(canvas.width / 2 + camera.x, canvas.height / 2 + camera.y);
+            ctx.scale(camera.zoom, camera.zoom);
+            
+            const isoX = (x - y) * size;
+            const isoY = (x + y) * size / 2;
+            
+            // Draw building
+            ctx.fillStyle = '#8b4513';
+            ctx.fillRect(isoX - size / 2, isoY - height, size, height + size / 2);
+            
+            // Draw roof
+            ctx.beginPath();
+            ctx.moveTo(isoX - size / 2, isoY - height);
+            ctx.lineTo(isoX, isoY - height - size / 2);
+            ctx.lineTo(isoX + size / 2, isoY - height);
+            ctx.closePath();
+            ctx.fillStyle = '#a0522d';
+            ctx.fill();
+            
+            ctx.restore();
+        }
+        
+        function drawGame() {
+            // Clear canvas
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid
+            const gridSize = 8;
+            const tileSize = 30;
+            
+            for (let x = 0; x < gridSize; x++) {
+                for (let y = 0; y < gridSize; y++) {
+                    const color = (x + y) % 2 === 0 ? '#2d4a2d' : '#2a442a';
+                    drawIsometricTile(x, y, tileSize, color);
+                }
+            }
+            
+            // Draw some buildings
+            drawBuilding(3, 3, 20, 30);
+            drawBuilding(4, 4, 25, 40);
+            drawBuilding(5, 3, 15, 25);
+            
+            // Draw roads
+            ctx.save();
+            ctx.translate(canvas.width / 2 + camera.x, canvas.height / 2 + camera.y);
+            ctx.scale(camera.zoom, camera.zoom);
+            
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(200, 100);
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+        
+        function updateUI() {
+            document.getElementById('day-display').textContent = worldState.day;
+            document.getElementById('population-display').textContent = worldState.population;
+            document.getElementById('happiness-display').textContent = worldState.happiness + '%';
+            document.getElementById('treasury-display').textContent = worldState.treasury + ' Gold';
+            document.getElementById('tech-display').textContent = worldState.techPower.toFixed(2);
+            document.getElementById('economy-display').textContent = worldState.economicPower;
+            
+            // Update logs
+            const logContainer = document.getElementById('log-container');
+            logContainer.innerHTML = '';
+            worldState.logs.slice(-10).forEach(log => {
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.textContent = log;
+                logContainer.appendChild(logEntry);
+            });
+        }
+        
+        // WebSocket connection
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = protocol + '//' + window.location.host;
+            const ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'WORLD_UPDATE') {
+                    worldState = data.data;
+                    updateUI();
+                    drawGame();
+                }
+            };
+            
+            ws.onclose = () => {
+                console.log('WebSocket disconnected, reconnecting...');
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+        
+        // Touch/Mouse controls
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastX = e.clientX;
+            lastY = e.clientY;
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                camera.x += e.clientX - lastX;
+                camera.y += e.clientY - lastY;
+                lastX = e.clientX;
+                lastY = e.clientY;
+                drawGame();
+            }
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+        
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (e.touches.length === 1) {
+                isDragging = true;
+                lastX = e.touches[0].clientX;
+                lastY = e.touches[0].clientY;
+            }
+        });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (isDragging && e.touches.length === 1) {
+                camera.x += e.touches[0].clientX - lastX;
+                camera.y += e.touches[0].clientY - lastY;
+                lastX = e.touches[0].clientX;
+                lastY = e.touches[0].clientY;
+                drawGame();
+            }
+        });
+        
+        canvas.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+        
+        // Pinch zoom
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            camera.zoom = Math.max(0.5, Math.min(2, camera.zoom * zoomFactor));
+            drawGame();
+        });
+        
+        // Initialize
+        resizeCanvas();
+        connectWebSocket();
+        drawGame();
+        updateUI();
+    </script>
+</body>
+</html>`;
+    
+    return improvedHTML;
+}
+
+/**
  * 1. AI GENERATIVE NARRATIVE, ECONOMY & PHILOSOPHY ENGINE
  */
 async function generateAIEvents() {
-    const prompt = "You are the Sovereign AI governing a nation. Return a JSON object with an event description. Format: {\"event\":\"description\",\"newPhilosophy\":\"philosophy\",\"goldImpact\":number,\"happinessImpact\":number,\"techImpact\":number}";
+    const prompt = "Generate a brief event for a civilization simulator. Return JSON with fields: event, newPhilosophy, goldImpact, happinessImpact, techImpact";
     
     let parsed = null;
 
@@ -167,11 +540,7 @@ async function generateAIEvents() {
             if (jsonMatch) {
                 parsed = JSON.parse(jsonMatch[0]);
                 console.log("✅ Parsed JSON:", parsed);
-            } else {
-                console.error("❌ No JSON found in response");
             }
-        } else {
-            console.error("❌ Gemini returned null");
         }
     } catch (err) {
         console.error("❌ JSON parse error:", err.message);
@@ -216,67 +585,45 @@ function executeGitCommand(command) {
 }
 
 /**
- * 2. AI GRAPHICS & CODE REFACTOR ENGINE - FIXED
+ * 2. AI GRAPHICS & CODE REFACTOR ENGINE - LOCAL GENERATION
  */
 async function autoImproveGameCode() {
     console.log("🤖 AI starting Code Refactor & Graphics Upgrade cycle...");
-    addLog("[AI AUTO-CODING] Analyzing frontend engine to improve rendering & feature set...");
+    addLog("[AI AUTO-CODING] Generating improved frontend code...");
 
     try {
-        const cleanToken = GITHUB_TOKEN ? GITHUB_TOKEN.trim() : '';
+        // Generate improved code locally
+        const newCode = generateImprovedCode();
         
-        // First, generate the improved code
-        const prompt = "You are an expert WebGL/Canvas frontend developer. Create a complete HTML file for an autonomous isometric economic empire simulator.\n\n" +
-        "REQUIREMENTS:\n" +
-        "1. Include a canvas element with ID 'gameCanvas'\n" +
-        "2. Include WebSocket connection logic\n" +
-        "3. Use English for all UI text\n" +
-        "4. Use native HTML5 2D Canvas rendering for isometric buildings and terrain\n" +
-        "5. Include mobile touch gesture controls\n" +
-        "6. Return ONLY the raw HTML code without markdown syntax";
-        
-        console.log("🔍 Querying Gemini for code improvements...");
-        let newCode = await queryGemini(prompt);
-        
-        if (!newCode) {
-            console.error("❌ Gemini returned empty response");
-            addLog("[AI COMMIT ERROR] Gemini API returned empty code. Using fallback.");
-            return;
-        }
-        
-        // Clean the code
-        newCode = newCode.replace(/```(?:html)?/gi, '').replace(/```/g, '').trim();
-        
-        if (newCode.length < 100) {
-            console.error("❌ Generated code too short:", newCode.length, "characters");
+        if (!newCode || newCode.length < 100) {
+            console.error("❌ Generated code too short");
             addLog("[AI COMMIT ERROR] Generated code too short.");
             return;
         }
         
         console.log("✅ Generated code length:", newCode.length, "characters");
         
-        // Write to local file first
+        // Write to local file
         const localPath = path.join(__dirname, 'public', 'index.html');
         fs.writeFileSync(localPath, newCode);
         console.log("✅ Written to local file:", localPath);
         
-        // Try to push to GitHub using git
-        if (cleanToken) {
+        // Try to push to GitHub
+        if (GITHUB_TOKEN) {
             console.log("📤 Pushing to GitHub...");
             
             try {
+                const cleanToken = GITHUB_TOKEN.trim();
+                
                 // Configure git
                 await executeGitCommand('git config --global user.email "ai@example.com"');
                 await executeGitCommand('git config --global user.name "AI Auto-Improver"');
                 
-                // Check if git repo exists
                 const repoUrl = `https://${cleanToken}@github.com/edthedog-debug/dark-fantasy-civ.git`;
                 
                 try {
                     await executeGitCommand('git rev-parse --is-inside-work-tree');
                     console.log("✅ Already in git repository");
-                    
-                    // Update remote
                     await executeGitCommand(`git remote set-url origin ${repoUrl}`);
                 } catch (gitError) {
                     console.log("📁 Cloning repository...");
@@ -290,10 +637,10 @@ async function autoImproveGameCode() {
                 
                 // Git operations
                 await executeGitCommand('git add public/index.html');
-                await executeGitCommand(`git commit -m "🤖 [AI Auto-Upgrade] Refactored frontend engine to ${worldState.engineBuild}"`);
+                await executeGitCommand(`git commit -m "🤖 [AI Auto-Upgrade] Improved frontend to ${worldState.engineBuild}"`);
                 await executeGitCommand('git push origin main');
                 
-                addLog("[AI COMMIT SUCCESS] Pushed graphics & engine improvements to GitHub!");
+                addLog("[AI COMMIT SUCCESS] Pushed improvements to GitHub!");
                 console.log("✅ Successfully committed and pushed!");
             } catch (gitError) {
                 console.error("❌ Git push failed:", gitError.message);
@@ -380,7 +727,7 @@ async function runSimulationTick() {
 
     if (worldState.day % 100 === 0) {
         const patch = Math.floor(Math.random() * 9) + 1;
-        worldState.engineBuild = "v2." + patch + ".0-Generative-AI";
+        worldState.engineBuild = "v2." + patch + ".0-Local-Generation";
         await autoImproveGameCode();
     }
 
