@@ -36,6 +36,7 @@ let worldState = {
     engineBuild: "v2.0.0-AI-Cloud",
     inWar: false,
     aiImprovements: 0,
+    lastCommitDay: 0,
     logs: [
         "[" + new Date().toLocaleTimeString() + "] Autonomous Cloud Engine Initialized."
     ]
@@ -47,6 +48,7 @@ if (fs.existsSync(STATE_FILE)) {
         const savedState = JSON.parse(rawData);
         // Merge saved state with defaults to ensure new fields exist
         worldState = { ...worldState, ...savedState };
+        console.log("✅ State loaded - Day:", worldState.day, "AI Improvements:", worldState.aiImprovements);
     } catch (e) {
         console.error("Error loading state file:", e);
     }
@@ -172,20 +174,16 @@ async function pushToGitHub(htmlPath, improvementNumber, day) {
         const repoUrl = `https://${cleanToken}@github.com/edthedog-debug/dark-fantasy-civ.git`;
         
         // Check if we're in a git repo
+        let isInRepo = false;
         try {
             await executeGitCommand('git rev-parse --is-inside-work-tree');
+            isInRepo = true;
             console.log("📁 Already in git repo");
-            
-            // Ensure we're in the right directory
-            const currentDir = process.cwd();
-            console.log("📂 Current directory:", currentDir);
-            
-            // Set remote URL
-            await executeGitCommand(`git remote set-url origin ${repoUrl}`);
-            console.log("✅ Remote URL set");
-            
         } catch (gitError) {
-            console.log("⚠️ Not in git repo, cloning...");
+            console.log("⚠️ Not in git repo, will clone");
+        }
+        
+        if (!isInRepo) {
             // Clone the repo to /tmp
             try {
                 await executeGitCommand(`rm -rf /tmp/repo`);
@@ -211,15 +209,24 @@ async function pushToGitHub(htmlPath, improvementNumber, day) {
         fs.copyFileSync(htmlPath, targetPath);
         console.log("✅ File copied");
         
+        // Also save the world state
+        const stateTargetPath = path.join(process.cwd(), 'worldState.json');
+        fs.copyFileSync(STATE_FILE, stateTargetPath);
+        console.log("✅ State file copied");
+        
         // Git operations
-        await executeGitCommand('git add public/index.html');
+        await executeGitCommand('git add public/index.html worldState.json');
         console.log("✅ Added to git");
         
-        await executeGitCommand(`git commit -m "🤖 [AI] Improvement #${improvementNumber} - Day ${day}"`);
+        await executeGitCommand(`git commit -m "🤖 [AI] Day ${day} - Improvement #${improvementNumber} - Population: ${worldState.population}, Tech: ${worldState.techPower.toFixed(2)}"`);
         console.log("✅ Committed");
         
         await executeGitCommand('git push origin main --force');
         console.log("✅ Pushed to GitHub!");
+        
+        // Update last commit day
+        worldState.lastCommitDay = day;
+        saveWorldState();
         
     } catch (gitError) {
         console.error("❌ Git push failed:", gitError.message);
@@ -365,10 +372,13 @@ async function autoImproveGameCode() {
         
         addLog("[AI COMMIT SUCCESS] Code improvement #" + improvementNumber + " applied!");
         
-        // Push to GitHub in background
-        pushToGitHub(htmlPath, improvementNumber, currentDay).catch(err => {
-            console.error("❌ Background git push error:", err.message);
-        });
+        // Push to GitHub ONLY every 50 days (main updates)
+        if (worldState.day % 50 === 0 && worldState.lastCommitDay !== worldState.day) {
+            console.log("🎯 Day 50 milestone reached - pushing to GitHub");
+            pushToGitHub(htmlPath, improvementNumber, currentDay).catch(err => {
+                console.error("❌ Background git push error:", err.message);
+            });
+        }
         
     } catch (err) {
         console.error("Error:", err.message);
@@ -466,6 +476,7 @@ WSS.on('connection', (ws) => {
 
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
+    console.log("📊 Current state - Day:", worldState.day, "AI Improvements:", worldState.aiImprovements);
     
     queryGemini("Say 'OK'")
         .then(response => {
