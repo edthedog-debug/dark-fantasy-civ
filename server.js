@@ -171,28 +171,46 @@ async function autoImproveGameCode() {
     addLog("[AI AUTO-CODING] Analyzing frontend engine to improve rendering & feature set...");
 
     try {
-        const cleanRepo = GITHUB_REPO.trim();
+        const cleanRepo = GITHUB_REPO.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
         const cleanToken = GITHUB_TOKEN.trim(); 
         
         const apiDomain = 'https://api.github.com/repos/';
-        const getUrl = apiDomain + cleanRepo + '/contents/index.html?ref=main';
 
-        const getFile = await fetch(getUrl, {
-            headers: { 
-                'Authorization': `Bearer ${cleanToken}`, 
-                'User-Agent': 'Node-AI-Server',
-                'Accept': 'application/vnd.github.v3+json'
+        // Lista de rutas y ramas para encontrar index.html dinámicamente
+        const targetPaths = ['public/index.html', 'index.html'];
+        const targetBranches = ['main', 'master'];
+
+        let selectedPath = null;
+        let selectedBranch = null;
+        let currentSha = null;
+
+        // Búsqueda inteligente del archivo index.html en el repositorio
+        searchLoop:
+        for (const filePath of targetPaths) {
+            for (const branch of targetBranches) {
+                const getUrl = `${apiDomain}${cleanRepo}/contents/${filePath}?ref=${branch}`;
+                const getFile = await fetch(getUrl, {
+                    headers: { 
+                        'Authorization': `Bearer ${cleanToken}`, 
+                        'User-Agent': 'Node-AI-Server',
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+
+                if (getFile.ok) {
+                    const fileData = await getFile.json();
+                    currentSha = fileData.sha;
+                    selectedPath = filePath;
+                    selectedBranch = branch;
+                    break searchLoop;
+                }
             }
-        });
-
-        if (!getFile.ok) {
-            const getErr = await getFile.json();
-            addLog("[AI COMMIT ERROR] GitHub GET failed (" + getFile.status + "): " + (getErr.message || 'Not Found'));
-            return;
         }
 
-        const fileData = await getFile.json();
-        const currentSha = fileData.sha;
+        if (!currentSha) {
+            addLog("[AI COMMIT ERROR] GitHub GET failed (404): Could not locate index.html in root or public/ folder.");
+            return;
+        }
 
         const prompt = "You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'index.html' for an autonomous isometric economic empire simulator.\n\n" +
         "CRITICAL RULES:\n" +
@@ -209,9 +227,8 @@ async function autoImproveGameCode() {
         }
 
         newCode = newCode.replace(/```(?:html)?/gi, '').trim();
-
         const updatedContentBase64 = Buffer.from(newCode).toString('base64');
-        const putUrl = apiDomain + cleanRepo + '/contents/index.html';
+        const putUrl = `${apiDomain}${cleanRepo}/contents/${selectedPath}`;
 
         const commitResponse = await fetch(putUrl, {
             method: 'PUT',
@@ -225,7 +242,7 @@ async function autoImproveGameCode() {
                 message: "🤖 [AI Auto-Upgrade] Refactored frontend engine to " + worldState.engineBuild,
                 content: updatedContentBase64,
                 sha: currentSha,
-                branch: "main"
+                branch: selectedBranch
             })
         });
 
