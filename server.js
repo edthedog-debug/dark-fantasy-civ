@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 // ENVIRONMENT VARIABLES (Configured in Render)
 const AI_API_KEY = process.env.GEMINI_API_KEY; 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_REPO = process.env.GITHUB_REPO; // Format: "username/repository-name"
+const GITHUB_REPO = process.env.GITHUB_REPO;
 
 APP.use(cors());
 APP.use(express.static(path.join(__dirname, 'public')));
@@ -73,140 +73,95 @@ function addLog(msg) {
 }
 
 /**
- * LIST AVAILABLE GEMINI MODELS
+ * GEMINI API - LIST MODELS FIRST
  */
-async function listGeminiModels() {
+function listModels() {
     return new Promise((resolve, reject) => {
-        if (!AI_API_KEY) {
-            reject(new Error("No API key"));
-            return;
-        }
-
-        console.log("🔍 Listing available Gemini models...");
+        const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${AI_API_KEY}`;
         
-        const options = {
-            hostname: 'generativelanguage.googleapis.com',
-            path: `/v1beta/models?key=${AI_API_KEY}`,
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        };
-
-        const req = https.request(options, (res) => {
+        https.get(url, (res) => {
             let data = '';
-            
-            res.on('data', (chunk) => {
-                data += chunk;
-            });
-            
+            res.on('data', chunk => data += chunk);
             res.on('end', () => {
-                console.log("📊 Status:", res.statusCode);
-                
                 if (res.statusCode === 200) {
                     try {
-                        const jsonData = JSON.parse(data);
-                        if (jsonData.models) {
-                            console.log("✅ Available models:");
-                            jsonData.models.forEach(model => {
-                                console.log(`  - ${model.name}`);
-                            });
-                            resolve(jsonData.models);
-                        } else {
-                            reject(new Error("No models found"));
-                        }
+                        const json = JSON.parse(data);
+                        const models = json.models || [];
+                        console.log("✅ Available models:");
+                        models.forEach(m => console.log(`  - ${m.name}`));
+                        resolve(models);
                     } catch (e) {
                         reject(e);
                     }
                 } else {
-                    reject(new Error(`HTTP ${res.statusCode}: ${data.substring(0, 200)}`));
+                    console.error("❌ Cannot list models. Status:", res.statusCode);
+                    console.error("❌ Response:", data.substring(0, 300));
+                    reject(new Error(`HTTP ${res.statusCode}`));
                 }
             });
-        });
-
-        req.on('error', (error) => {
-            reject(error);
-        });
-
-        req.end();
+        }).on('error', reject);
     });
 }
 
 /**
- * GEMINI REST API HELPER - WITH MODEL FALLBACK
+ * GEMINI API - USE FIRST AVAILABLE MODEL
  */
 async function queryGemini(prompt) {
     if (!AI_API_KEY) {
-        console.error("❌ GEMINI_API_KEY is not set");
+        console.error("❌ No GEMINI_API_KEY");
         return null;
     }
 
-    console.log("🔑 API key:", AI_API_KEY.substring(0, 10) + "...");
+    console.log("🔑 API key:", AI_API_KEY.substring(0, 15) + "...");
     
-    // Try different model names
-    const models = [
-        'gemini-1.5-flash',
-        'gemini-1.5-pro',
-        'gemini-1.0-pro',
-        'gemini-pro',
-        'gemini-1.5-flash-latest',
-        'gemini-1.5-pro-latest',
-        'gemini-2.0-flash-exp',
-        'gemini-2.0-pro-exp'
-    ];
-    
-    for (const model of models) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${AI_API_KEY}`;
+    // Try to list models first
+    try {
+        const models = await listModels();
         
-        console.log(`\n🔍 Trying model: ${model}`);
-        
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: prompt
-                        }]
-                    }]
-                })
-            });
-
-            console.log(`📊 Status: ${response.status}`);
-            
-            if (response.ok) {
-                const data = await response.json();
-                console.log(`✅ Success with ${model}!`);
-                
-                if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-                    const text = data.candidates[0].content.parts[0].text;
-                    if (text) {
-                        console.log("📝 Text length:", text.length);
-                        return text;
-                    }
-                }
-            } else if (response.status === 404) {
-                console.log(`⚠️ Model ${model} not found, trying next...`);
-                continue;
-            } else {
-                const errorText = await response.text();
-                console.error(`❌ Error ${response.status}:`, errorText.substring(0, 200));
-                
-                // If 429 (rate limit), wait and try next
-                if (response.status === 429) {
-                    console.log("⚠️ Rate limited, waiting 2 seconds...");
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                }
-            }
-        } catch (e) {
-            console.error(`❌ Fetch error with ${model}:`, e.message);
+        if (models.length === 0) {
+            console.error("❌ No models available for this API key");
+            return null;
         }
+        
+        // Filter for generateContent capable models
+        const supportedModels = models.filter(m => 
+            m.supportedGenerationMethods && 
+            m.supportedGenerationMethods.includes('generateContent')
+        );
+        
+        console.log(`📦 Found ${supportedModels.length} models with generateContent support`);
+        
+        // Use the first available model
+        const modelName = supportedModels[0]?.name?.split('/').pop() || 'gemini-pro';
+        console.log("🎯 Using model:", modelName);
+        
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${AI_API_KEY}`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
+        
+        console.log("📊 Status:", response.status);
+        
+        if (response.ok) {
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) {
+                console.log("✅ Success! Text length:", text.length);
+                return text;
+            }
+        } else {
+            const errorText = await response.text();
+            console.error("❌ Error:", response.status, errorText.substring(0, 200));
+        }
+    } catch (e) {
+        console.error("❌ Error listing models:", e.message);
     }
     
-    console.error("\n❌ All models failed");
     return null;
 }
 
@@ -258,10 +213,8 @@ function executeGitCommand(command) {
     return new Promise((resolve, reject) => {
         exec(command, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
             if (error) {
-                console.error(`Git command failed: ${command}`);
                 reject(error);
             } else {
-                console.log(`Git command success: ${command}`);
                 resolve(stdout);
             }
         });
@@ -272,56 +225,40 @@ function executeGitCommand(command) {
  * 2. AI CODE IMPROVEMENT
  */
 async function autoImproveGameCode() {
-    console.log("\n🤖 AI CODE IMPROVEMENT CYCLE...");
-    addLog("[AI AUTO-CODING] Starting code improvement...");
+    console.log("\n🤖 AI CODE IMPROVEMENT...");
+    addLog("[AI AUTO-CODING] Starting...");
 
     try {
-        // Read current HTML
         const htmlPath = path.join(__dirname, 'public', 'index.html');
         
         if (!fs.existsSync(htmlPath)) {
             console.error("❌ index.html not found");
-            addLog("[AI COMMIT ERROR] index.html not found.");
             return;
         }
         
         const currentHtml = fs.readFileSync(htmlPath, 'utf8');
-        console.log("📄 Current HTML size:", currentHtml.length, "characters");
+        console.log("📄 Current HTML:", currentHtml.length, "chars");
         
-        // Simple test first
-        const testPrompt = "Generate a simple HTML page with a canvas element. Return ONLY the HTML.";
-        const testResult = await queryGemini(testPrompt);
-        
-        if (!testResult) {
-            console.error("❌ Gemini not working");
-            addLog("[AI COMMIT ERROR] Gemini not working with any model.");
-            return;
-        }
-        
-        console.log("✅ Gemini is working! Test result length:", testResult.length);
-        
-        // Now try to improve the code
-        const prompt = `Improve this HTML canvas game. Return ONLY the complete HTML code with improvements:
+        const prompt = `Improve this HTML game code. Return the complete improved HTML:
         ${currentHtml.substring(0, 3000)}`;
         
         const improvedCode = await queryGemini(prompt);
         
         if (improvedCode && improvedCode.length > 100) {
             fs.writeFileSync(htmlPath, improvedCode);
-            console.log("✅ Improved code written! Length:", improvedCode.length);
-            addLog("[AI COMMIT SUCCESS] Code improved with Gemini!");
+            console.log("✅ Improved! Length:", improvedCode.length);
+            addLog("[AI COMMIT SUCCESS] Code improved!");
         } else {
-            console.error("❌ Failed to improve code");
-            addLog("[AI COMMIT ERROR] Failed to improve code.");
+            console.error("❌ No improvement generated");
+            addLog("[AI COMMIT ERROR] No improvement.");
         }
-        
     } catch (err) {
-        console.error("Auto-code commit error:", err.message);
+        console.error("Error:", err.message);
         addLog(`[AI COMMIT ERROR] ${err.message}`);
     }
 }
 
-// ASYNC SIMULATION TICK
+// ASYNC SIMULATION TICK (unchanged)
 async function runSimulationTick() {
     worldState.day += 1;
 
@@ -410,31 +347,26 @@ WSS.on('connection', (ws) => {
 });
 
 SERVER.listen(PORT, () => {
-    console.log("🚀 AI Self-Improving Server active on port " + PORT);
+    console.log("🚀 Server active on port " + PORT);
     
-    // List available models and test
-    console.log("\n🔍 CHECKING AVAILABLE MODELS...");
-    listGeminiModels()
+    // Test Gemini on startup
+    console.log("\n🔍 TESTING GEMINI...");
+    listModels()
         .then(models => {
-            console.log(`✅ Found ${models.length} available models`);
-            
-            // Test the first available model
-            if (models.length > 0) {
-                console.log("\n🔍 TESTING GEMINI...");
-                queryGemini("Say 'OK' if you can read this")
-                    .then(response => {
-                        if (response) {
-                            console.log("✅ Gemini is working! Response:", response);
-                            addLog("[SYSTEM] Gemini API connected successfully.");
-                        } else {
-                            console.error("❌ Gemini test failed");
-                            addLog("[SYSTEM ERROR] Gemini API not accessible.");
-                        }
-                    });
+            console.log(`✅ ${models.length} models available`);
+            return queryGemini("Say OK");
+        })
+        .then(response => {
+            if (response) {
+                console.log("✅ Gemini works!");
+                addLog("[SYSTEM] Gemini connected.");
+            } else {
+                console.error("❌ Gemini not working");
+                addLog("[SYSTEM ERROR] Gemini failed. Create new API key at https://aistudio.google.com/app/apikey");
             }
         })
-        .catch(error => {
-            console.error("❌ Cannot list models:", error.message);
-            addLog(`[SYSTEM ERROR] Cannot list models: ${error.message}`);
+        .catch(err => {
+            console.error("❌ Test failed:", err.message);
+            addLog(`[SYSTEM ERROR] ${err.message}`);
         });
 });
