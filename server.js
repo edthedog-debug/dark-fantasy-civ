@@ -57,6 +57,7 @@ if (fs.existsSync(STATE_FILE)) {
     try {
         const rawData = fs.readFileSync(STATE_FILE, 'utf8');
         worldState = JSON.parse(rawData);
+        console.log("✅ World state loaded - Day:", worldState.day);
     } catch (e) {
         console.error("Error loading state file:", e);
     }
@@ -76,6 +77,7 @@ if (fs.existsSync(AI_STATE_FILE)) {
 function saveWorldState() {
     try {
         fs.writeFileSync(STATE_FILE, JSON.stringify(worldState, null, 2));
+        console.log("💾 World state saved - Day:", worldState.day);
     } catch (err) {
         console.error("Error saving state:", err);
     }
@@ -84,6 +86,7 @@ function saveWorldState() {
 function saveAIState() {
     try {
         fs.writeFileSync(AI_STATE_FILE, JSON.stringify(aiState, null, 2));
+        console.log("💾 AI state saved - Improvements:", aiState.improvementCount);
     } catch (err) {
         console.error("Error saving AI state:", err);
     }
@@ -357,7 +360,7 @@ async function autoImproveGameCode() {
             }
         }
         
-        // Write improved HTML
+        // Write improved HTML - SAVE BEFORE GIT OPERATIONS
         fs.writeFileSync(htmlPath, improvedHtml);
         console.log("✅ HTML improved! New size:", improvedHtml.length);
         addLog(`[AI COMMIT SUCCESS] ${improvementType} improved!`);
@@ -392,10 +395,11 @@ async function autoImproveGameCode() {
             addLog(`[AI EVOLUTION] AI evolved to Era ${aiState.aiEra}! New capabilities unlocked!`);
         }
         
-        // Save AI state
+        // Save states BEFORE git operations
+        saveWorldState();
         saveAIState();
         
-        // Push to GitHub
+        // Push to GitHub - FIXED: Don't change working directory
         if (GITHUB_TOKEN) {
             try {
                 const cleanToken = GITHUB_TOKEN.trim();
@@ -405,36 +409,52 @@ async function autoImproveGameCode() {
                 
                 const repoUrl = `https://${cleanToken}@github.com/edthedog-debug/dark-fantasy-civ.git`;
                 
+                // Check if we're in a git repo
                 try {
                     await executeGitCommand('git rev-parse --is-inside-work-tree');
+                    // We're in a git repo, just update remote and push
                     await executeGitCommand(`git remote set-url origin ${repoUrl}`);
                 } catch (gitError) {
-                    await executeGitCommand(`git clone ${repoUrl} /tmp/repo`);
-                    process.chdir('/tmp/repo');
+                    // Not in a git repo, initialize one
+                    await executeGitCommand('git init');
+                    await executeGitCommand(`git remote add origin ${repoUrl}`);
                 }
                 
-                const targetPath = path.join(process.cwd(), 'public', 'index.html');
-                fs.copyFileSync(htmlPath, targetPath);
-                
+                // Add and commit files WITHOUT changing directory
                 await executeGitCommand('git add public/index.html');
                 await executeGitCommand(`git commit -m "🤖 [AI] ${improvementType} #${aiState.improvementCount} - Day ${worldState.day} - Era ${aiState.aiEra}"`);
-                await executeGitCommand('git push origin main');
                 
-                console.log("✅ Pushed to GitHub!");
+                // Try to push, if fails, try force push
+                try {
+                    await executeGitCommand('git push origin main');
+                } catch (pushError) {
+                    console.log("⚠️ Normal push failed, trying force push...");
+                    await executeGitCommand('git push -f origin main');
+                }
+                
+                console.log("✅ Pushed to GitHub! Day continues:", worldState.day);
             } catch (gitError) {
                 console.error("❌ Git push failed:", gitError.message);
+                // Don't let git failure stop the simulation
             }
         }
+        
+        // Verify state is still correct after git operations
+        console.log("📅 Day verification after improvement:", worldState.day);
         
     } catch (err) {
         console.error("Error:", err.message);
         addLog(`[AI COMMIT ERROR] ${err.message}`);
+        // Make sure state is saved even if there's an error
+        saveWorldState();
+        saveAIState();
     }
 }
 
 // ASYNC SIMULATION TICK
 async function runSimulationTick() {
     worldState.day += 1;
+    console.log("📅 Day:", worldState.day);
 
     // AI Evolution affects world
     const aiBonus = aiState.aiEra * 0.1; // AI improves world systems
@@ -515,9 +535,17 @@ async function runSimulationTick() {
             worldState.era = `Transcendent Civilization Era ${aiState.aiEra + 1}`;
         }
         
+        // Save state BEFORE improvement
+        saveWorldState();
+        saveAIState();
+        
         await autoImproveGameCode();
+        
+        // Verify day hasn't been reset
+        console.log("📅 Day after improvement:", worldState.day);
     }
 
+    // Save state every tick
     saveWorldState();
     broadcastState();
 }
@@ -536,7 +564,7 @@ WSS.on('connection', (ws) => {
 
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
-    console.log(`📊 AI Evolution System initialized - Era ${aiState.aiEra}, ${aiState.improvementCount} improvements`);
+    console.log(`📊 AI Evolution System initialized - Day ${worldState.day}, Era ${aiState.aiEra}, ${aiState.improvementCount} improvements`);
     
     queryGemini("Say 'OK'")
         .then(response => {
