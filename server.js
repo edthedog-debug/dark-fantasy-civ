@@ -5,7 +5,6 @@ const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 const { exec } = require('child_process');
-const https = require('https');
 
 const APP = express();
 const PORT = process.env.PORT || 3000;
@@ -73,88 +72,70 @@ function addLog(msg) {
 }
 
 /**
- * GEMINI API - DETAILED DEBUG
+ * GEMINI API - USING CORRECT MODEL
  */
 async function queryGemini(prompt) {
     if (!AI_API_KEY) {
         console.error("❌ No GEMINI_API_KEY");
-        console.error("📋 Create one at: https://aistudio.google.com/app/apikey");
         return null;
     }
 
-    console.log("🔑 API key:", AI_API_KEY.substring(0, 20) + "...");
-    console.log("🔑 Key length:", AI_API_KEY.length);
-    console.log("🔑 Key starts with AIza:", AI_API_KEY.startsWith('AIza'));
+    console.log("🔑 API key:", AI_API_KEY.substring(0, 10) + "...");
     
-    // Try the simplest possible request
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${AI_API_KEY}`;
+    // Use the correct models from your available list
+    const models = [
+        'gemini-2.5-flash',      // Stable, fast, good for code
+        'gemini-3.5-flash',      // Newest flash
+        'gemini-2.5-flash-lite', // Lighter version
+        'gemini-flash-latest'    // Latest flash
+    ];
     
-    console.log("\n🔍 Trying simple request to gemini-2.0-flash...");
-    console.log("📍 URL:", url.replace(AI_API_KEY, "***"));
-    
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: prompt
-                    }]
-                }]
-            })
-        });
+    for (const model of models) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${AI_API_KEY}`;
         
-        console.log("📊 Status:", response.status);
+        console.log(`\n🔍 Probando: ${model}`);
         
-        const responseText = await response.text();
-        console.log("📝 Raw response:", responseText.substring(0, 500));
-        
-        if (response.ok) {
-            try {
-                const data = JSON.parse(responseText);
-                console.log("📦 Response keys:", Object.keys(data));
-                
-                // Check different response formats
-                if (data.candidates && data.candidates[0]) {
-                    console.log("📦 Candidate keys:", Object.keys(data.candidates[0]));
-                    
-                    if (data.candidates[0].content) {
-                        console.log("📦 Content keys:", Object.keys(data.candidates[0].content));
-                        
-                        if (data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
-                            console.log("📦 Part keys:", Object.keys(data.candidates[0].content.parts[0]));
-                            console.log("📝 Text:", data.candidates[0].content.parts[0].text);
-                            return data.candidates[0].content.parts[0].text;
-                        }
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: prompt
+                        }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 8192,
+                        topP: 0.95,
+                        topK: 40
                     }
-                    
-                    // Try other formats
-                    if (data.candidates[0].output) {
-                        console.log("📝 Output:", data.candidates[0].output);
-                        return data.candidates[0].output;
-                    }
+                })
+            });
+            
+            console.log("📊 Status:", response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (text && text.length > 0) {
+                    console.log(`✅ ¡Éxito con ${model}!`);
+                    console.log("📝 Longitud:", text.length);
+                    console.log("📝 Primeros 100 chars:", text.substring(0, 100));
+                    return text;
+                } else {
+                    console.error("❌ No text in response");
+                    console.error("📦 Full response:", JSON.stringify(data).substring(0, 300));
                 }
-                
-                // Try direct text
-                if (data.text) {
-                    console.log("📝 Direct text:", data.text);
-                    return data.text;
-                }
-                
-                console.error("❌ No text found in response");
-                console.error("📦 Full response:", JSON.stringify(data, null, 2));
-                
-            } catch (parseError) {
-                console.error("❌ JSON parse error:", parseError.message);
-                console.error("📝 Raw:", responseText.substring(0, 500));
+            } else {
+                const errorText = await response.text();
+                console.error(`❌ Error ${response.status}:`, errorText.substring(0, 200));
             }
-        } else {
-            console.error("❌ HTTP error:", response.status);
-            console.error("📝 Error body:", responseText.substring(0, 500));
+        } catch (e) {
+            console.error(`❌ Error con ${model}:`, e.message);
         }
-    } catch (e) {
-        console.error("❌ Fetch error:", e.message);
     }
     
     return null;
@@ -171,8 +152,6 @@ async function generateAIEvents() {
     try {
         const rawText = await queryGemini(prompt);
         if (rawText) {
-            console.log("📝 Raw response:", rawText.substring(0, 300));
-            
             const jsonMatch = rawText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 try {
@@ -188,7 +167,6 @@ async function generateAIEvents() {
     }
 
     if (!parsed || !parsed.event) {
-        console.log("⚠️ Usando fallback");
         const fallbacks = [
             { event: "Ancient dragon discovered new trade routes.", newPhilosophy: "Draconic Commerce", goldImpact: 150, happinessImpact: 5, techImpact: 0.15 },
             { event: "Dark wizards optimized mana distribution.", newPhilosophy: "Arcane Efficiency", goldImpact: 250, happinessImpact: 7, techImpact: 0.25 },
@@ -221,7 +199,7 @@ function executeGitCommand(command) {
 }
 
 /**
- * 2. AI CODE IMPROVEMENT - SIMPLIFIED
+ * 2. AI CODE IMPROVEMENT - WITH GEMINI 2.5 FLASH
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT...");
@@ -238,31 +216,80 @@ async function autoImproveGameCode() {
         const currentHtml = fs.readFileSync(htmlPath, 'utf8');
         console.log("📄 Current HTML:", currentHtml.length, "chars");
         
-        // Ask Gemini for a simple improvement
-        const prompt = "Write JavaScript code to add floating particles to a canvas. Return only the code.";
+        // Ask Gemini to improve the code
+        const prompt = `You are an expert game developer. Here is my HTML canvas game. Add visual improvements like particles, animations, and better graphics. Return the complete improved HTML code.
+
+Current code:
+${currentHtml.substring(0, 8000)}`;
         
-        console.log("🔍 Asking Gemini...");
-        const improvement = await queryGemini(prompt);
+        console.log("🔍 Asking Gemini 2.5 Flash...");
+        const improvedCode = await queryGemini(prompt);
         
-        if (!improvement) {
-            console.error("❌ Gemini returned no improvement");
-            addLog("[AI COMMIT ERROR] Gemini returned empty response. Check API key.");
+        if (!improvedCode || improvedCode.length < 100) {
+            console.error("❌ No improvement generated");
+            addLog("[AI COMMIT ERROR] No improvement generated.");
             return;
         }
         
-        console.log("✅ Got improvement! Length:", improvement.length);
+        console.log("✅ Got improvement! Length:", improvedCode.length);
         
-        // Apply whatever Gemini returned
-        let improvedHtml = currentHtml;
-        const codeToAdd = improvement.replace(/```/g, '').trim();
+        // Clean the code
+        let cleanCode = improvedCode;
+        cleanCode = cleanCode.replace(/```html/gi, '').replace(/```/g, '').trim();
         
-        if (improvedHtml.includes('</script>')) {
-            improvedHtml = improvedHtml.replace('</script>', `\n// AI Improvement\n${codeToAdd}\n</script>`);
+        // Find HTML start
+        const htmlStart = cleanCode.indexOf('<!DOCTYPE html>');
+        if (htmlStart > 0) {
+            cleanCode = cleanCode.substring(htmlStart);
         }
         
-        fs.writeFileSync(htmlPath, improvedHtml);
-        console.log("✅ HTML updated!");
-        addLog("[AI COMMIT SUCCESS] Code improved!");
+        // Find HTML end
+        const htmlEnd = cleanCode.lastIndexOf('</html>');
+        if (htmlEnd > 0) {
+            cleanCode = cleanCode.substring(0, htmlEnd + 7);
+        }
+        
+        if (cleanCode.length < 500) {
+            console.error("❌ Code too short after cleaning:", cleanCode.length);
+            addLog("[AI COMMIT ERROR] Code too short.");
+            return;
+        }
+        
+        // Write improved HTML
+        fs.writeFileSync(htmlPath, cleanCode);
+        console.log("✅ HTML improved! New size:", cleanCode.length);
+        addLog("[AI COMMIT SUCCESS] Code improved with Gemini!");
+        
+        // Push to GitHub
+        if (GITHUB_TOKEN) {
+            try {
+                const cleanToken = GITHUB_TOKEN.trim();
+                
+                await executeGitCommand('git config --global user.email "ai@example.com"');
+                await executeGitCommand('git config --global user.name "AI Auto-Improver"');
+                
+                const repoUrl = `https://${cleanToken}@github.com/edthedog-debug/dark-fantasy-civ.git`;
+                
+                try {
+                    await executeGitCommand('git rev-parse --is-inside-work-tree');
+                    await executeGitCommand(`git remote set-url origin ${repoUrl}`);
+                } catch (gitError) {
+                    await executeGitCommand(`git clone ${repoUrl} /tmp/repo`);
+                    process.chdir('/tmp/repo');
+                }
+                
+                const targetPath = path.join(process.cwd(), 'public', 'index.html');
+                fs.copyFileSync(htmlPath, targetPath);
+                
+                await executeGitCommand('git add public/index.html');
+                await executeGitCommand(`git commit -m "🤖 [AI] Improved code with Gemini 2.5 Flash"`);
+                await executeGitCommand('git push origin main');
+                
+                console.log("✅ Pushed to GitHub!");
+            } catch (gitError) {
+                console.error("❌ Git push failed:", gitError.message);
+            }
+        }
         
     } catch (err) {
         console.error("Error:", err.message);
@@ -270,7 +297,7 @@ async function autoImproveGameCode() {
     }
 }
 
-// ASYNC SIMULATION TICK (unchanged)
+// ASYNC SIMULATION TICK
 async function runSimulationTick() {
     worldState.day += 1;
 
@@ -340,7 +367,7 @@ async function runSimulationTick() {
 
     if (worldState.day % 100 === 0) {
         const patch = Math.floor(Math.random() * 9) + 1;
-        worldState.engineBuild = "v2." + patch + ".0-Gemini-AI";
+        worldState.engineBuild = "v2." + patch + ".0-Gemini-2.5";
         await autoImproveGameCode();
     }
 
@@ -360,26 +387,17 @@ WSS.on('connection', (ws) => {
 
 SERVER.listen(PORT, () => {
     console.log("🚀 Server active on port " + PORT);
-    console.log("\n═══════════════════════════════════════");
-    console.log("🔍 GEMINI DIAGNOSTIC TEST");
-    console.log("═══════════════════════════════════════\n");
+    console.log("\n🔍 TESTING GEMINI 2.5 FLASH...");
     
-    queryGemini("Say 'OK'")
+    queryGemini("Say 'OK' if you can read this")
         .then(response => {
             if (response) {
                 console.log("\n✅ GEMINI WORKS!");
-                console.log("📝 Response:", response);
-                addLog("[SYSTEM] Gemini connected successfully.");
+                console.log("📝 Response:", response.substring(0, 50));
+                addLog("[SYSTEM] Gemini 2.5 Flash connected!");
             } else {
-                console.log("\n❌ GEMINI FAILED");
-                console.log("\n📋 TROUBLESHOOTING:");
-                console.log("1. Check API key is correct (starts with AIza...)");
-                console.log("2. Go to: https://aistudio.google.com/app/apikey");
-                console.log("3. Create NEW API key");
-                console.log("4. Make sure project is: gen-lang-client-0370706376");
-                console.log("5. Update GEMINI_API_KEY in Render");
-                console.log("6. Restart service");
-                addLog("[SYSTEM ERROR] Gemini failed. Create new API key.");
+                console.log("\n❌ Gemini failed");
+                addLog("[SYSTEM ERROR] Gemini failed.");
             }
         });
 });
