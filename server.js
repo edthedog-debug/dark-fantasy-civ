@@ -65,21 +65,13 @@ function broadcastState() {
     });
 }
 
-function addLog(msg) {
-    const logEntry = `[${new Date().toLocaleTimeString()}] ${msg}`;
-    worldState.logs.unshift(logEntry);
-    if (worldState.logs.length > 50) worldState.logs.pop();
-    saveWorldState();
-    broadcastState();
-}
-
 /**
- * GEMINI REST API HELPER (Native v1 Endpoint with Fallback)
+ * GEMINI REST API HELPER
  */
 async function queryGemini(prompt) {
     if (!AI_API_KEY) return null;
 
-    const models = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'];
+    const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
 
     for (const model of models) {
         try {
@@ -97,7 +89,7 @@ async function queryGemini(prompt) {
                 if (text) return text;
             }
         } catch (e) {
-            // Fallthrough to next model
+            // Continuar con el siguiente modelo si falla
         }
     }
 
@@ -142,7 +134,6 @@ async function generateAIEvents() {
         parsed = null;
     }
 
-    // Procedural narrative fallback when external AI services are unavailable
     if (!parsed || !parsed.event) {
         const fallbacks = [
             { event: "Automated trade routes expanded to neighboring sectors.", newPhilosophy: "Rational Pragmatism", goldImpact: 120, happinessImpact: 4, techImpact: 0.1 },
@@ -154,41 +145,39 @@ async function generateAIEvents() {
 
     addLog(`[AI THOUGHT] ${parsed.event}`);
 
-    if (parsed.newPhilosophy) {
-        worldState.philosophy = parsed.newPhilosophy;
-    }
-    if (typeof parsed.goldImpact === 'number') {
-        worldState.treasury = Math.max(0, worldState.treasury + parsed.goldImpact);
-    }
-    if (typeof parsed.happinessImpact === 'number') {
-        worldState.happiness = Math.min(100, Math.max(10, worldState.happiness + parsed.happinessImpact));
-    }
-    if (typeof parsed.techImpact === 'number') {
-        worldState.techPower += Math.max(0, parsed.techImpact);
-    }
+    if (parsed.newPhilosophy) worldState.philosophy = parsed.newPhilosophy;
+    if (typeof parsed.goldImpact === 'number') worldState.treasury = Math.max(0, worldState.treasury + parsed.goldImpact);
+    if (typeof parsed.happinessImpact === 'number') worldState.happiness = Math.min(100, Math.max(10, worldState.happiness + parsed.happinessImpact));
+    if (typeof parsed.techImpact === 'number') worldState.techPower += Math.max(0, parsed.techImpact);
 }
 
 /**
  * 2. AI GRAPHICS & CODE REFACTOR ENGINE (GITHUB AUTO-COMMIT)
  */
 async function autoImproveGameCode() {
-    if (!GITHUB_TOKEN || !GITHUB_REPO) return;
+    if (!GITHUB_TOKEN || !GITHUB_REPO) {
+        addLog(`[AI COMMIT ERROR] Faltan las variables GITHUB_TOKEN o GITHUB_REPO en Render.`);
+        return;
+    }
 
     console.log("🤖 AI starting Code Refactor & Graphics Upgrade cycle...");
     addLog(`[AI AUTO-CODING] Analyzing frontend engine to improve rendering & feature set...`);
 
     try {
-        // CORREGIDO: URL limpia con interpolación mediante backticks
+        // URL limpia sin marcas Markdown de formato roto
         const fileUrl = `[https://api.github.com/repos/$](https://api.github.com/repos/$){GITHUB_REPO}/contents/public/index.html`;
+
         const getFile = await fetch(fileUrl, {
             headers: { 
                 'Authorization': `token ${GITHUB_TOKEN}`, 
-                'User-Agent': 'Node-AI-Server' 
+                'User-Agent': 'Node-AI-Server',
+                'Accept': 'application/vnd.github.v3+json'
             }
         });
 
         if (!getFile.ok) {
-            addLog(`[AI AUTO-CODING] Error fetching repository file: ${getFile.statusText}`);
+            const getErr = await getFile.json();
+            addLog(`[AI COMMIT ERROR] GitHub GET falló (${getFile.status}): ${getErr.message}`);
             return;
         }
 
@@ -205,55 +194,130 @@ async function autoImproveGameCode() {
         5. Return ONLY the raw, complete, valid HTML file code without markdown syntax or triple backticks.`;
 
         let newCode = await queryGemini(prompt);
-        if (!newCode) return;
+        if (!newCode) {
+            addLog(`[AI COMMIT ERROR] La API de Gemini no devolvió código.`);
+            return;
+        }
 
-        // Limpiar sintaxis markdown si la IA la añade por error
-        newCode = newCode.replace(/```(?:html)?/gi, '').replace(/```/g, '').trim();
+        newCode = newCode.replace(/```(?:html)?/gi, '').trim();
 
-        // Enviar commit actualizado a GitHub
-        const updateRes = await fetch(fileUrl, {
+        const updatedContentBase64 = Buffer.from(newCode).toString('base64');
+        const commitResponse = await fetch(fileUrl, {
             method: 'PUT',
             headers: {
                 'Authorization': `token ${GITHUB_TOKEN}`,
                 'Content-Type': 'application/json',
-                'User-Agent': 'Node-AI-Server'
+                'User-Agent': 'Node-AI-Server',
+                'Accept': 'application/vnd.github.v3+json'
             },
             body: JSON.stringify({
-                message: "🤖 AI: Refactored canvas graphics & system stability",
-                content: Buffer.from(newCode).toString('base64'),
+                message: `🤖 [AI Auto-Upgrade] Refactored frontend engine to ${worldState.engineBuild}`,
+                content: updatedContentBase64,
                 sha: currentSha
             })
         });
 
-        if (updateRes.ok) {
-            addLog(`[AI AUTO-CODING] Successfully committed upgraded index.html to GitHub!`);
+        if (commitResponse.ok) {
+            addLog(`[AI COMMIT SUCCESS] Pushed graphics & engine improvements to GitHub! Auto-deploying...`);
         } else {
-            const errData = await updateRes.json();
-            addLog(`[AI AUTO-CODING] GitHub commit failed: ${errData.message}`);
+            const commitErr = await commitResponse.json();
+            addLog(`[AI COMMIT ERROR] GitHub PUT falló (${commitResponse.status}): ${commitErr.message}`);
         }
     } catch (err) {
-        addLog(`Auto-code commit error: ${err.message}`);
+        console.error("Auto-code commit error:", err.message);
+        addLog(`[AI COMMIT ERROR] ${err.message}`);
     }
 }
 
-// Bucle principal de simulación del mundo
-setInterval(async () => {
+// SIMULACIÓN
+setInterval(() => {
     worldState.day += 1;
-    await generateAIEvents();
+
+    if (worldState.treasury <= 0 && worldState.happiness < 50) {
+        worldState.treasury += 300;
+        worldState.happiness = Math.min(100, worldState.happiness + 25);
+        addLog(`[RECOVERY] Sovereign Reserve injected 300 Gold & restored public confidence!`);
+    }
+
+    let moraleProductivity = 1.0;
+    if (worldState.happiness >= 80) moraleProductivity = 1.5;
+    else if (worldState.happiness >= 50) moraleProductivity = 1.0;
+    else if (worldState.happiness >= 30) moraleProductivity = 0.6;
+    else moraleProductivity = 0.35;
+
+    const baseTaxPerCitizen = 12;
+    const techMultiplier = 1 + (worldState.techPower * 0.4);
+    const grossIncome = Math.floor(worldState.population * baseTaxPerCitizen * moraleProductivity * techMultiplier);
+
+    const citizenServicesUpkeep = Math.floor(worldState.population * 3);
+    const militaryMaintenance = worldState.tanks * 15;
+    const totalExpenses = citizenServicesUpkeep + militaryMaintenance;
+
+    const netProfit = grossIncome - totalExpenses;
+    worldState.treasury = Math.max(0, worldState.treasury + netProfit);
+
+    if (netProfit < 0 && worldState.day % 6 === 0) {
+        addLog(`[ECONOMY ALERT] Fiscal deficit! Daily net loss: ${netProfit} Gold.`);
+    }
+
+    worldState.techPower += 0.01;
+
+    if (worldState.happiness > 75 && worldState.treasury > 100 && worldState.day % 4 === 0) {
+        worldState.population += 1;
+        addLog(`[DEMOGRAPHICS] Prosperous conditions attracted 1 immigrant. Pop: ${worldState.population}`);
+    } else if (worldState.happiness < 35 && worldState.population > 1 && worldState.day % 4 === 0) {
+        worldState.population -= 1;
+        addLog(`[DEMOGRAPHICS] 1 Citizen emigrated due to poor living conditions.`);
+    }
+
+    if (worldState.treasury > 1500) {
+        worldState.treasury -= 400;
+        worldState.techPower += 0.2;
+        worldState.happiness = Math.min(100, worldState.happiness + 4);
+        addLog(`[ECONOMY] Reinvested 400 Gold into Tech R&D and Public Services.`);
+    }
+
+    if (worldState.treasury > 2500 && worldState.tanks < 12) {
+        worldState.treasury -= 600;
+        worldState.tanks += 1;
+        addLog(`[DEFENSE] Manufactured 1 Heavy Defense Unit for 600 Gold.`);
+    }
+
+    if (worldState.treasury > 15000) {
+        worldState.economicPower = "Global Economic Superpower";
+    } else if (worldState.treasury > 6000) {
+        worldState.economicPower = "Major Financial Hub";
+    } else if (worldState.treasury > 2500) {
+        worldState.economicPower = "Thriving Market Economy";
+    } else {
+        worldState.economicPower = "Emerging Market";
+    }
+
+    if (worldState.day % 10 === 0) {
+        generateAIEvents();
+    }
+
+    if (worldState.day % 100 === 0) {
+        const patch = Math.floor(Math.random() * 9) + 1;
+        worldState.engineBuild = `v2.${patch}.0-Generative-AI`;
+        autoImproveGameCode();
+    }
+
+    if (worldState.logs.length > 25) worldState.logs.shift();
+
     saveWorldState();
     broadcastState();
-}, 60000); // Se ejecuta cada minuto
+}, 4000);
 
-// Bucle secundario de mejora de código (cada 30 minutos)
-setInterval(async () => {
-    await autoImproveGameCode();
-}, 1800000);
+function addLog(msg) {
+    const time = new Date().toLocaleTimeString();
+    worldState.logs.push(`[${time}] ${msg}`);
+}
 
-// Rutas de API básicas
-APP.get('/api/state', (req, res) => {
-    res.json(worldState);
+WSS.on('connection', (ws) => {
+    ws.send(JSON.stringify({ type: 'WORLD_UPDATE', data: worldState }));
 });
 
 SERVER.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`🚀 AI Self-Improving Server active on port ${PORT}`);
 });
