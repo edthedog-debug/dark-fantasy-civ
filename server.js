@@ -174,13 +174,14 @@ async function autoImproveGameCode() {
         const cleanRepo = GITHUB_REPO.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
         const cleanToken = GITHUB_TOKEN.trim(); 
         const apiDomain = 'https://api.github.com/repos/';
-        const filePath = 'public/index.html';
-
+        const publicFolderPath = 'public';
+        const filePath = 'public/index.html'; // Full path for the PUT request
+        
         let currentSha = null;
         let selectedBranch = 'main';
 
-        // Método robusto: consultar primero la carpeta 'public' para obtener el SHA exacto sin errores 404 de ruta interna
-        let getUrl = `${apiDomain}${cleanRepo}/contents/public?ref=main`;
+        // Robust method: First query the 'public' folder to get the exact SHA without 404 errors
+        let getUrl = `${apiDomain}${cleanRepo}/contents/${publicFolderPath}?ref=main`;
         let getFile = await fetch(getUrl, {
             headers: { 
                 'Authorization': `Bearer ${cleanToken}`, 
@@ -198,9 +199,9 @@ async function autoImproveGameCode() {
             }
         }
 
-        // Si no se encuentra en main, probamos con master
+        // If not found in main, try master branch
         if (!currentSha) {
-            getUrl = `${apiDomain}${cleanRepo}/contents/public?ref=master`;
+            getUrl = `${apiDomain}${cleanRepo}/contents/${publicFolderPath}?ref=master`;
             getFile = await fetch(getUrl, {
                 headers: { 
                     'Authorization': `Bearer ${cleanToken}`, 
@@ -219,8 +220,26 @@ async function autoImproveGameCode() {
             }
         }
 
+        // If not found in public/ folder, try repository root
         if (!currentSha) {
-            addLog("[AI COMMIT ERROR] GitHub GET failed: Could not locate index.html inside public/ folder.");
+            getUrl = `${apiDomain}${cleanRepo}/contents/${filePath}?ref=main`;
+            getFile = await fetch(getUrl, {
+                headers: { 
+                    'Authorization': `Bearer ${cleanToken}`, 
+                    'User-Agent': 'Node-AI-Server',
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+
+            if (getFile.ok) {
+                const fileData = await getFile.json();
+                currentSha = fileData.sha;
+                selectedBranch = 'main';
+            }
+        }
+
+        if (!currentSha) {
+            addLog("[AI COMMIT ERROR] GitHub GET failed: Could not locate index.html in public/ folder or repository root.");
             return;
         }
 
