@@ -176,7 +176,7 @@ async function autoImproveGameCode() {
         const cleanToken = GITHUB_TOKEN.trim(); 
         
         const apiDomain = 'https://api.github.com/repos/';
-        const filePath = 'public/index.html'; // Target directly to public/index.html
+        const filePath = 'public/index.html'; // Target explicitly to public/index.html
 
         let currentSha = null;
         let selectedBranch = 'main';
@@ -218,7 +218,7 @@ async function autoImproveGameCode() {
             return;
         }
 
-        const prompt = "You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'index.html' for an autonomous isometric economic empire simulator.\n\n" +
+        const prompt = "You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'public/index.html' for an autonomous isometric economic empire simulator.\n\n" +
         "CRITICAL RULES:\n" +
         "1. Keep the HTML structure, canvas element ID ('gameCanvas'), and WebSocket listener logic intact so the map never renders blank or loses server updates.\n" +
         "2. Keep ALL UI text, labels, status badges, and logs strictly in ENGLISH.\n" +
