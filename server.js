@@ -167,7 +167,8 @@ async function autoImproveGameCode() {
         const cleanRepo = GITHUB_REPO.trim();
         const cleanToken = GITHUB_TOKEN.trim(); // Clean invisible spaces from environment variable
         
-        const apiDomain = '[https://api.github.com/repos/](https://api.github.com/repos/)';
+        const apiDomain = 'https://api.github.com/repos/';
+
         
         // Add ?ref=main to explicitly force reading from the correct branch
         const getUrl = apiDomain + cleanRepo + '/contents/public/index.html?ref=main';
