@@ -159,7 +159,7 @@ async function generateAIEvents() {
 }
 
 /**
- * 2. AI GRAPHICS & CODE REFACTOR ENGINE (GITHUB AUTO-COMMIT) - ROBUST FIX
+ * 2. AI GRAPHICS & CODE REFACTOR ENGINE (GITHUB AUTO-COMMIT) - FIXED FOR edthedog-debug/dark-fantasy-civ
  */
 async function autoImproveGameCode() {
     if (!GITHUB_TOKEN || !GITHUB_REPO) {
@@ -175,11 +175,10 @@ async function autoImproveGameCode() {
         const cleanToken = GITHUB_TOKEN.trim(); 
         const apiDomain = 'https://api.github.com/repos/';
         
-        // First, verify repository access and get default branch
+        // Get repository info to find default branch
+        console.log("🔍 Getting repository info...");
         const repoUrl = `${apiDomain}${cleanRepo}`;
-        console.log("🔍 Testing repository access:", repoUrl);
-        
-        const repoCheck = await fetch(repoUrl, {
+        const repoResponse = await fetch(repoUrl, {
             headers: { 
                 'Authorization': `Bearer ${cleanToken}`, 
                 'User-Agent': 'Node-AI-Server',
@@ -187,43 +186,40 @@ async function autoImproveGameCode() {
             }
         });
         
-        if (!repoCheck.ok) {
-            const repoError = await repoCheck.json();
-            console.error("❌ Repository access failed:", repoCheck.status, repoError.message);
-            addLog(`[AI COMMIT ERROR] Repository access failed (${repoCheck.status}): ${repoError.message}`);
+        if (!repoResponse.ok) {
+            const errorData = await repoResponse.json();
+            console.error("❌ Repository access failed:", repoResponse.status, errorData.message);
+            addLog(`[AI COMMIT ERROR] Repository access failed (${repoResponse.status}): ${errorData.message}`);
             return;
         }
         
-        const repoInfo = await repoCheck.json();
+        const repoInfo = await repoResponse.json();
+        const defaultBranch = repoInfo.default_branch || 'main';
         console.log("✅ Repository found:", repoInfo.full_name);
-        console.log("📊 Default branch:", repoInfo.default_branch);
+        console.log("📊 Default branch:", defaultBranch);
 
-        // Try different possible file locations and branches
-        const possibleBranches = [repoInfo.default_branch, 'main', 'master'];
+        // Try to get the file directly from common locations
         const possiblePaths = [
-            'index.html',
             'public/index.html',
+            'index.html',
             'src/index.html',
             'dist/index.html',
-            'frontend/index.html',
-            'client/index.html',
             'web/index.html',
-            'app/index.html',
-            'views/index.html',
-            'static/index.html'
+            'app/index.html'
         ];
         
         let fileFound = false;
         let currentSha = null;
-        let selectedBranch = null;
+        let selectedBranch = defaultBranch;
         let selectedPath = null;
 
-        // Search for the file in different locations and branches
-        for (const branch of possibleBranches) {
-            for (const filePath of possiblePaths) {
-                const getUrl = `${apiDomain}${cleanRepo}/contents/${filePath}?ref=${branch}`;
-                console.log(`🔍 Checking: ${filePath} on ${branch} branch`);
-                
+        // First, try the most likely path for this repository
+        console.log("🔍 Trying to find index.html...");
+        
+        for (const filePath of possiblePaths) {
+            const getUrl = `${apiDomain}${cleanRepo}/contents/${filePath}?ref=${defaultBranch}`;
+            
+            try {
                 const getFile = await fetch(getUrl, {
                     headers: { 
                         'Authorization': `Bearer ${cleanToken}`, 
@@ -234,26 +230,29 @@ async function autoImproveGameCode() {
                 
                 if (getFile.ok) {
                     const fileData = await getFile.json();
-                    if (fileData.type === 'file' && fileData.name === 'index.html') {
+                    if (fileData.type === 'file') {
                         currentSha = fileData.sha;
-                        selectedBranch = branch;
                         selectedPath = filePath;
                         fileFound = true;
-                        console.log(`✅ Found index.html at: ${filePath} on ${branch} branch`);
+                        console.log(`✅ Found index.html at: ${filePath}`);
                         break;
                     }
-                } else if (getFile.status !== 404) {
-                    // If it's not a 404, log the actual error
-                    console.error(`⚠️ Error checking ${filePath}:`, getFile.status);
+                } else if (getFile.status === 404) {
+                    console.log(`⚠️ Not found at: ${filePath}`);
+                } else {
+                    console.log(`⚠️ Error ${getFile.status} checking: ${filePath}`);
                 }
+            } catch (fetchError) {
+                console.log(`⚠️ Fetch error for ${filePath}:`, fetchError.message);
             }
-            if (fileFound) break;
         }
 
-        // If file not found directly, try to list repository contents
+        // If not found, try to list the repository contents
         if (!fileFound) {
-            console.log("🔍 Trying to list repository root contents...");
-            const rootUrl = `${apiDomain}${cleanRepo}/contents/?ref=${repoInfo.default_branch}`;
+            console.log("🔍 Listing repository contents to find index.html...");
+            
+            // List root directory
+            const rootUrl = `${apiDomain}${cleanRepo}/contents/?ref=${defaultBranch}`;
             const rootResponse = await fetch(rootUrl, {
                 headers: { 
                     'Authorization': `Bearer ${cleanToken}`, 
@@ -264,32 +263,31 @@ async function autoImproveGameCode() {
             
             if (rootResponse.ok) {
                 const rootContents = await rootResponse.json();
-                console.log("📁 Repository root contents:", rootContents.map(item => item.name).join(', '));
+                console.log("📁 Root contents:", rootContents.map(item => `${item.type}:${item.name}`).join(', '));
                 
-                // Look for public folder
-                const publicFolder = rootContents.find(item => item.type === 'dir' && item.name === 'public');
-                if (publicFolder) {
-                    console.log("🔍 Found public folder, listing its contents...");
-                    const publicUrl = `${apiDomain}${cleanRepo}/contents/public?ref=${repoInfo.default_branch}`;
-                    const publicResponse = await fetch(publicUrl, {
-                        headers: { 
-                            'Authorization': `Bearer ${cleanToken}`, 
-                            'User-Agent': 'Node-AI-Server',
-                            'Accept': 'application/vnd.github.v3+json'
-                        }
-                    });
-                    
-                    if (publicResponse.ok) {
-                        const publicContents = await publicResponse.json();
-                        console.log("📁 Public folder contents:", publicContents.map(item => item.name).join(', '));
+                // Look for directories and search in them
+                for (const item of rootContents) {
+                    if (item.type === 'dir' && !['node_modules', '.git', '.github'].includes(item.name)) {
+                        const dirUrl = `${apiDomain}${cleanRepo}/contents/${item.name}?ref=${defaultBranch}`;
+                        const dirResponse = await fetch(dirUrl, {
+                            headers: { 
+                                'Authorization': `Bearer ${cleanToken}`, 
+                                'User-Agent': 'Node-AI-Server',
+                                'Accept': 'application/vnd.github.v3+json'
+                            }
+                        });
                         
-                        const indexFile = publicContents.find(item => item.type === 'file' && item.name === 'index.html');
-                        if (indexFile) {
-                            currentSha = indexFile.sha;
-                            selectedBranch = repoInfo.default_branch;
-                            selectedPath = 'public/index.html';
-                            fileFound = true;
-                            console.log(`✅ Found index.html in public folder`);
+                        if (dirResponse.ok) {
+                            const dirContents = await dirResponse.json();
+                            const indexFile = dirContents.find(f => f.type === 'file' && f.name === 'index.html');
+                            
+                            if (indexFile) {
+                                currentSha = indexFile.sha;
+                                selectedPath = `${item.name}/index.html`;
+                                fileFound = true;
+                                console.log(`✅ Found index.html in ${item.name}/ folder`);
+                                break;
+                            }
                         }
                     }
                 }
@@ -297,10 +295,14 @@ async function autoImproveGameCode() {
         }
 
         if (!fileFound || !currentSha) {
-            addLog("[AI COMMIT ERROR] GitHub GET failed: Could not locate index.html in repository. Please check file structure.");
-            console.error("❌ Available paths checked:", possiblePaths.join(', '));
+            console.error("❌ Could not find index.html in repository");
+            addLog("[AI COMMIT ERROR] Could not locate index.html in repository. Please check file structure.");
             return;
         }
+
+        console.log(`🎯 Using file: ${selectedPath}`);
+        console.log(`🎯 Branch: ${selectedBranch}`);
+        console.log(`🎯 SHA: ${currentSha}`);
 
         const prompt = "You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'index.html' for an autonomous isometric economic empire simulator.\n\n" +
         "CRITICAL RULES:\n" +
