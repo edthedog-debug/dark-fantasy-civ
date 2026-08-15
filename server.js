@@ -163,7 +163,6 @@ async function autoImproveGameCode() {
     addLog("[AI AUTO-CODING] Analyzing frontend engine to improve rendering & feature set...");
 
     try {
-        // String concatenation prevents markdown parsing corruption
         const cleanRepo = GITHUB_REPO.trim();
         const fileUrl = '[https://api.github.com/repos/](https://api.github.com/repos/)' + cleanRepo + '/contents/public/index.html';
 
