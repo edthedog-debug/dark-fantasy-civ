@@ -35,37 +35,29 @@ let worldState = {
     economicPower: "Emerging Market",
     engineBuild: "v2.0.0-AI-Cloud",
     inWar: false,
+    improvements: [], // Historial de mejoras
     logs: [
         "[" + new Date().toLocaleTimeString() + "] Autonomous Cloud Engine Initialized."
     ]
 };
 
-// CARGAR ESTADO GUARDADO - CRÍTICO PARA CONTINUIDAD
 if (fs.existsSync(STATE_FILE)) {
     try {
         const rawData = fs.readFileSync(STATE_FILE, 'utf8');
         const savedState = JSON.parse(rawData);
-        
-        // Verificar que el estado guardado es válido
         if (savedState && typeof savedState.day === 'number') {
             worldState = savedState;
             console.log("✅ Estado cargado: Día", worldState.day);
-            console.log("📊 Población:", worldState.population);
-            console.log("💰 Tesoro:", worldState.treasury);
-            console.log("🏛️ Filosofía:", worldState.philosophy);
-        } else {
-            console.log("⚠️ Estado guardado inválido, usando estado inicial");
+            console.log("🎨 Mejoras aplicadas:", worldState.improvements?.length || 0);
         }
     } catch (e) {
         console.error("❌ Error cargando estado:", e.message);
-        console.log("⚠️ Usando estado inicial");
     }
 }
 
 function saveWorldState() {
     try {
         fs.writeFileSync(STATE_FILE, JSON.stringify(worldState, null, 2));
-        console.log("💾 Estado guardado: Día", worldState.day);
     } catch (err) {
         console.error("❌ Error guardando estado:", err);
     }
@@ -87,12 +79,11 @@ function addLog(msg) {
 }
 
 /**
- * GEMINI API - ALWAYS RETURNS SOMETHING
+ * GEMINI API
  */
 async function queryGemini(prompt) {
     if (!AI_API_KEY) {
-        console.error("❌ No GEMINI_API_KEY");
-        return "// No API key - using default\nconsole.log('AI System active');";
+        return null;
     }
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${AI_API_KEY}`;
@@ -104,8 +95,8 @@ async function queryGemini(prompt) {
             body: JSON.stringify({
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 2048
+                    temperature: 1.0, // Máxima creatividad
+                    maxOutputTokens: 4096
                 }
             })
         });
@@ -121,7 +112,7 @@ async function queryGemini(prompt) {
         console.error("❌ Fetch error:", e.message);
     }
     
-    return "// Gemini unavailable\nconsole.log('Dark Fantasy System - Day " + worldState.day + "');";
+    return null;
 }
 
 /**
@@ -134,7 +125,7 @@ async function generateAIEvents() {
 
     try {
         const rawText = await queryGemini(prompt);
-        if (rawText && !rawText.startsWith("//")) {
+        if (rawText) {
             const jsonMatch = rawText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 try {
@@ -181,40 +172,71 @@ function executeGitCommand(command) {
 }
 
 /**
- * 2. AI CODE IMPROVEMENT - PRESERVES STATE
+ * 2. AI CODE IMPROVEMENT - INFINITE AND SELF-CREATIVE
  */
 async function autoImproveGameCode() {
-    console.log("\n🤖 AI CODE IMPROVEMENT...");
-    addLog("[AI AUTO-CODING] Applying AI improvement...");
+    console.log("\n🤖 AI CREATIVE IMPROVEMENT...");
+    addLog("[AI AUTO-CODING] Gemini is creating a NEW unique improvement...");
 
     try {
         const htmlPath = path.join(__dirname, 'public', 'index.html');
         
         if (!fs.existsSync(htmlPath)) {
             console.error("❌ index.html not found");
-            addLog("[AI COMMIT ERROR] index.html not found.");
             return;
         }
         
         const currentHtml = fs.readFileSync(htmlPath, 'utf8');
-        console.log("📄 Current HTML:", currentHtml.length, "chars");
         
-        const prompt = "Write a JavaScript function that creates a visual effect on a canvas. Return only the code.";
+        // Lista de mejoras ya aplicadas
+        const appliedImprovements = worldState.improvements || [];
+        const improvementNumber = appliedImprovements.length + 1;
         
-        console.log("🔍 Asking Gemini...");
+        console.log("🎨 Creando mejora #" + improvementNumber + "...");
+        console.log("📜 Mejoras anteriores:", appliedImprovements.join(", ") || "ninguna");
+        
+        // Prompt que pide a Gemini crear algo NUEVO y ÚNICO
+        const prompt = `You are a creative game developer for a dark fantasy civilization game.
+
+Previous improvements already applied:
+${appliedImprovements.length > 0 ? appliedImprovements.map((imp, i) => `${i + 1}. ${imp}`).join('\n') : "None yet"}
+
+Create improvement #${improvementNumber} that is COMPLETELY DIFFERENT from all previous improvements.
+
+Think of something new and creative - could be:
+- New visual effects never seen before
+- Unique animations
+- Special particle systems
+- Magical phenomena
+- Weather effects
+- Terrain transformations
+- Building enhancements
+- Creature animations
+- Celestial events
+- Anything creative you can imagine
+
+Write JavaScript code for this new improvement. Return ONLY the JavaScript code.`;
+        
+        console.log("🔍 Pidiendo mejora creativa a Gemini...");
         const aiResponse = await queryGemini(prompt);
         
-        console.log("✅ Got response! Length:", aiResponse.length);
+        if (!aiResponse || aiResponse.length < 20) {
+            console.error("❌ Gemini no generó mejora");
+            addLog("[AI COMMIT ERROR] Gemini no generó mejora válida.");
+            return;
+        }
         
         let codeToAdd = aiResponse.replace(/```javascript/gi, '').replace(/```js/gi, '').replace(/```/g, '').trim();
         
-        if (codeToAdd.length < 10) {
-            codeToAdd = "// AI improvement applied\nconsole.log('Dark Fantasy System improved');";
-        }
+        // Crear nombre para la mejora
+        const improvementName = `Mejora #${improvementNumber} - Día ${worldState.day}`;
         
-        // Apply to HTML
+        // Guardar en historial
+        worldState.improvements.push(improvementName);
+        
+        // Aplicar al HTML
         let improvedHtml = currentHtml;
-        const improvementBlock = `\n// === AI IMPROVEMENT (Day ${worldState.day}) ===\n${codeToAdd}\n`;
+        const improvementBlock = `\n// === ${improvementName} ===\n// Creado por Gemini 2.5 Flash\n${codeToAdd}\n`;
         
         if (improvedHtml.includes('</script>')) {
             improvedHtml = improvedHtml.replace('</script>', improvementBlock + '</script>');
@@ -224,13 +246,12 @@ async function autoImproveGameCode() {
             improvedHtml += `\n<script>${improvementBlock}</script>`;
         }
         
-        // GUARDAR ESTADO ANTES DE ESCRIBIR HTML
         saveWorldState();
-        
-        // Write improved HTML
         fs.writeFileSync(htmlPath, improvedHtml);
-        console.log("✅ HTML improved! State preserved at Day", worldState.day);
-        addLog("[AI COMMIT SUCCESS] Code improved! Civilization continues!");
+        
+        console.log("✅ Mejora #" + improvementNumber + " aplicada!");
+        console.log("📝 Código generado:", codeToAdd.substring(0, 200) + "...");
+        addLog(`[AI CREATIVE] ${improvementName} aplicada!`);
         
         // Push to GitHub
         if (GITHUB_TOKEN) {
@@ -254,7 +275,7 @@ async function autoImproveGameCode() {
                 fs.copyFileSync(htmlPath, targetPath);
                 
                 await executeGitCommand('git add public/index.html');
-                await executeGitCommand(`git commit -m "🤖 [AI] Improvement Day ${worldState.day}"`);
+                await executeGitCommand(`git commit -m "🤖 [AI Creative] ${improvementName}"`);
                 await executeGitCommand('git push origin main');
                 
                 console.log("✅ Pushed to GitHub!");
@@ -333,19 +354,16 @@ async function runSimulationTick() {
         worldState.economicPower = "Emerging Market";
     }
 
-    // AI Event every 30 days
     if (worldState.day % 30 === 0) {
         await generateAIEvents();
     }
 
-    // Code improvement every 50 days
     if (worldState.day % 50 === 0) {
         const patch = Math.floor(Math.random() * 9) + 1;
-        worldState.engineBuild = "v2." + patch + ".0-Gemini-2.5";
+        worldState.engineBuild = "v2." + patch + ".0-Gemini-Creative";
         await autoImproveGameCode();
     }
 
-    // GUARDAR ESTADO EN CADA TICK
     saveWorldState();
     broadcastState();
 }
@@ -361,13 +379,14 @@ WSS.on('connection', (ws) => {
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📅 Día actual:", worldState.day);
-    console.log("👥 Población:", worldState.population);
-    console.log("💰 Tesoro:", worldState.treasury);
-    console.log("🏛️ Filosofía:", worldState.philosophy);
+    console.log("🎨 Mejoras aplicadas:", worldState.improvements?.length || 0);
+    console.log("\n✨ INFINITE CREATIVE MODE ACTIVATED");
+    console.log("Cada 50 días, Gemini creará una mejora ÚNICA");
+    console.log("Nunca se repetirá - siempre será algo nuevo");
     
     queryGemini("Say 'OK'")
         .then(response => {
-            console.log("✅ Gemini response:", response.substring(0, 100));
-            addLog("[SYSTEM] AI System ready. Civilization continues.");
+            console.log("✅ Gemini connected!");
+            addLog("[SYSTEM] Creative AI ready.");
         });
 });
