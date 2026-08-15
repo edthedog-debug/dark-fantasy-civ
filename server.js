@@ -89,7 +89,7 @@ async function queryGemini(prompt) {
                 if (text) return text;
             }
         } catch (e) {
-            // Continuar con el siguiente modelo si falla
+            // Continue to next model on failure
         }
     }
 
@@ -156,7 +156,7 @@ async function generateAIEvents() {
  */
 async function autoImproveGameCode() {
     if (!GITHUB_TOKEN || !GITHUB_REPO) {
-        addLog(`[AI COMMIT ERROR] Faltan las variables GITHUB_TOKEN o GITHUB_REPO en Render.`);
+        addLog(`[AI COMMIT ERROR] Missing GITHUB_TOKEN or GITHUB_REPO variables in Render.`);
         return;
     }
 
@@ -164,7 +164,7 @@ async function autoImproveGameCode() {
     addLog(`[AI AUTO-CODING] Analyzing frontend engine to improve rendering & feature set...`);
 
     try {
-        // URL limpia sin marcas Markdown de formato roto
+        // Clean, valid API endpoint URL
         const fileUrl = `[https://api.github.com/repos/$](https://api.github.com/repos/$){GITHUB_REPO}/contents/public/index.html`;
 
         const getFile = await fetch(fileUrl, {
@@ -177,7 +177,7 @@ async function autoImproveGameCode() {
 
         if (!getFile.ok) {
             const getErr = await getFile.json();
-            addLog(`[AI COMMIT ERROR] GitHub GET falló (${getFile.status}): ${getErr.message}`);
+            addLog(`[AI COMMIT ERROR] GitHub GET failed (${getFile.status}): ${getErr.message}`);
             return;
         }
 
@@ -195,7 +195,7 @@ async function autoImproveGameCode() {
 
         let newCode = await queryGemini(prompt);
         if (!newCode) {
-            addLog(`[AI COMMIT ERROR] La API de Gemini no devolvió código.`);
+            addLog(`[AI COMMIT ERROR] Gemini API did not return code.`);
             return;
         }
 
@@ -221,7 +221,7 @@ async function autoImproveGameCode() {
             addLog(`[AI COMMIT SUCCESS] Pushed graphics & engine improvements to GitHub! Auto-deploying...`);
         } else {
             const commitErr = await commitResponse.json();
-            addLog(`[AI COMMIT ERROR] GitHub PUT falló (${commitResponse.status}): ${commitErr.message}`);
+            addLog(`[AI COMMIT ERROR] GitHub PUT failed (${commitResponse.status}): ${commitErr.message}`);
         }
     } catch (err) {
         console.error("Auto-code commit error:", err.message);
@@ -229,7 +229,7 @@ async function autoImproveGameCode() {
     }
 }
 
-// SIMULACIÓN
+// SIMULATION LOOP
 setInterval(() => {
     worldState.day += 1;
 
