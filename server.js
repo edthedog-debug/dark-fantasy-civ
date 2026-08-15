@@ -174,76 +174,135 @@ async function autoImproveGameCode() {
         const cleanRepo = GITHUB_REPO.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
         const cleanToken = GITHUB_TOKEN.trim(); 
         const apiDomain = 'https://api.github.com/repos/';
-        const publicFolderPath = 'public';
-        const filePath = 'public/index.html'; // Full path for the PUT request
         
-        let currentSha = null;
-        let selectedBranch = 'main';
-
-        // Robust method: First query the 'public' folder to get the exact SHA without 404 errors
-        let getUrl = `${apiDomain}${cleanRepo}/contents/${publicFolderPath}?ref=main`;
-        let getFile = await fetch(getUrl, {
+        // First, verify repository access and get default branch
+        const repoUrl = `${apiDomain}${cleanRepo}`;
+        console.log("🔍 Testing repository access:", repoUrl);
+        
+        const repoCheck = await fetch(repoUrl, {
             headers: { 
                 'Authorization': `Bearer ${cleanToken}`, 
                 'User-Agent': 'Node-AI-Server',
                 'Accept': 'application/vnd.github.v3+json'
             }
         });
+        
+        if (!repoCheck.ok) {
+            const repoError = await repoCheck.json();
+            console.error("❌ Repository access failed:", repoCheck.status, repoError.message);
+            addLog(`[AI COMMIT ERROR] Repository access failed (${repoCheck.status}): ${repoError.message}`);
+            return;
+        }
+        
+        const repoInfo = await repoCheck.json();
+        console.log("✅ Repository found:", repoInfo.full_name);
+        console.log("📊 Default branch:", repoInfo.default_branch);
 
-        if (getFile.ok) {
-            const folderContents = await getFile.json();
-            const indexFile = folderContents.find(f => f.name === 'index.html');
-            if (indexFile) {
-                currentSha = indexFile.sha;
-                selectedBranch = 'main';
+        // Try different possible file locations and branches
+        const possibleBranches = [repoInfo.default_branch, 'main', 'master'];
+        const possiblePaths = [
+            'index.html',
+            'public/index.html',
+            'src/index.html',
+            'dist/index.html',
+            'frontend/index.html',
+            'client/index.html',
+            'web/index.html',
+            'app/index.html',
+            'views/index.html',
+            'static/index.html'
+        ];
+        
+        let fileFound = false;
+        let currentSha = null;
+        let selectedBranch = null;
+        let selectedPath = null;
+
+        // Search for the file in different locations and branches
+        for (const branch of possibleBranches) {
+            for (const filePath of possiblePaths) {
+                const getUrl = `${apiDomain}${cleanRepo}/contents/${filePath}?ref=${branch}`;
+                console.log(`🔍 Checking: ${filePath} on ${branch} branch`);
+                
+                const getFile = await fetch(getUrl, {
+                    headers: { 
+                        'Authorization': `Bearer ${cleanToken}`, 
+                        'User-Agent': 'Node-AI-Server',
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                if (getFile.ok) {
+                    const fileData = await getFile.json();
+                    if (fileData.type === 'file' && fileData.name === 'index.html') {
+                        currentSha = fileData.sha;
+                        selectedBranch = branch;
+                        selectedPath = filePath;
+                        fileFound = true;
+                        console.log(`✅ Found index.html at: ${filePath} on ${branch} branch`);
+                        break;
+                    }
+                } else if (getFile.status !== 404) {
+                    // If it's not a 404, log the actual error
+                    console.error(`⚠️ Error checking ${filePath}:`, getFile.status);
+                }
             }
+            if (fileFound) break;
         }
 
-        // If not found in main, try master branch
-        if (!currentSha) {
-            getUrl = `${apiDomain}${cleanRepo}/contents/${publicFolderPath}?ref=master`;
-            getFile = await fetch(getUrl, {
+        // If file not found directly, try to list repository contents
+        if (!fileFound) {
+            console.log("🔍 Trying to list repository root contents...");
+            const rootUrl = `${apiDomain}${cleanRepo}/contents/?ref=${repoInfo.default_branch}`;
+            const rootResponse = await fetch(rootUrl, {
                 headers: { 
                     'Authorization': `Bearer ${cleanToken}`, 
                     'User-Agent': 'Node-AI-Server',
                     'Accept': 'application/vnd.github.v3+json'
                 }
             });
-
-            if (getFile.ok) {
-                const folderContents = await getFile.json();
-                const indexFile = folderContents.find(f => f.name === 'index.html');
-                if (indexFile) {
-                    currentSha = indexFile.sha;
-                    selectedBranch = 'master';
+            
+            if (rootResponse.ok) {
+                const rootContents = await rootResponse.json();
+                console.log("📁 Repository root contents:", rootContents.map(item => item.name).join(', '));
+                
+                // Look for public folder
+                const publicFolder = rootContents.find(item => item.type === 'dir' && item.name === 'public');
+                if (publicFolder) {
+                    console.log("🔍 Found public folder, listing its contents...");
+                    const publicUrl = `${apiDomain}${cleanRepo}/contents/public?ref=${repoInfo.default_branch}`;
+                    const publicResponse = await fetch(publicUrl, {
+                        headers: { 
+                            'Authorization': `Bearer ${cleanToken}`, 
+                            'User-Agent': 'Node-AI-Server',
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (publicResponse.ok) {
+                        const publicContents = await publicResponse.json();
+                        console.log("📁 Public folder contents:", publicContents.map(item => item.name).join(', '));
+                        
+                        const indexFile = publicContents.find(item => item.type === 'file' && item.name === 'index.html');
+                        if (indexFile) {
+                            currentSha = indexFile.sha;
+                            selectedBranch = repoInfo.default_branch;
+                            selectedPath = 'public/index.html';
+                            fileFound = true;
+                            console.log(`✅ Found index.html in public folder`);
+                        }
+                    }
                 }
             }
         }
 
-        // If not found in public/ folder, try repository root
-        if (!currentSha) {
-            getUrl = `${apiDomain}${cleanRepo}/contents/${filePath}?ref=main`;
-            getFile = await fetch(getUrl, {
-                headers: { 
-                    'Authorization': `Bearer ${cleanToken}`, 
-                    'User-Agent': 'Node-AI-Server',
-                    'Accept': 'application/vnd.github.v3+json'
-                }
-            });
-
-            if (getFile.ok) {
-                const fileData = await getFile.json();
-                currentSha = fileData.sha;
-                selectedBranch = 'main';
-            }
-        }
-
-        if (!currentSha) {
-            addLog("[AI COMMIT ERROR] GitHub GET failed: Could not locate index.html in public/ folder or repository root.");
+        if (!fileFound || !currentSha) {
+            addLog("[AI COMMIT ERROR] GitHub GET failed: Could not locate index.html in repository. Please check file structure.");
+            console.error("❌ Available paths checked:", possiblePaths.join(', '));
             return;
         }
 
-        const prompt = "You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'public/index.html' for an autonomous isometric economic empire simulator.\n\n" +
+        const prompt = "You are an expert WebGL/Canvas frontend developer. Refine, polish, and optimize the code inside 'index.html' for an autonomous isometric economic empire simulator.\n\n" +
         "CRITICAL RULES:\n" +
         "1. Keep the HTML structure, canvas element ID ('gameCanvas'), and WebSocket listener logic intact so the map never renders blank or loses server updates.\n" +
         "2. Keep ALL UI text, labels, status badges, and logs strictly in ENGLISH.\n" +
@@ -259,7 +318,9 @@ async function autoImproveGameCode() {
 
         newCode = newCode.replace(/```(?:html)?/gi, '').trim();
         const updatedContentBase64 = Buffer.from(newCode).toString('base64');
-        const putUrl = `${apiDomain}${cleanRepo}/contents/${filePath}`;
+        const putUrl = `${apiDomain}${cleanRepo}/contents/${selectedPath}`;
+
+        console.log(`📝 Committing to: ${selectedPath} on ${selectedBranch} branch`);
 
         const commitResponse = await fetch(putUrl, {
             method: 'PUT',
@@ -279,9 +340,11 @@ async function autoImproveGameCode() {
 
         if (commitResponse.ok) {
             addLog("[AI COMMIT SUCCESS] Pushed graphics & engine improvements to GitHub!");
+            console.log("✅ Commit successful!");
         } else {
             const commitErr = await commitResponse.json();
             addLog("[AI COMMIT ERROR] GitHub PUT failed (" + commitResponse.status + "): " + commitErr.message);
+            console.error("❌ Commit failed:", commitErr);
         }
     } catch (err) {
         console.error("Auto-code commit error:", err.message);
