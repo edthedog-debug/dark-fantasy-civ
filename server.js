@@ -48,7 +48,7 @@ if (fs.existsSync(STATE_FILE)) {
         const savedState = JSON.parse(rawData);
         // Merge saved state with defaults to ensure new fields exist
         worldState = { ...worldState, ...savedState };
-        console.log("✅ State loaded - Day:", worldState.day, "AI Improvements:", worldState.aiImprovements);
+        console.log("✅ State loaded - Day:", worldState.day, "AI Improvements:", worldState.aiImprovements, "Last Commit Day:", worldState.lastCommitDay);
     } catch (e) {
         console.error("Error loading state file:", e);
     }
@@ -154,15 +154,15 @@ function executeGitCommand(command) {
 }
 
 /**
- * Push to GitHub in background
+ * Push to GitHub - Returns true if successful
  */
 async function pushToGitHub(htmlPath, improvementNumber, day) {
     if (!GITHUB_TOKEN) {
         console.log("⚠️ No GITHUB_TOKEN, skipping git push");
-        return;
+        return false;
     }
     
-    console.log("🔄 Starting git push in background...");
+    console.log("🔄 Starting git push for Day", day, "...");
     
     try {
         const cleanToken = GITHUB_TOKEN.trim();
@@ -192,7 +192,15 @@ async function pushToGitHub(htmlPath, improvementNumber, day) {
                 console.log("✅ Cloned to /tmp/repo");
             } catch (cloneError) {
                 console.error("❌ Clone failed:", cloneError.message);
-                return;
+                
+                // Try to pull if repo exists
+                try {
+                    await executeGitCommand('cd /tmp/repo && git pull origin main');
+                    console.log("✅ Pulled latest changes");
+                } catch (pullError) {
+                    console.error("❌ Pull failed:", pullError.message);
+                    return false;
+                }
             }
         }
         
@@ -207,7 +215,7 @@ async function pushToGitHub(htmlPath, improvementNumber, day) {
         }
         
         fs.copyFileSync(htmlPath, targetPath);
-        console.log("✅ File copied");
+        console.log("✅ HTML file copied");
         
         // Also save the world state
         const stateTargetPath = path.join(process.cwd(), 'worldState.json');
@@ -228,8 +236,11 @@ async function pushToGitHub(htmlPath, improvementNumber, day) {
         worldState.lastCommitDay = day;
         saveWorldState();
         
+        return true;
+        
     } catch (gitError) {
         console.error("❌ Git push failed:", gitError.message);
+        return false;
     }
 }
 
@@ -288,7 +299,7 @@ async function generateAIEvents() {
 }
 
 /**
- * 2. AI CODE IMPROVEMENT - INFINITE IMPROVEMENTS (NON-BLOCKING)
+ * 2. AI CODE IMPROVEMENT - Returns true if successful
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT...");
@@ -300,7 +311,7 @@ async function autoImproveGameCode() {
         if (!fs.existsSync(htmlPath)) {
             console.error("❌ index.html not found");
             addLog("[AI COMMIT ERROR] index.html not found.");
-            return;
+            return false;
         }
         
         const currentHtml = fs.readFileSync(htmlPath, 'utf8');
@@ -375,14 +386,22 @@ async function autoImproveGameCode() {
         // Push to GitHub ONLY every 50 days (main updates)
         if (worldState.day % 50 === 0 && worldState.lastCommitDay !== worldState.day) {
             console.log("🎯 Day 50 milestone reached - pushing to GitHub");
-            pushToGitHub(htmlPath, improvementNumber, currentDay).catch(err => {
-                console.error("❌ Background git push error:", err.message);
-            });
+            const pushResult = await pushToGitHub(htmlPath, improvementNumber, currentDay);
+            if (pushResult) {
+                console.log("✅ Successfully pushed to GitHub for day", currentDay);
+                addLog("[GITHUB] Successfully committed day " + currentDay);
+            } else {
+                console.error("❌ Failed to push to GitHub for day", currentDay);
+                addLog("[GITHUB ERROR] Failed to commit day " + currentDay);
+            }
         }
+        
+        return true;
         
     } catch (err) {
         console.error("Error:", err.message);
         addLog(`[AI COMMIT ERROR] ${err.message}`);
+        return false;
     }
 }
 
@@ -476,7 +495,7 @@ WSS.on('connection', (ws) => {
 
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
-    console.log("📊 Current state - Day:", worldState.day, "AI Improvements:", worldState.aiImprovements);
+    console.log("📊 Current state - Day:", worldState.day, "AI Improvements:", worldState.aiImprovements, "Last Commit Day:", worldState.lastCommitDay);
     
     queryGemini("Say 'OK'")
         .then(response => {
