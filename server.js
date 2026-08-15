@@ -65,6 +65,11 @@ function broadcastState() {
     });
 }
 
+function addLog(msg) {
+    const time = new Date().toLocaleTimeString();
+    worldState.logs.push("[" + time + "] " + msg);
+}
+
 /**
  * GEMINI REST API HELPER
  */
@@ -72,7 +77,7 @@ async function queryGemini(prompt) {
     if (!AI_API_KEY) return null;
 
     const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
-    const baseUrl = 'https://' + 'generativelanguage.googleapis.com/v1/models/';
+    const baseUrl = 'https://generativelanguage.googleapis.com/v1/models/';
 
     for (const model of models) {
         try {
@@ -127,8 +132,10 @@ async function generateAIEvents() {
     try {
         const rawText = await queryGemini(prompt);
         if (rawText) {
-            const cleanedText = rawText.replace(/```(?:json)?/gi, '').trim();
-            parsed = JSON.parse(cleanedText);
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                parsed = JSON.parse(jsonMatch[0]);
+            }
         }
     } catch (err) {
         parsed = null;
@@ -167,8 +174,7 @@ async function autoImproveGameCode() {
         const cleanRepo = GITHUB_REPO.trim();
         const cleanToken = GITHUB_TOKEN.trim(); 
         
-        const apiDomain = '[https://api.github.com/repos/](https://api.github.com/repos/)';
-        
+        const apiDomain = 'https://api.github.com/repos/';
         const getUrl = apiDomain + cleanRepo + '/contents/index.html?ref=main';
 
         const getFile = await fetch(getUrl, {
@@ -205,7 +211,6 @@ async function autoImproveGameCode() {
         newCode = newCode.replace(/```(?:html)?/gi, '').trim();
 
         const updatedContentBase64 = Buffer.from(newCode).toString('base64');
-        
         const putUrl = apiDomain + cleanRepo + '/contents/index.html';
 
         const commitResponse = await fetch(putUrl, {
@@ -236,8 +241,8 @@ async function autoImproveGameCode() {
     }
 }
 
-// SIMULATION LOOP
-setInterval(() => {
+// ASYNC SIMULATION TICK
+async function runSimulationTick() {
     worldState.day += 1;
 
     if (worldState.treasury <= 0 && worldState.happiness < 50) {
@@ -301,28 +306,27 @@ setInterval(() => {
     }
 
     if (worldState.day % 10 === 0) {
-        generateAIEvents();
+        await generateAIEvents();
     }
 
     if (worldState.day % 100 === 0) {
         const patch = Math.floor(Math.random() * 9) + 1;
         worldState.engineBuild = "v2." + patch + ".0-Generative-AI";
-        autoImproveGameCode();
+        await autoImproveGameCode();
     }
 
     if (worldState.logs.length > 25) worldState.logs.shift();
 
     saveWorldState();
     broadcastState();
-}, 4000);
-
-function addLog(msg) {
-    const time = new Date().toLocaleTimeString();
-    worldState.logs.push("[" + time + "] " + msg);
 }
 
+setInterval(runSimulationTick, 4000);
+
 WSS.on('connection', (ws) => {
-    ws.send(JSON.stringify({ type: 'WORLD_UPDATE', data: worldState }));
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'WORLD_UPDATE', data: worldState }));
+    }
 });
 
 SERVER.listen(PORT, () => {
