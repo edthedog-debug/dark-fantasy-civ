@@ -87,11 +87,11 @@ async function queryGemini(prompt) {
 
     console.log("🔑 Key:", AI_API_KEY.substring(0, 10) + "...");
     
-    // Try models in order: 3.7 Flash, 3.5 Flash, 2.5 Flash
+    // Try models in order: 3.7 Flash, 3.5 Flash, 3.6 Flash
     const models = [
         { name: 'gemini-3.7-flash', label: 'Gemini 3.7 Flash' },
         { name: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
-        { name: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' }
+        { name: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash' }
     ];
     
     for (const model of models) {
