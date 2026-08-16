@@ -77,12 +77,12 @@ function addLog(msg) {
 }
 
 /**
- * GEMINI API - SIMPLIFIED - ALWAYS RETURNS SOMETHING
+ * GEMINI API - FIXED - Returns null on failure
  */
 async function queryGemini(prompt) {
     if (!AI_API_KEY) {
         console.error("❌ No GEMINI_API_KEY");
-        return "// No API key - using default improvement\nconsole.log('AI System active');";
+        return null;
     }
 
     console.log("🔑 Key:", AI_API_KEY.substring(0, 10) + "...");
@@ -129,8 +129,8 @@ async function queryGemini(prompt) {
         console.error("❌ Fetch error:", e.message);
     }
     
-    // ALWAYS return something
-    return "// Gemini unavailable - using fallback improvement\nconsole.log('Dark Fantasy System - Day " + worldState.day + "');";
+    // Return null on failure
+    return null;
 }
 
 /**
@@ -253,17 +253,23 @@ async function autoImproveGameCode() {
         console.log("🔍 Asking Gemini for", improvementType === 0 ? "CSS" : improvementType === 1 ? "JavaScript" : "HTML", "improvement...");
         const aiResponse = await queryGemini(prompt);
         
-        console.log("✅ Got response! Length:", aiResponse.length);
-        console.log("📝 Content:", aiResponse.substring(0, 200));
+        // Check if AI response is valid
+        if (aiResponse && !aiResponse.startsWith("//") && aiResponse.length > 20) {
+            console.log("✅ Got valid AI response! Length:", aiResponse.length);
+            console.log("📝 Content:", aiResponse.substring(0, 200));
+            
+            // Clean the response
+            codeToAdd = aiResponse.replace(/```css/gi, '').replace(/```javascript/gi, '').replace(/```html/gi, '').replace(/```js/gi, '').replace(/```/g, '').trim();
+        } else {
+            console.log("⚠️ AI failed, using elaborate fallback");
+            codeToAdd = null;
+        }
         
-        // Clean the response
-        codeToAdd = aiResponse.replace(/```css/gi, '').replace(/```javascript/gi, '').replace(/```html/gi, '').replace(/```js/gi, '').replace(/```/g, '').trim();
-        
-        // If it's too short, add a default based on type
-        if (codeToAdd.length < 10) {
+        // If AI failed or code is too short, use elaborate fallback
+        if (!codeToAdd || codeToAdd.length < 10) {
             if (improvementType === 0) {
                 codeToAdd = `
-/* AI Design Improvement - Dark Fantasy Theme */
+/* AI Design Improvement - Dark Fantasy Theme - Day ${worldState.day} */
 body {
     background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
     color: #d4c5a0;
@@ -286,7 +292,7 @@ body {
 }`;
             } else if (improvementType === 1) {
                 codeToAdd = `
-// AI Functionality Improvement
+// AI Functionality Improvement - Day ${worldState.day}
 function createMagicEffect() {
     const effect = document.createElement('div');
     effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
@@ -295,13 +301,15 @@ function createMagicEffect() {
     const style = document.createElement('style');
     style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
     document.head.appendChild(style);
-}`;
+}
+createMagicEffect();`;
             } else {
                 codeToAdd = `
 <div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4>⚔️ AI Enhancement #${worldState.aiImprovements + 1}</h4>
-    <p>Era: ${worldState.era}</p>
-    <p>Tech Power: ${worldState.techPower.toFixed(2)}</p>
+    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #${worldState.aiImprovements + 1}</h4>
+    <p style="color:#d4c5a0;margin:5px 0;">Era: ${worldState.era}</p>
+    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: ${worldState.techPower.toFixed(2)}</p>
+    <p style="color:#d4c5a0;margin:5px 0;">Population: ${worldState.population}</p>
 </div>`;
             }
         }
@@ -478,7 +486,12 @@ SERVER.listen(PORT, () => {
     
     queryGemini("Say 'OK'")
         .then(response => {
-            console.log("✅ Gemini response:", response.substring(0, 100));
-            addLog("[SYSTEM] AI System ready.");
+            if (response) {
+                console.log("✅ Gemini response:", response.substring(0, 100));
+                addLog("[SYSTEM] AI System ready.");
+            } else {
+                console.log("⚠️ Gemini not responding, using fallbacks");
+                addLog("[SYSTEM] AI System in fallback mode.");
+            }
         });
 });
