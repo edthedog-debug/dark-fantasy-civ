@@ -77,7 +77,7 @@ function addLog(msg) {
 }
 
 /**
- * GEMINI API - FIXED - Returns null on failure
+ * GEMINI API - FIXED - Uses Gemini 3.7 Flash, returns null on failure
  */
 async function queryGemini(prompt) {
     if (!AI_API_KEY) {
@@ -87,7 +87,8 @@ async function queryGemini(prompt) {
 
     console.log("🔑 Key:", AI_API_KEY.substring(0, 10) + "...");
     
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${AI_API_KEY}`;
+    // Use Gemini 3.7 Flash (most recent model)
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${AI_API_KEY}`;
     
     try {
         // Add timeout to prevent hanging
@@ -250,7 +251,7 @@ async function autoImproveGameCode() {
                 break;
         }
         
-        console.log("🔍 Asking Gemini for", improvementType === 0 ? "CSS" : improvementType === 1 ? "JavaScript" : "HTML", "improvement...");
+        console.log("🔍 Asking Gemini 3.7 Flash for", improvementType === 0 ? "CSS" : improvementType === 1 ? "JavaScript" : "HTML", "improvement...");
         const aiResponse = await queryGemini(prompt);
         
         // Check if AI response is valid
@@ -464,7 +465,7 @@ function runSimulationTick() {
     // Code improvement every 50 days (non-blocking)
     if (worldState.day % 50 === 0) {
         const patch = Math.floor(Math.random() * 9) + 1;
-        worldState.engineBuild = "v2." + patch + ".0-Gemini-2.5";
+        worldState.engineBuild = "v" + (2 + Math.floor(worldState.aiImprovements / 10)) + "." + patch + ".0-Gemini-3.7";
         autoImproveGameCode().catch(err => console.error("AI Improvement error:", err));
     }
 
@@ -483,12 +484,13 @@ WSS.on('connection', (ws) => {
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Current state - Day:", worldState.day, "AI Improvements:", worldState.aiImprovements);
+    console.log("🤖 Using Gemini 3.7 Flash model");
     
     queryGemini("Say 'OK'")
         .then(response => {
             if (response) {
-                console.log("✅ Gemini response:", response.substring(0, 100));
-                addLog("[SYSTEM] AI System ready.");
+                console.log("✅ Gemini 3.7 Flash response:", response.substring(0, 100));
+                addLog("[SYSTEM] AI System ready (Gemini 3.7 Flash).");
             } else {
                 console.log("⚠️ Gemini not responding, using fallbacks");
                 addLog("[SYSTEM] AI System in fallback mode.");
