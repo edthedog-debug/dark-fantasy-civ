@@ -469,13 +469,13 @@ function runSimulationTick() {
         worldState.economicPower = "Emerging Market";
     }
 
-    // AI Event every 30 days (non-blocking)
-    if (worldState.day % 30 === 0) {
+    // AI Event every 150 days (reduced from 30 to stay within free quota)
+    if (worldState.day % 150 === 0) {
         generateAIEvents().catch(err => console.error("AI Event error:", err));
     }
 
-    // Code improvement every 50 days (non-blocking)
-    if (worldState.day % 50 === 0) {
+    // Code improvement every 250 days (reduced from 50 to stay within free quota)
+    if (worldState.day % 250 === 0) {
         const patch = Math.floor(Math.random() * 9) + 1;
         worldState.engineBuild = "v" + (2 + Math.floor(worldState.aiImprovements / 10)) + "." + patch + ".0-Gemini-3.7";
         autoImproveGameCode().catch(err => console.error("AI Improvement error:", err));
@@ -497,6 +497,7 @@ SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Current state - Day:", worldState.day, "AI Improvements:", worldState.aiImprovements);
     console.log("🤖 Using Gemini 3.7 Flash with 3.5 Flash and generic Flash fallback");
+    console.log("📅 AI Events: every 150 days | Code Improvements: every 250 days (Free quota optimized)");
     
     queryGemini("Say 'OK'")
         .then(response => {
