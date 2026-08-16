@@ -77,7 +77,7 @@ function addLog(msg) {
 }
 
 /**
- * GEMINI API - FIXED - Tries Gemini 3.7 Flash first, falls back to 3.5 Flash
+ * GEMINI API - FIXED - Tries 3.7 Flash, then 3.5 Flash, then generic Flash
  */
 async function queryGemini(prompt) {
     if (!AI_API_KEY) {
@@ -87,10 +87,11 @@ async function queryGemini(prompt) {
 
     console.log("🔑 Key:", AI_API_KEY.substring(0, 10) + "...");
     
-    // Try Gemini 3.7 Flash first
+    // Try models in order: 3.7 Flash, 3.5 Flash, generic Flash
     const models = [
         { name: 'gemini-3.7-flash', label: 'Gemini 3.7 Flash' },
-        { name: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' }
+        { name: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
+        { name: 'gemini-flash', label: 'Gemini Flash (generic)' }
     ];
     
     for (const model of models) {
@@ -495,13 +496,13 @@ WSS.on('connection', (ws) => {
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Current state - Day:", worldState.day, "AI Improvements:", worldState.aiImprovements);
-    console.log("🤖 Using Gemini 3.7 Flash with 3.5 Flash fallback");
+    console.log("🤖 Using Gemini 3.7 Flash with 3.5 Flash and generic Flash fallback");
     
     queryGemini("Say 'OK'")
         .then(response => {
             if (response) {
                 console.log("✅ Gemini response:", response.substring(0, 100));
-                addLog("[SYSTEM] AI System ready (Gemini 3.7/3.5 Flash).");
+                addLog("[SYSTEM] AI System ready (Gemini 3.7/3.5/Generic Flash).");
             } else {
                 console.log("⚠️ Gemini not responding, using fallbacks");
                 addLog("[SYSTEM] AI System in fallback mode.");
