@@ -77,7 +77,7 @@ function addLog(msg) {
 }
 
 /**
- * GEMINI API - FIXED - Uses Gemini 3.7 Flash, returns null on failure
+ * GEMINI API - FIXED - Tries Gemini 3.7 Flash first, falls back to 3.5 Flash
  */
 async function queryGemini(prompt) {
     if (!AI_API_KEY) {
@@ -87,50 +87,61 @@ async function queryGemini(prompt) {
 
     console.log("🔑 Key:", AI_API_KEY.substring(0, 10) + "...");
     
-    // Use Gemini 3.7 Flash (most recent model)
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${AI_API_KEY}`;
+    // Try Gemini 3.7 Flash first
+    const models = [
+        { name: 'gemini-3.7-flash', label: 'Gemini 3.7 Flash' },
+        { name: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' }
+    ];
     
-    try {
-        // Add timeout to prevent hanging
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                    temperature: 0.8,
-                    maxOutputTokens: 4096
+    for (const model of models) {
+        try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model.name}:generateContent?key=${AI_API_KEY}`;
+            
+            console.log(`🔄 Trying ${model.label}...`);
+            
+            // Add timeout to prevent hanging
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        temperature: 0.8,
+                        maxOutputTokens: 4096
+                    }
+                }),
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            console.log(`📊 Status for ${model.label}:`, response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log(`📦 Full response from ${model.label}:`, JSON.stringify(data).substring(0, 500));
+                
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (text && text.length > 0) {
+                    console.log(`✅ Success with ${model.label}!`);
+                    console.log("📝 Text:", text.substring(0, 200));
+                    return text;
                 }
-            }),
-            signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        console.log("📊 Status:", response.status);
-        
-        if (response.ok) {
-            const data = await response.json();
-            console.log("📦 Full response:", JSON.stringify(data).substring(0, 500));
-            
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            
-            if (text && text.length > 0) {
-                console.log("✅ Text:", text.substring(0, 200));
-                return text;
+            } else {
+                const errorText = await response.text();
+                console.error(`❌ Error with ${model.label}:`, response.status, errorText.substring(0, 300));
             }
-        } else {
-            const errorText = await response.text();
-            console.error("❌ Error:", response.status, errorText.substring(0, 300));
+        } catch (e) {
+            console.error(`❌ Fetch error with ${model.label}:`, e.message);
         }
-    } catch (e) {
-        console.error("❌ Fetch error:", e.message);
     }
     
-    // Return null on failure
+    // All models failed
+    console.error("❌ All Gemini models failed");
     return null;
 }
 
@@ -251,7 +262,7 @@ async function autoImproveGameCode() {
                 break;
         }
         
-        console.log("🔍 Asking Gemini 3.7 Flash for", improvementType === 0 ? "CSS" : improvementType === 1 ? "JavaScript" : "HTML", "improvement...");
+        console.log("🔍 Asking Gemini for", improvementType === 0 ? "CSS" : improvementType === 1 ? "JavaScript" : "HTML", "improvement...");
         const aiResponse = await queryGemini(prompt);
         
         // Check if AI response is valid
@@ -484,13 +495,13 @@ WSS.on('connection', (ws) => {
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Current state - Day:", worldState.day, "AI Improvements:", worldState.aiImprovements);
-    console.log("🤖 Using Gemini 3.7 Flash model");
+    console.log("🤖 Using Gemini 3.7 Flash with 3.5 Flash fallback");
     
     queryGemini("Say 'OK'")
         .then(response => {
             if (response) {
-                console.log("✅ Gemini 3.7 Flash response:", response.substring(0, 100));
-                addLog("[SYSTEM] AI System ready (Gemini 3.7 Flash).");
+                console.log("✅ Gemini response:", response.substring(0, 100));
+                addLog("[SYSTEM] AI System ready (Gemini 3.7/3.5 Flash).");
             } else {
                 console.log("⚠️ Gemini not responding, using fallbacks");
                 addLog("[SYSTEM] AI System in fallback mode.");
