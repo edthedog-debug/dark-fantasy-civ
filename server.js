@@ -24,7 +24,7 @@ const STATE_FILE = path.join(__dirname, 'worldState.json');
 // Rate limiter for Groq API
 const rateLimiter = {
     lastCallTime: 0,
-    minInterval: 7000, // 7 seconds between calls (safe for Groq free tier)
+    minInterval: 7000,
     
     async waitForSlot() {
         const now = Date.now();
@@ -64,7 +64,6 @@ if (fs.existsSync(STATE_FILE)) {
     try {
         const rawData = fs.readFileSync(STATE_FILE, 'utf8');
         const savedState = JSON.parse(rawData);
-        // Merge saved state with defaults to ensure new fields exist
         worldState = { ...worldState, ...savedState };
         console.log("✅ State loaded - Day:", worldState.day, "AI Improvements:", worldState.aiImprovements);
     } catch (e) {
@@ -107,16 +106,14 @@ async function queryAI(prompt) {
     console.log("🔑 Groq Key:", GROQ_API_KEY.substring(0, 10) + "...");
     
     try {
-        // Wait for rate limiter slot
         await rateLimiter.waitForSlot();
         
         const url = 'https://api.groq.com/openai/v1/chat/completions';
         
         console.log('🔄 Trying Groq (GPT-OSS 120B)...');
         
-        // Add timeout to prevent hanging
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
         
         const response = await fetch(url, {
             method: 'POST',
@@ -154,11 +151,9 @@ async function queryAI(prompt) {
                 return text;
             }
         } else if (response.status === 429) {
-            // Rate limited - wait 60 seconds
             console.log('⏳ Rate limit (429). Waiting 60 seconds before retry...');
             await new Promise(resolve => setTimeout(resolve, 60000));
             
-            // Retry once after waiting
             console.log('🔄 Retrying Groq...');
             const retryResponse = await fetch(url, {
                 method: 'POST',
@@ -257,7 +252,6 @@ async function generateAIEvents() {
     if (typeof parsed.happinessImpact === 'number') worldState.happiness = Math.min(100, Math.max(10, worldState.happiness + parsed.happinessImpact));
     if (typeof parsed.techImpact === 'number') worldState.techPower += Math.max(0, parsed.techImpact);
     
-    // Update era based on tech power
     if (worldState.techPower > 50) {
         worldState.era = "Transcendent AI Era " + Math.floor(worldState.techPower / 10);
     } else if (worldState.techPower > 20) {
@@ -270,7 +264,7 @@ async function generateAIEvents() {
 }
 
 /**
- * 2. AI CODE IMPROVEMENT - IMPROVES BOTH HTML DESIGN AND FUNCTIONALITY
+ * 2. AI CODE IMPROVEMENT - PIXEL ART STYLE AGE OF EMPIRES
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT...");
@@ -288,106 +282,90 @@ async function autoImproveGameCode() {
         const currentHtml = fs.readFileSync(htmlPath, 'utf8');
         console.log("📄 Current HTML:", currentHtml.length, "chars");
         
-        // Alternate between different types of improvements
         const improvementType = worldState.aiImprovements % 3;
         
         let prompt;
         let codeToAdd;
         
         switch(improvementType) {
-            case 0: // CSS/Design improvement - OPTIMIZE EXISTING
-                prompt = `IMPROVE and OPTIMIZE the EXISTING CSS of this dark fantasy civilization game.
+            case 0: // PIXEL ART CSS
+                prompt = `Create PIXEL ART style CSS for an Age of Empires inspired dark fantasy game.
                 Current stats: Day ${worldState.day}, Population: ${worldState.population}, Tech: ${worldState.techPower}.
                 Era: ${worldState.era}
                 
-                IMPORTANT INSTRUCTIONS:
-                - Do NOT add new CSS blocks that conflict with existing ones
-                - FIX and OPTIMIZE the current styles
-                - Improve the MAP graphics and overall web design
-                - Make the map look like a real game map (like Age of Empires style)
-                - Add terrain colors, resource indicators, and building icons
-                - MUST work perfectly on BOTH desktop AND mobile
-                - Use @media queries for mobile (max-width: 768px)
-                - Dark fantasy theme: dark backgrounds, gold borders, mystical glow
-                - Use CSS Grid and Flexbox for responsive layout
-                - Add smooth animations and transitions
-                - Use viewport units (vh, vw) for responsive sizing
-                - Include hover effects for desktop and touch-friendly for mobile
-                - Font sizes must be readable on mobile
-                - Panels should stack vertically on mobile, side-by-side on desktop
-                - IMPROVE the map with: terrain gradients, resource nodes, animated elements
+                PIXEL ART REQUIREMENTS:
+                - Use image-rendering: pixelated for all elements
+                - Use pixel-style borders (box-shadow with steps)
+                - Retro color palette (browns, greens, golds - like Age of Empires)
+                - Sharp edges, NO border-radius (or very minimal 2px)
+                - Use pixel-style fonts if possible
+                - Blocky shadows and highlights
+                - Responsive with @media queries for mobile
+                - CSS Grid for layout
                 
-                Return ONLY valid CSS code that REPLACES and IMPROVES existing styles.
-                No explanations, no comments.`;
+                Return ONLY valid CSS code. No explanations.`;
                 break;
                 
-            case 1: // JavaScript functionality - MAP IMPROVEMENT
-                prompt = `Add new interactive MAP functionality to this dark fantasy civilization game.
+            case 1: // PIXEL ART JAVASCRIPT CANVAS
+                prompt = `Create PIXEL ART JavaScript canvas rendering for an Age of Empires style game map.
                 Current stats: Day ${worldState.day}, Population: ${worldState.population}, Tech: ${worldState.techPower}.
                 
-                IMPROVE THE MAP GRAPHICS:
-                - Create a canvas-based map with terrain
-                - Add animated elements (water, trees, buildings)
-                - Show population moving on the map
-                - Add resource nodes that pulse/glow
-                - Show buildings as icons on the map
-                - Make it interactive (click/hover to see info)
+                PIXEL ART CANVAS REQUIREMENTS:
+                - Draw EVERYTHING as pixel art (NO icons, NO emojis)
+                - Use fillRect for pixel blocks to create buildings, trees, units
+                - Buildings: castles with crenellations, houses with roofs, barracks
+                - Trees: pixelated green triangles with brown trunks
+                - Water: animated blue pixels with wave effect
+                - Units: tiny pixel people (2-3px wide) moving
+                - Resources: gold mines as yellow pixel clusters
+                - Terrain: grass, dirt, stone as different colored pixels
+                - Use ctx.imageSmoothingEnabled = false for crisp pixels
+                - Animate water, trees swaying, units moving
+                - Isometric perspective like Age of Empires
                 
-                Return ONLY valid JavaScript code. No explanations, no comments.
-                Make it work on both desktop and mobile.`;
+                Return ONLY valid JavaScript code. No explanations.`;
                 break;
                 
-            case 2: // UI/HTML structure improvement - MAP ENHANCEMENT
-                prompt = `Add new MAP UI elements to this dark fantasy civilization game.
+            case 2: // PIXEL ART HTML STRUCTURE
+                prompt = `Add PIXEL ART style HTML structure for an Age of Empires inspired game.
                 Current stats: Day ${worldState.day}, Era: ${worldState.era}, Treasury: ${worldState.treasury}.
                 
-                IMPROVE THE MAP DISPLAY:
-                - Add a map container with canvas element
-                - Add map legend with resource types
-                - Add minimap in the corner
-                - Add building list overlay
-                - Add resource counters overlay
+                PIXEL ART HTML REQUIREMENTS:
+                - Use pixel-style panels with sharp corners
+                - Add canvas element for the game map (NO icons, NO emojis in map)
+                - Add resource counter panels (gold, wood, stone, food)
+                - Add minimap canvas in corner
+                - Add unit selection panel
+                - All elements pixel-art themed
                 
-                REQUIREMENTS:
-                - MUST work on both desktop AND mobile
-                - Use responsive HTML structure
-                - Dark fantasy themed
-                - Use CSS Grid/Flexbox classes
-                
-                Return ONLY valid HTML code. No explanations, no comments.`;
+                Return ONLY valid HTML code. No explanations.`;
                 break;
         }
         
-        console.log("🔍 Asking Groq (GPT-OSS 120B) for", improvementType === 0 ? "CSS OPTIMIZATION" : improvementType === 1 ? "MAP JavaScript" : "MAP HTML", "improvement...");
+        console.log("🔍 Asking Groq for", improvementType === 0 ? "PIXEL ART CSS" : improvementType === 1 ? "PIXEL ART CANVAS JS" : "PIXEL ART HTML", "improvement...");
         const aiResponse = await queryAI(prompt);
         
-        // Check if AI response is valid
         if (aiResponse && !aiResponse.startsWith("//") && aiResponse.length > 20) {
             console.log("✅ Got valid AI response! Length:", aiResponse.length);
-            console.log("📝 Content:", aiResponse.substring(0, 200));
-            
-            // Clean the response
             codeToAdd = aiResponse.replace(/```css/gi, '').replace(/```javascript/gi, '').replace(/```html/gi, '').replace(/```js/gi, '').replace(/```/g, '').trim();
         } else {
             console.log("⚠️ AI failed, using elaborate fallback");
             codeToAdd = null;
         }
         
-        // If AI failed or code is too short, use elaborate RESPONSIVE fallback
         if (!codeToAdd || codeToAdd.length < 10) {
             if (improvementType === 0) {
                 codeToAdd = `
-/* OPTIMIZED RESPONSIVE Dark Fantasy Design - Day ${worldState.day} */
+/* PIXEL ART Dark Fantasy - Day ${worldState.day} */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
 }
 
 body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #0a0a1a 100%);
+    background: #1a0a0a;
     color: #d4c5a0;
-    font-family: 'Cinzel', 'Georgia', serif;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
     min-height: 100vh;
     overflow-x: hidden;
 }
@@ -395,83 +373,56 @@ body {
 .game-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
-    padding: 20px;
+    gap: 4px;
+    padding: 10px;
     max-width: 1400px;
     margin: 0 auto;
 }
 
 .stats-panel {
-    background: rgba(20, 10, 10, 0.85);
-    border: 2px solid #8b6914;
-    border-radius: 15px;
-    padding: 20px;
-    box-shadow: 0 0 25px rgba(139, 105, 20, 0.4);
-    animation: glow 3s ease-in-out infinite;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
+    background: #2a1a0a;
+    border: 3px solid #8b6914;
+    padding: 15px;
+    box-shadow: 4px 4px 0 #000;
+    image-rendering: pixelated;
 }
 
-.stats-panel:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 0 40px rgba(139, 105, 20, 0.7);
+.stats-panel h2 {
+    color: #ffd700;
+    font-size: 14px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
 }
 
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 25px rgba(139, 105, 20, 0.4); }
-    50% { box-shadow: 0 0 50px rgba(139, 105, 20, 0.8); }
-}
-
-/* MAP STYLES */
 .map-container {
-    position: relative;
-    width: 100%;
-    min-height: 300px;
-    border: 2px solid #8b6914;
-    border-radius: 10px;
+    border: 3px solid #8b6914;
+    box-shadow: 4px 4px 0 #000;
     overflow: hidden;
     background: #0a0505;
+    image-rendering: pixelated;
 }
 
 #gameCanvas {
     width: 100%;
     height: 100%;
     display: block;
+    image-rendering: pixelated;
 }
 
-/* MOBILE RESPONSIVE */
 @media (max-width: 768px) {
     .game-container {
         grid-template-columns: 1fr;
-        gap: 15px;
-        padding: 15px;
+        gap: 3px;
+        padding: 5px;
     }
-    
     .stats-panel {
-        padding: 15px;
-        border-radius: 12px;
-    }
-    
-    .map-container {
-        min-height: 200px;
-    }
-    
-    body {
-        font-size: 14px;
-    }
-}
-
-/* TABLET */
-@media (min-width: 769px) and (max-width: 1024px) {
-    .game-container {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 18px;
+        padding: 10px;
     }
 }`;
             } else if (improvementType === 1) {
                 codeToAdd = `
-// AI Map Functionality - Day ${worldState.day}
-function createGameMap() {
+// PIXEL ART MAP ENGINE - Day ${worldState.day}
+function createPixelArtMap() {
     const canvas = document.getElementById('gameCanvas') || document.createElement('canvas');
     canvas.id = 'gameCanvas';
     
@@ -483,79 +434,164 @@ function createGameMap() {
     }
     
     const ctx = canvas.getContext('2d');
-    canvas.width = canvas.parentElement.clientWidth;
-    canvas.height = canvas.parentElement.clientHeight || 300;
+    ctx.imageSmoothingEnabled = false;
     
-    // Draw terrain
-    function drawTerrain() {
-        // Water
-        ctx.fillStyle = '#1a2a3a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight || 300;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    
+    const PIXEL = 4;
+    let frameCount = 0;
+    
+    function drawPixelTree(px, py) {
+        // Trunk
+        ctx.fillStyle = '#5a3a1a';
+        ctx.fillRect(px, py, PIXEL, PIXEL * 3);
+        // Canopy (pixel layers)
+        ctx.fillStyle = '#1a5a1a';
+        ctx.fillRect(px - PIXEL * 2, py - PIXEL * 3, PIXEL * 5, PIXEL * 3);
+        ctx.fillStyle = '#2a6a2a';
+        ctx.fillRect(px - PIXEL, py - PIXEL * 4, PIXEL * 3, PIXEL);
+    }
+    
+    function drawPixelCastle(px, py) {
+        // Main tower
+        ctx.fillStyle = '#8a8a8a';
+        ctx.fillRect(px - PIXEL * 3, py - PIXEL * 6, PIXEL * 6, PIXEL * 7);
+        // Crenellations (top)
+        for (let i = -3; i < 3; i += 2) {
+            ctx.fillRect(px + i * PIXEL, py - PIXEL * 8, PIXEL, PIXEL * 2);
+        }
+        // Door
+        ctx.fillStyle = '#3a1a0a';
+        ctx.fillRect(px - PIXEL, py - PIXEL * 2, PIXEL * 2, PIXEL * 3);
+        // Flag
+        ctx.fillStyle = '#ff0000';
+        ctx.fillRect(px + PIXEL * 2, py - PIXEL * 9, PIXEL * 2, PIXEL);
+    }
+    
+    function drawPixelHouse(px, py) {
+        // Body
+        ctx.fillStyle = '#c4a060';
+        ctx.fillRect(px - PIXEL * 2, py - PIXEL * 2, PIXEL * 4, PIXEL * 3);
+        // Roof
+        ctx.fillStyle = '#8a3a1a';
+        ctx.fillRect(px - PIXEL * 3, py - PIXEL * 3, PIXEL * 6, PIXEL);
+        ctx.fillRect(px - PIXEL * 2, py - PIXEL * 4, PIXEL * 4, PIXEL);
+        // Door
+        ctx.fillStyle = '#3a1a0a';
+        ctx.fillRect(px - PIXEL, py - PIXEL * 1, PIXEL, PIXEL * 2);
+    }
+    
+    function drawPixelUnit(px, py, color) {
+        // Body
+        ctx.fillStyle = color;
+        ctx.fillRect(px, py - PIXEL * 2, PIXEL, PIXEL * 2);
+        // Head
+        ctx.fillStyle = '#ffcc99';
+        ctx.fillRect(px, py - PIXEL * 3, PIXEL, PIXEL);
+        // Legs animation
+        const legOffset = Math.sin(frameCount * 0.1) > 0 ? 0 : PIXEL;
+        ctx.fillStyle = '#333';
+        ctx.fillRect(px, py, PIXEL / 2, PIXEL + legOffset);
+        ctx.fillRect(px + PIXEL / 2, py, PIXEL / 2, PIXEL - legOffset);
+    }
+    
+    function render() {
+        frameCount++;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Land masses
-        ctx.fillStyle = '#2a3a1a';
-        ctx.beginPath();
-        ctx.ellipse(canvas.width * 0.3, canvas.height * 0.4, 200, 150, 0, 0, Math.PI * 2);
-        ctx.fill();
+        // Draw pixel terrain
+        for (let x = 0; x < canvas.width; x += PIXEL * 4) {
+            for (let y = 0; y < canvas.height; y += PIXEL * 4) {
+                ctx.fillStyle = ((x + y) % 8 === 0) ? '#1a3a1a' : '#1a2a1a';
+                ctx.fillRect(x, y, PIXEL * 4, PIXEL * 4);
+            }
+        }
         
-        ctx.fillStyle = '#3a4a2a';
-        ctx.beginPath();
-        ctx.ellipse(canvas.width * 0.7, canvas.height * 0.6, 250, 180, 0, 0, Math.PI * 2);
-        ctx.fill();
+        // Water river
+        for (let y = 0; y < canvas.height; y += PIXEL) {
+            const waveOffset = Math.sin((y * 0.1) + (frameCount * 0.05)) * PIXEL;
+            ctx.fillStyle = '#1a3a5a';
+            ctx.fillRect(canvas.width * 0.4 + waveOffset, y, PIXEL * 3, PIXEL);
+        }
         
-        // Resources (gold nodes)
-        const goldSpots = [
-            {x: 0.3, y: 0.4}, {x: 0.5, y: 0.5}, {x: 0.7, y: 0.6}
-        ];
+        // Trees
+        const treeCount = 10 + Math.floor(worldState.population / 10);
+        for (let i = 0; i < treeCount; i++) {
+            const tx = (i * 73) % (canvas.width - 20);
+            const ty = (i * 47) % (canvas.height - 30) + 10;
+            drawPixelTree(tx, ty);
+        }
         
-        goldSpots.forEach(spot => {
+        // Buildings (castles and houses)
+        const buildingCount = Math.min(20, Math.floor(worldState.population / 5) + 2);
+        for (let i = 0; i < buildingCount; i++) {
+            const bx = (i * 97) % (canvas.width - 40) + 20;
+            const by = (i * 53) % (canvas.height - 40) + 20;
+            if (i % 3 === 0) {
+                drawPixelCastle(bx, by);
+            } else {
+                drawPixelHouse(bx, by);
+            }
+        }
+        
+        // Units (pixel people)
+        const unitCount = Math.min(20, Math.floor(worldState.population / 20));
+        for (let u = 0; u < unitCount; u++) {
+            const ux = (u * 137 + frameCount) % (canvas.width - 10);
+            const uy = (u * 89) % (canvas.height - 10) + 10;
+            const colors = ['#ff4444', '#4444ff', '#44ff44', '#ffff44'];
+            drawPixelUnit(ux, uy, colors[u % 4]);
+        }
+        
+        // Gold mines (pixel clusters)
+        const goldSpots = 3 + Math.floor(worldState.techPower / 10);
+        for (let g = 0; g < goldSpots; g++) {
+            const gx = (g * 67) % (canvas.width - 20) + 10;
+            const gy = (g * 101) % (canvas.height - 20) + 10;
             ctx.fillStyle = '#ffd700';
-            ctx.beginPath();
-            ctx.arc(spot.x * canvas.width, spot.y * canvas.height, 5, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Pulsing glow
-            ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(spot.x * canvas.width, spot.y * canvas.height, 10 + Math.sin(Date.now() / 1000) * 5, 0, Math.PI * 2);
-            ctx.stroke();
-        });
+            ctx.fillRect(gx, gy, PIXEL * 2, PIXEL * 2);
+            ctx.fillRect(gx + PIXEL, gy - PIXEL, PIXEL, PIXEL * 3);
+            ctx.fillRect(gx - PIXEL, gy + PIXEL, PIXEL, PIXEL);
+        }
+        
+        requestAnimationFrame(render);
     }
     
-    function animate() {
-        drawTerrain();
-        requestAnimationFrame(animate);
-    }
-    
-    animate();
+    render();
 }
 
-createGameMap();`;
+createPixelArtMap();`;
             } else {
                 codeToAdd = `
-<div class="game-container" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;padding:20px;max-width:1400px;margin:0 auto;">
-    <div class="map-container" style="grid-column:1/-1;background:rgba(10,5,5,0.8);border:2px solid #8b6914;border-radius:15px;padding:20px;box-shadow:0 0 25px rgba(139,105,20,0.4);">
-        <h3 style="color:#ffd700;margin-bottom:15px;text-align:center;">🗺️ Kingdom Map - Day ${worldState.day}</h3>
-        <div style="position:relative;min-height:300px;border:1px solid #8b6914;border-radius:10px;overflow:hidden;background:#0a0505;">
-            <canvas id="gameCanvas" style="width:100%;height:100%;display:block;"></canvas>
-        </div>
+<div class="game-container" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:4px;padding:10px;max-width:1400px;margin:0 auto;">
+    <div class="map-container" style="grid-column:1/-1;border:3px solid #8b6914;box-shadow:4px 4px 0 #000;overflow:hidden;background:#0a0505;position:relative;">
+        <canvas id="gameCanvas" style="width:100%;height:100%;display:block;image-rendering:pixelated;"></canvas>
+        <div style="position:absolute;top:5px;left:5px;background:rgba(0,0,0,0.8);padding:4px 8px;border:2px solid #8b6914;font-size:10px;color:#ffd700;">DAY ${worldState.day}</div>
     </div>
     
-    <div class="stats-panel" style="background:rgba(20,10,10,0.85);border:2px solid #8b6914;border-radius:15px;padding:20px;box-shadow:0 0 25px rgba(139,105,20,0.4);">
-        <h3 style="color:#ffd700;margin-bottom:15px;text-align:center;">⚔️ Kingdom Stats</h3>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
-            <div style="background:rgba(10,5,5,0.6);padding:10px;border-radius:8px;border:1px solid #8b6914;">
-                <span style="color:#d4c5a0;">👥 Population</span>
-                <span style="float:right;color:#ffd700;font-weight:bold;">${worldState.population}</span>
+    <div class="stats-panel" style="background:#2a1a0a;border:3px solid #8b6914;padding:15px;box-shadow:4px 4px 0 #000;">
+        <h2 style="color:#ffd700;font-size:14px;margin-bottom:10px;">RESOURCES</h2>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+            <div style="background:#1a0a0a;padding:8px;border:2px solid #5a3a1a;">
+                <span style="color:#d4c5a0;">💰 Gold</span>
+                <span style="float:right;color:#ffd700;">${Math.floor(worldState.treasury)}</span>
             </div>
-            <div style="background:rgba(10,5,5,0.6);padding:10px;border-radius:8px;border:1px solid #8b6914;">
-                <span style="color:#d4c5a0;">💰 Treasury</span>
-                <span style="float:right;color:#ffd700;font-weight:bold;">${Math.floor(worldState.treasury)}</span>
+            <div style="background:#1a0a0a;padding:8px;border:2px solid #5a3a1a;">
+                <span style="color:#d4c5a0;">👥 Pop</span>
+                <span style="float:right;color:#44ff44;">${worldState.population}</span>
             </div>
-            <div style="background:rgba(10,5,5,0.6);padding:10px;border-radius:8px;border:1px solid #8b6914;">
-                <span style="color:#d4c5a0;">⚡ Tech Power</span>
-                <span style="float:right;color:#ffd700;font-weight:bold;">${worldState.techPower.toFixed(2)}</span>
+            <div style="background:#1a0a0a;padding:8px;border:2px solid #5a3a1a;">
+                <span style="color:#d4c5a0;">⚡ Tech</span>
+                <span style="float:right;color:#4488ff;">${worldState.techPower.toFixed(1)}</span>
+            </div>
+            <div style="background:#1a0a0a;padding:8px;border:2px solid #5a3a1a;">
+                <span style="color:#d4c5a0;">🏛️ Era</span>
+                <span style="float:right;color:#ff44ff;">${worldState.era.split(' ').slice(0,2).join(' ')}</span>
             </div>
         </div>
     </div>
@@ -563,28 +599,24 @@ createGameMap();`;
             }
         }
         
-        // Apply to HTML based on type
         let improvedHtml = currentHtml;
         
         if (improvementType === 0) {
-            // CSS improvement
-            const cssBlock = `\n<!-- === AI CSS OPTIMIZATION (Day ${worldState.day}) === -->\n<style>\n${codeToAdd}\n</style>\n`;
+            const cssBlock = `\n<!-- === AI PIXEL ART CSS (Day ${worldState.day}) === -->\n<style>\n${codeToAdd}\n</style>\n`;
             if (improvedHtml.includes('</head>')) {
                 improvedHtml = improvedHtml.replace('</head>', cssBlock + '</head>');
             } else {
                 improvedHtml = cssBlock + improvedHtml;
             }
         } else if (improvementType === 1) {
-            // JavaScript improvement
-            const jsBlock = `\n<!-- === AI MAP JS IMPROVEMENT (Day ${worldState.day}) === -->\n<script>\n${codeToAdd}\n</script>\n`;
+            const jsBlock = `\n<!-- === AI PIXEL ART MAP JS (Day ${worldState.day}) === -->\n<script>\n${codeToAdd}\n</script>\n`;
             if (improvedHtml.includes('</body>')) {
                 improvedHtml = improvedHtml.replace('</body>', jsBlock + '</body>');
             } else {
                 improvedHtml += jsBlock;
             }
         } else {
-            // HTML structure improvement
-            const htmlBlock = `\n<!-- === AI MAP HTML IMPROVEMENT (Day ${worldState.day}) === -->\n${codeToAdd}\n`;
+            const htmlBlock = `\n<!-- === AI PIXEL ART HTML (Day ${worldState.day}) === -->\n${codeToAdd}\n`;
             if (improvedHtml.includes('</body>')) {
                 improvedHtml = improvedHtml.replace('</body>', htmlBlock + '</body>');
             } else {
@@ -592,15 +624,13 @@ createGameMap();`;
             }
         }
         
-        // Write improved HTML
         fs.writeFileSync(htmlPath, improvedHtml);
         console.log("✅ HTML improved! New size:", improvedHtml.length);
         
         worldState.aiImprovements += 1;
-        const improvementTypeName = improvementType === 0 ? "CSS Optimization" : improvementType === 1 ? "Map JavaScript" : "Map HTML";
+        const improvementTypeName = improvementType === 0 ? "Pixel Art CSS" : improvementType === 1 ? "Pixel Art Canvas JS" : "Pixel Art HTML";
         addLog(`[AI COMMIT SUCCESS] ${improvementTypeName} improved! Total: ${worldState.aiImprovements}`);
         
-        // Push to GitHub
         if (GITHUB_TOKEN) {
             try {
                 const cleanToken = GITHUB_TOKEN.trim();
@@ -621,7 +651,6 @@ createGameMap();`;
                 const targetPath = path.join(process.cwd(), 'public', 'index.html');
                 fs.copyFileSync(htmlPath, targetPath);
                 
-                // Also save the world state
                 const stateTargetPath = path.join(process.cwd(), 'worldState.json');
                 fs.copyFileSync(STATE_FILE, stateTargetPath);
                 
@@ -705,15 +734,13 @@ function runSimulationTick() {
         worldState.economicPower = "Emerging Market";
     }
 
-    // AI Event every 150 days (non-blocking)
     if (worldState.day % 150 === 0) {
         generateAIEvents().catch(err => console.error("AI Event error:", err));
     }
 
-    // Code improvement every 250 days (non-blocking)
     if (worldState.day % 250 === 0) {
         const patch = Math.floor(Math.random() * 9) + 1;
-        worldState.engineBuild = "v" + (2 + Math.floor(worldState.aiImprovements / 10)) + "." + patch + ".0-Groq-GPT-OSS";
+        worldState.engineBuild = "v" + (2 + Math.floor(worldState.aiImprovements / 10)) + "." + patch + ".0-Groq-PixelArt";
         autoImproveGameCode().catch(err => console.error("AI Improvement error:", err));
     }
 
@@ -735,14 +762,14 @@ SERVER.listen(PORT, () => {
     console.log("🤖 Using Groq API (OpenAI GPT-OSS 120B)");
     console.log("📅 AI Events: every 150 days | Code Improvements: every 250 days");
     console.log("⏳ Rate limiter: 7 seconds minimum between calls");
-    console.log("📱 Responsive design: Desktop + Mobile optimized");
-    console.log("🗺️ Map graphics: Canvas-based with terrain and resources");
+    console.log("🎮 Pixel Art style: Age of Empires inspired");
+    console.log("🗺️ Map: Canvas-based pixel art (NO icons, NO emojis)");
     
     queryAI("Say 'OK'")
         .then(response => {
             if (response) {
                 console.log("✅ Groq response:", response.substring(0, 100));
-                addLog("[SYSTEM] AI System ready (Groq GPT-OSS 120B).");
+                addLog("[SYSTEM] AI System ready (Groq Pixel Art Engine).");
             } else {
                 console.log("⚠️ Groq not responding, using fallbacks");
                 addLog("[SYSTEM] AI System in fallback mode.");
