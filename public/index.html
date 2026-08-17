@@ -1381,6 +1381,205 @@ body {
     50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
 }
 </style>
+
+<!-- === AI CSS IMPROVEMENT (Day 28250) === -->
+<style>
+/* -------------------------------------------------
+   Dark Fantasy / Mystical Theme
+   ------------------------------------------------- */
+
+/* Root variables for easy theming */
+:root {
+    --bg-primary: #0a0a0a;
+    --bg-gradient: radial-gradient(circle at 20% 30%, #1a0c1f, #0a0a0a);
+    --text-primary: #e0d7ff;
+    --text-secondary: #a89ecb;
+    --accent-primary: #6b3fa0;
+    --accent-glow: rgba(107, 63, 160, 0.4);
+    --border-color: #3a2c4d;
+    --shadow-dark: 0 0 15px #00000066;
+    --shadow-glow: 0 0 12px var(--accent-primary);
+    --font-primary: 'Cinzel Decorative', serif;
+    --font-mono: 'Fira Code', monospace;
+}
+
+/* Global reset & layout */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+html, body {
+    height: 100%;
+    font-family: var(--font-primary);
+    background: var(--bg-gradient) fixed;
+    color: var(--text-primary);
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+}
+
+/* Container */
+.game-ui {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    max-width: 960px;
+    margin: 2rem auto;
+    padding: 1.5rem;
+    background: rgba(10,10,10,0.85);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow-dark), var(--shadow-glow);
+    backdrop-filter: blur(4px);
+}
+
+/* Header */
+.game-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    font-size: 2.2rem;
+    letter-spacing: 0.05em;
+    color: var(--accent-primary);
+    text-shadow: 0 0 8px var(--accent-glow);
+    animation: pulseGlow 4s infinite ease-in-out;
+}
+
+/* Stats panel */
+.stats-panel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.stat-card {
+    background: rgba(20, 20, 30, 0.65);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    text-align: center;
+    box-shadow: inset 0 0 8px var(--accent-glow);
+    position: relative;
+    overflow: hidden;
+}
+.stat-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 0%, var(--accent-glow) 50%, transparent 100%);
+    opacity: 0.15;
+    transform: translateX(-100%);
+    animation: slideGlint 3s infinite;
+}
+.stat-card h3 {
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+    color: var(--text-secondary);
+}
+.stat-card p {
+    font-size: 1.4rem;
+    font-family: var(--font-mono);
+    color: var(--accent-primary);
+}
+
+/* Era banner */
+.era-banner {
+    background: rgba(40, 20, 55, 0.75);
+    border: 1px solid var(--accent-primary);
+    border-radius: 6px;
+    padding: 0.6rem 1rem;
+    text-align: center;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+.era-banner::after {
+    content: "";
+    position: absolute;
+    left: -150%;
+    top: 0;
+    width: 200%;
+    height: 100%;
+    background: linear-gradient(120deg, transparent, var(--accent-glow), transparent);
+    animation: sweep 5s linear infinite;
+}
+
+/* Buttons */
+.btn {
+    display: inline-block;
+    padding: 0.6rem 1.2rem;
+    margin: 0.4rem;
+    background: rgba(70, 45, 90, 0.85);
+    border: 1px solid var(--accent-primary);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 6px var(--accent-glow);
+}
+.btn:hover {
+    background: rgba(90, 60, 120, 0.95);
+    box-shadow: 0 0 12px var(--accent-primary);
+    transform: translateY(-2px);
+}
+.btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 0 4px var(--accent-primary);
+}
+
+/* Tooltip (mystical rune style) */
+.tooltip {
+    position: relative;
+    cursor: help;
+}
+.tooltip::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(20, 10, 30, 0.9);
+    color: var(--text-primary);
+    padding: 0.4rem 0.6rem;
+    border-radius: 4px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    border: 1px solid var(--accent-primary);
+    box-shadow: 0 0 8px var(--accent-glow);
+    font-size: 0.85rem;
+}
+.tooltip:hover::after {
+    opacity: 1;
+}
+
+/* Animations */
+@keyframes pulseGlow {
+    0%, 100% { text-shadow: 0 0 8px var(--accent-glow); }
+    50% { text-shadow: 0 0 20px var(--accent-glow); }
+}
+@keyframes slideGlint {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+    100% { transform: translateX(100%); }
+}
+@keyframes sweep {
+    0% { left: -150%; }
+    100% { left: 150%; }
+}
+
+/* Responsive tweaks */
+@media (max-width: 600px) {
+    .game-header { font-size: 1.8rem; }
+    .stat-card p { font-size: 1.2rem; }
+    .btn { padding: 0.5rem 1rem; font-size: 0.85rem; }
+}
+</style>
 </head>
 <body>
 
