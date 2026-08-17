@@ -10,7 +10,7 @@ const APP = express();
 const PORT = process.env.PORT || 3000;
 
 // ENVIRONMENT VARIABLES (Configured in Render)
-const AI_API_KEY = process.env.GEMINI_API_KEY; 
+const GROQ_API_KEY = process.env.GROQ_API_KEY; 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_REPO = process.env.GITHUB_REPO;
 
@@ -21,10 +21,10 @@ const SERVER = http.createServer(APP);
 const WSS = new WebSocket.Server({ server: SERVER });
 const STATE_FILE = path.join(__dirname, 'worldState.json');
 
-// Rate limiter for Gemini API
+// Rate limiter for Groq API
 const rateLimiter = {
     lastCallTime: 0,
-    minInterval: 7000, // 7 seconds between calls (safe for 10 RPM)
+    minInterval: 7000, // 7 seconds between calls (safe for Groq free tier)
     
     async waitForSlot() {
         const now = Date.now();
@@ -96,97 +96,107 @@ function addLog(msg) {
 }
 
 /**
- * GEMINI API - FIXED - Single model with rate limiting
+ * GROQ API - Uses Llama 3.3 70B model with rate limiting
  */
-async function queryGemini(prompt) {
-    if (!AI_API_KEY) {
-        console.error("❌ No GEMINI_API_KEY");
+async function queryAI(prompt) {
+    if (!GROQ_API_KEY) {
+        console.error("❌ No GROQ_API_KEY");
         return null;
     }
 
-    console.log("🔑 Key:", AI_API_KEY.substring(0, 10) + "...");
-    
-    // Only use ONE model to avoid RPM issues
-    const model = { name: 'gemini-3.7-flash', label: 'Gemini 3.7 Flash' };
+    console.log("🔑 Groq Key:", GROQ_API_KEY.substring(0, 10) + "...");
     
     try {
         // Wait for rate limiter slot
         await rateLimiter.waitForSlot();
         
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model.name}:generateContent?key=${AI_API_KEY}`;
+        const url = 'https://api.groq.com/openai/v1/chat/completions';
         
-        console.log(`🔄 Trying ${model.label}...`);
+        console.log('🔄 Trying Groq (Llama 3.3 70B)...');
         
         // Add timeout to prevent hanging
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
         
         const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${GROQ_API_KEY}`
+            },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                    temperature: 0.8,
-                    maxOutputTokens: 4096
-                }
+                model: 'llama-3.3-70b-versatile',
+                messages: [
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                temperature: 0.8,
+                max_tokens: 4096
             }),
             signal: controller.signal
         });
         
         clearTimeout(timeoutId);
         
-        console.log(`📊 Status for ${model.label}:`, response.status);
+        console.log('📊 Groq Status:', response.status);
         
         if (response.ok) {
             const data = await response.json();
-            console.log(`📦 Full response from ${model.label}:`, JSON.stringify(data).substring(0, 500));
+            console.log('📦 Groq response received');
             
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            const text = data.choices?.[0]?.message?.content;
             
             if (text && text.length > 0) {
-                console.log(`✅ Success with ${model.label}!`);
-                console.log("📝 Text:", text.substring(0, 200));
+                console.log('✅ Success with Groq!');
+                console.log('📝 Text:', text.substring(0, 200));
                 return text;
             }
         } else if (response.status === 429) {
             // Rate limited - wait 60 seconds
-            console.log(`⏳ Rate limit (429). Waiting 60 seconds before retry...`);
+            console.log('⏳ Rate limit (429). Waiting 60 seconds before retry...');
             await new Promise(resolve => setTimeout(resolve, 60000));
             
             // Retry once after waiting
-            console.log(`🔄 Retrying ${model.label}...`);
+            console.log('🔄 Retrying Groq...');
             const retryResponse = await fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${GROQ_API_KEY}`
+                },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: {
-                        temperature: 0.8,
-                        maxOutputTokens: 4096
-                    }
+                    model: 'llama-3.3-70b-versatile',
+                    messages: [
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    temperature: 0.8,
+                    max_tokens: 4096
                 })
             });
             
             if (retryResponse.ok) {
                 const retryData = await retryResponse.json();
-                const retryText = retryData.candidates?.[0]?.content?.parts?.[0]?.text;
+                const retryText = retryData.choices?.[0]?.message?.content;
                 
                 if (retryText && retryText.length > 0) {
-                    console.log(`✅ Success with ${model.label} on retry!`);
+                    console.log('✅ Success with Groq on retry!');
                     return retryText;
                 }
             }
         } else {
             const errorText = await response.text();
-            console.error(`❌ Error with ${model.label}:`, response.status, errorText.substring(0, 300));
+            console.error('❌ Groq Error:', response.status, errorText.substring(0, 300));
         }
     } catch (e) {
-        console.error(`❌ Fetch error with ${model.label}:`, e.message);
+        console.error('❌ Groq Fetch error:', e.message);
     }
     
-    // Model failed
-    console.error("❌ Gemini model failed");
+    console.error('❌ Groq failed');
     return null;
 }
 
@@ -214,7 +224,7 @@ async function generateAIEvents() {
     let parsed = null;
 
     try {
-        const rawText = await queryGemini(prompt);
+        const rawText = await queryAI(prompt);
         if (rawText && !rawText.startsWith("//")) {
             const jsonMatch = rawText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
@@ -307,8 +317,8 @@ async function autoImproveGameCode() {
                 break;
         }
         
-        console.log("🔍 Asking Gemini for", improvementType === 0 ? "CSS" : improvementType === 1 ? "JavaScript" : "HTML", "improvement...");
-        const aiResponse = await queryGemini(prompt);
+        console.log("🔍 Asking Groq (Llama 3.3) for", improvementType === 0 ? "CSS" : improvementType === 1 ? "JavaScript" : "HTML", "improvement...");
+        const aiResponse = await queryAI(prompt);
         
         // Check if AI response is valid
         if (aiResponse && !aiResponse.startsWith("//") && aiResponse.length > 20) {
@@ -513,15 +523,15 @@ function runSimulationTick() {
         worldState.economicPower = "Emerging Market";
     }
 
-    // AI Event every 150 days (reduced from 30 to stay within free quota)
+    // AI Event every 150 days (non-blocking)
     if (worldState.day % 150 === 0) {
         generateAIEvents().catch(err => console.error("AI Event error:", err));
     }
 
-    // Code improvement every 250 days (reduced from 50 to stay within free quota)
+    // Code improvement every 250 days (non-blocking)
     if (worldState.day % 250 === 0) {
         const patch = Math.floor(Math.random() * 9) + 1;
-        worldState.engineBuild = "v" + (2 + Math.floor(worldState.aiImprovements / 10)) + "." + patch + ".0-Gemini-3.7";
+        worldState.engineBuild = "v" + (2 + Math.floor(worldState.aiImprovements / 10)) + "." + patch + ".0-Groq-Llama3.3";
         autoImproveGameCode().catch(err => console.error("AI Improvement error:", err));
     }
 
@@ -540,17 +550,17 @@ WSS.on('connection', (ws) => {
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Current state - Day:", worldState.day, "AI Improvements:", worldState.aiImprovements);
-    console.log("🤖 Using Gemini 3.7 Flash (single model to avoid RPM)");
+    console.log("🤖 Using Groq API (Llama 3.3 70B)");
     console.log("📅 AI Events: every 150 days | Code Improvements: every 250 days");
     console.log("⏳ Rate limiter: 7 seconds minimum between calls");
     
-    queryGemini("Say 'OK'")
+    queryAI("Say 'OK'")
         .then(response => {
             if (response) {
-                console.log("✅ Gemini response:", response.substring(0, 100));
-                addLog("[SYSTEM] AI System ready (Gemini 3.7 Flash).");
+                console.log("✅ Groq response:", response.substring(0, 100));
+                addLog("[SYSTEM] AI System ready (Groq Llama 3.3).");
             } else {
-                console.log("⚠️ Gemini not responding, using fallbacks");
+                console.log("⚠️ Groq not responding, using fallbacks");
                 addLog("[SYSTEM] AI System in fallback mode.");
             }
         });
