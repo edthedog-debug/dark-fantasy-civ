@@ -98,7 +98,7 @@ function addLog(msg) {
 }
 
 /**
- * GROQ API - Simple and safe
+ * GROQ API
  */
 async function queryAI(prompt) {
     if (!GROQ_API_KEY) return null;
@@ -197,20 +197,63 @@ async function pushToGitHub(htmlPath, type, day) {
 }
 
 /**
- * AI Events - Immediate fallback
+ * AI Events - PROPORTIONAL gold impact (percentage of treasury)
  */
 async function generateAIEvents() {
+    const treasury = worldState.treasury;
+    
+    // PROPORTIONAL events - impact based on current treasury
     const fallbacks = [
-        { event: "Blood moon rises over the kingdom", newPhilosophy: "Lunar Worship", goldImpact: -50000000000, happinessImpact: -15, techImpact: 0.5, visualEffect: "blood_moon", duration: 50 },
-        { event: "Great fire ravages the capital", newPhilosophy: "Phoenix Rebirth", goldImpact: -30000000000, happinessImpact: -20, techImpact: 0.2, visualEffect: "fire", duration: 30 },
-        { event: "Storm destroys crops", newPhilosophy: "Storm Resilience", goldImpact: -20000000000, happinessImpact: -10, techImpact: 0.1, visualEffect: "storm", duration: 20 },
-        { event: "Plague sweeps through", newPhilosophy: "Medical Revolution", goldImpact: -40000000000, happinessImpact: -25, techImpact: 0.8, visualEffect: "plague", duration: 60 },
-        { event: "Golden age of prosperity", newPhilosophy: "Enlightenment", goldImpact: 5000000000, happinessImpact: 20, techImpact: 1.0, visualEffect: "prosperity", duration: 40 }
+        { 
+            event: "Blood moon rises over the kingdom", 
+            newPhilosophy: "Lunar Worship", 
+            goldImpact: -Math.floor(treasury * 0.30), // -30% of treasury
+            happinessImpact: -15, 
+            techImpact: 0.5, 
+            visualEffect: "blood_moon", 
+            duration: 50 
+        },
+        { 
+            event: "Great fire ravages the capital", 
+            newPhilosophy: "Phoenix Rebirth", 
+            goldImpact: -Math.floor(treasury * 0.25), // -25%
+            happinessImpact: -20, 
+            techImpact: 0.2, 
+            visualEffect: "fire", 
+            duration: 30 
+        },
+        { 
+            event: "Storm destroys crops", 
+            newPhilosophy: "Storm Resilience", 
+            goldImpact: -Math.floor(treasury * 0.15), // -15%
+            happinessImpact: -10, 
+            techImpact: 0.1, 
+            visualEffect: "storm", 
+            duration: 20 
+        },
+        { 
+            event: "Plague sweeps through", 
+            newPhilosophy: "Medical Revolution", 
+            goldImpact: -Math.floor(treasury * 0.40), // -40%
+            happinessImpact: -25, 
+            techImpact: 0.8, 
+            visualEffect: "plague", 
+            duration: 60 
+        },
+        { 
+            event: "Golden age of prosperity", 
+            newPhilosophy: "Enlightenment", 
+            goldImpact: Math.floor(treasury * 0.05), // +5%
+            happinessImpact: 20, 
+            techImpact: 1.0, 
+            visualEffect: "prosperity", 
+            duration: 40 
+        }
     ];
     
     const parsed = fallbacks[Math.floor(Math.random() * fallbacks.length)];
     
-    addLog("[AI EVENT] " + parsed.event);
+    addLog("[AI EVENT] " + parsed.event + " | Gold impact: " + (parsed.goldImpact >= 0 ? "+" : "") + parsed.goldImpact.toLocaleString());
     if (parsed.newPhilosophy) worldState.philosophy = parsed.newPhilosophy;
     if (typeof parsed.goldImpact === 'number') worldState.treasury = Math.max(0, worldState.treasury + parsed.goldImpact);
     if (typeof parsed.happinessImpact === 'number') worldState.happiness = Math.min(100, Math.max(10, worldState.happiness + parsed.happinessImpact));
@@ -231,7 +274,7 @@ async function generateAIEvents() {
 }
 
 /**
- * SIMULATION TICK - Every 4 seconds
+ * SIMULATION TICK
  */
 function runSimulationTick() {
     worldState.day += 1;
@@ -299,13 +342,13 @@ function runSimulationTick() {
 
 setInterval(runSimulationTick, 4000);
 
-// WebSocket - IMMEDIATE send on connection
+// WebSocket
 WSS.on('connection', (ws) => {
     console.log('🔗 Client connected');
     ws.send(JSON.stringify({ type: 'WORLD_UPDATE', data: worldState }));
 });
 
-// AI CODE IMPROVEMENT - Safe, never breaks WebSocket
+// AI CODE IMPROVEMENT
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT...");
     addLog("[AI AUTO-CODING] Applying improvement...");
@@ -323,7 +366,6 @@ async function autoImproveGameCode() {
         worldState.aiImprovements += 1;
         addLog("[AI COMMIT SUCCESS] Total: " + worldState.aiImprovements);
         
-        // Try to push to GitHub but DON'T let it break anything
         pushToGitHub(htmlPath, "Improvement", worldState.day).catch(() => {});
         
     } catch (err) {
@@ -335,14 +377,15 @@ async function autoImproveGameCode() {
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
-    console.log("⏱️ Simulation: every 4s | Events: every 50 days | Code: every 250 days");
+    console.log("💰 Treasury:", worldState.treasury.toLocaleString());
+    console.log("⏱️ Events: every 50 days (proportional gold impact)");
     
     addLog("[SYSTEM] Simulation started.");
     broadcastState();
 });
 
 /**
- * Clean HTML - With WORKING WebSocket
+ * Clean HTML
  */
 function getCleanHTML() {
     return `<!DOCTYPE html>
@@ -385,35 +428,18 @@ function getCleanHTML() {
     <script>
         let ws;
         let worldState = null;
-        
         function connect() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             ws = new WebSocket(protocol + '//' + window.location.host);
-            
-            ws.onopen = () => {
-                document.getElementById('log-stream').innerHTML = '<span style="color:#00ff88;">Connected</span>';
-            };
-            
+            ws.onopen = () => { document.getElementById('log-stream').innerHTML = '<span style="color:#00ff88;">Connected</span>'; };
             ws.onmessage = (event) => {
                 try {
                     const msg = JSON.parse(event.data);
-                    if (msg.type === 'WORLD_UPDATE') {
-                        worldState = msg.data;
-                        updateUI();
-                    }
+                    if (msg.type === 'WORLD_UPDATE') { worldState = msg.data; updateUI(); }
                 } catch (e) {}
             };
-            
-            ws.onclose = () => {
-                document.getElementById('log-stream').innerHTML = '<span style="color:#ffcc00;">Reconnecting...</span>';
-                setTimeout(connect, 2000);
-            };
-            
-            ws.onerror = () => {
-                document.getElementById('log-stream').innerHTML = '<span style="color:#ff4444;">Error - retrying...</span>';
-            };
+            ws.onclose = () => { setTimeout(connect, 2000); };
         }
-        
         function updateUI() {
             if (!worldState) return;
             document.getElementById('stat-day').innerText = worldState.day;
@@ -424,7 +450,6 @@ function getCleanHTML() {
             document.getElementById('stat-tanks').innerText = worldState.tanks;
             document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
             document.getElementById('stat-build').innerText = worldState.engineBuild || 'v2.0';
-            
             const ep = document.getElementById('event-panel');
             if (worldState.activeEvents && worldState.activeEvents.length > 0) {
                 ep.innerHTML = worldState.activeEvents.map(e => '⚡ ' + e.description).join(' | ');
@@ -433,14 +458,12 @@ function getCleanHTML() {
                 ep.innerHTML = 'No active events';
                 ep.style.borderColor = '#00ff88';
             }
-            
             const logBox = document.getElementById('log-stream');
             if (worldState.logs && worldState.logs.length > 0) {
                 logBox.innerHTML = worldState.logs.map(l => '<div>' + l + '</div>').join('');
                 logBox.scrollTop = logBox.scrollHeight;
             }
         }
-        
         connect();
     </script>
 </body>
