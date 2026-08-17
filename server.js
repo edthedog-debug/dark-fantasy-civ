@@ -298,7 +298,7 @@ async function generateAIEvents() {
 }
 
 /**
- * 2. AI CODE IMPROVEMENT - PRIORITIZES GRAPHICS AND EVENTS
+ * 2. AI CODE IMPROVEMENT - STRICTLY PRESERVES FUNCTIONALITY & ENHANCES GRAPHICS/STYLING ONLY
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT...");
@@ -313,7 +313,7 @@ async function autoImproveGameCode() {
             return;
         }
         
-        const currentHtml = fs.readFileSync(htmlPath, 'utf8');
+        let currentHtml = fs.readFileSync(htmlPath, 'utf8');
         console.log("📄 Current HTML size:", currentHtml.length, "chars");
         
         if (currentHtml.length > 100000) {
@@ -329,61 +329,41 @@ async function autoImproveGameCode() {
         let codeToAdd;
         
         switch(improvementType) {
-            case 0: // GRAPHICS CSS + EVENT VISUALS
-                prompt = `REPLACE ENTIRE CSS with OPTIMIZED pixel art styles.
-                Current: Day ${worldState.day}, Pop ${worldState.population}, Tech ${worldState.techPower}, Era: ${worldState.era}.
+            case 0: // STYLING & GRAPHICS CSS
+                prompt = `You are a Senior Frontend UI/UX Developer.
+                Enhance the CSS styles in index.html for a Dark Fantasy AI Civilization.
+                Current State: Day ${worldState.day}, Pop ${worldState.population}, Tech ${worldState.techPower}, Era: ${worldState.era}.
                 
-                PRIORITY: GRAPHICS QUALITY AND EVENT VISUALS
-                
-                RULES:
-                - Complete replacement CSS (not additions)
-                - Pixel art style with sharp edges
-                - Include CSS animations for events: blood moon (red overlay), fire (orange glow), storm (dark clouds), plague (green tint), prosperity (golden glow)
-                - Responsive for mobile and desktop
-                - Maximum 250 lines
-                
-                Return ONLY valid CSS.`;
+                CRITICAL INSTRUCTIONS:
+                - PRESERVE ALL EXISTING FUNCTIONALITY AND HTML STRUCTURE.
+                - DO NOT change, rename, or remove any DOM element classes or IDs.
+                - Focus STRICTLY on aesthetic enhancements: rich dark fantasy color palettes, polished pixel-art borders, sleek retro UI card layouts, glowing status indicators, smooth hover transitions, and responsive mobile alignment.
+                - Maintain CSS keyframe animations for events: blood_moon (red atmospheric glow), fire (flickering orange overlay), storm (dark lightning background), plague (toxic green mist), prosperity (sparkling gold accent).
+                - Return ONLY the complete, fully valid CSS code to be placed inside the <style> tags (no explanation, maximum 250 lines).`;
                 break;
                 
-            case 1: // CANVAS JS + EVENT RENDERING
-                prompt = `REPLACE ENTIRE canvas JavaScript with OPTIMIZED pixel art engine.
-                Current: Day ${worldState.day}, Pop ${worldState.population}, Tech ${worldState.techPower}.
-                Buildings: ${Math.floor(worldState.population / 5)}, Units: ${Math.floor(worldState.population / 10)}.
+            case 1: // CANVAS ENGINE & VISUAL EFFECTS JS
+                prompt = `You are a HTML5 Canvas Graphics Specialist.
+                Improve the Canvas rendering script for index.html.
+                Current State: Day ${worldState.day}, Pop ${worldState.population}, Tech ${worldState.techPower}.
                 
-                PRIORITY: GRAPHICS QUALITY AND EVENT VISUALIZATION
-                
-                RULES:
-                - Complete replacement JavaScript (not additions)
-                - Draw pixel art buildings with windows, doors, roofs
-                - Draw animated units walking
-                - RENDER ACTIVE EVENTS from worldState.activeEvents:
-                  - blood_moon: red overlay + red moon
-                  - fire: orange flames + smoke particles
-                  - storm: dark clouds + lightning
-                  - plague: green fog + particles
-                  - prosperity: golden sparkles
-                - Clamp ALL positions within canvas
-                - Handle resize without duplicates
-                - Maximum 400 lines
-                
-                Return ONLY valid JavaScript.`;
+                CRITICAL INSTRUCTIONS:
+                - PRESERVE ALL EXISTING FUNCTIONALITY, state logic, WebSocket handlers, element bindings, and UI updates (stat-day, stat-era, stat-pop, stat-gold, stat-tech, stat-tanks, stat-status, stat-build, event-panel, log-stream).
+                - DO NOT break canvas resize events, render loops, object clamping, or WebSocket communication.
+                - Focus STRICTLY on graphical enhancements: detailed pixel-art structures, animated unit sprites, atmospheric particle effects (rain, embers, green fog, golden dust), dynamic terrain tiles, and smoother event rendering overlays.
+                - Return ONLY valid, complete JavaScript code to be placed inside the <script> tags (no explanation, maximum 400 lines).`;
                 break;
                 
-            case 2: // HTML + EVENT DISPLAY
-                prompt = `REPLACE ENTIRE HTML body with OPTIMIZED structure.
-                Current: Day ${worldState.day}, Pop ${worldState.population}, Era: ${worldState.era}.
+            case 2: // HTML UI STRUCTURE & LAYOUT POLISH
+                prompt = `You are a UI Architect polishing the HTML layout in index.html.
+                Current State: Day ${worldState.day}, Pop ${worldState.population}, Era: ${worldState.era}.
                 
-                PRIORITY: EVENT DISPLAY AND CIVILIZATION COMPLEXITY
-                
-                RULES:
-                - Complete replacement HTML (not additions)
-                - Show: day, era, population, treasury, tech, defenses, status
-                - Add EVENT DISPLAY PANEL showing worldState.activeEvents
-                - Add BUILDING LIST showing civilization buildings
-                - Pixel art style
-                - Maximum 150 lines
-                
-                Return ONLY valid HTML body.`;
+                CRITICAL INSTRUCTIONS:
+                - PRESERVE ALL EXISTING FUNCTIONALITY AND DOM ELEMENT IDs EXACTLY AS THEY ARE:
+                  Required IDs: stat-day, stat-era, stat-pop, stat-gold, stat-tech, stat-tanks, stat-status, stat-build, event-panel, log-stream, gameCanvas.
+                - DO NOT add, remove, or modify functional JavaScript bindings or WebSocket hooks.
+                - Focus STRICTLY on visual hierarchy, clean container nesting, responsive grid improvements, and congruent retro fantasy UI presentation.
+                - Return ONLY valid HTML code for the content inside <body>...</body> (no explanation, maximum 150 lines).`;
                 break;
         }
         
@@ -426,7 +406,7 @@ async function autoImproveGameCode() {
                 await executeGitCommand('git config --global user.email "ai@example.com"');
                 await executeGitCommand('git config --global user.name "AI Auto-Improver"');
                 
-                const repoUrl = `https://${cleanToken}@github.com/edthedog-debug/dark-fantasy-civ.git`;
+                const repoUrl = `https://${cleanToken}@[github.com/edthedog-debug/dark-fantasy-civ.git](https://github.com/edthedog-debug/dark-fantasy-civ.git)`;
                 
                 try {
                     await executeGitCommand('git rev-parse --is-inside-work-tree');
