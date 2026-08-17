@@ -2642,5 +2642,79 @@ function createMagicEffect() {
 }
 createMagicEffect();
 </script>
+
+<!-- === AI HTML IMPROVEMENT (Day 28000) === -->
+<!-- Dark Fantasy UI Add‑on -->
+<style>
+    .df-ui { 
+        font-family: 'Cinzel', serif; 
+        color: #e0e0e0; 
+        background: rgba(10,10,10,0.85); 
+        border: 2px solid #4b0000; 
+        border-radius: 8px; 
+        padding: 12px; 
+        margin: 8px 0; 
+        backdrop-filter: blur(4px);
+    }
+    .df-ui h2 { 
+        font-size: 1.3rem; 
+        color: #ff5555; 
+        margin: 0 0 6px 0; 
+        text-shadow: 0 0 4px #ff0000;
+    }
+    .df-ui .stat { 
+        display: flex; 
+        justify-content: space-between; 
+        padding: 4px 0; 
+        border-bottom: 1px solid #2a0000;
+    }
+    .df-ui .stat:last-child { border-bottom: none; }
+    .df-ui .stat span { font-weight: 600; }
+    .df-ui .icon { 
+        width: 20px; 
+        height: 20px; 
+        margin-right: 6px; 
+        vertical-align: middle;
+    }
+    .df-panel { 
+        display: grid; 
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+        gap: 12px; 
+    }
+</style>
+
+<div class="df-panel">
+    <!-- Soul Harvest Panel -->
+    <div class="df-ui" id="soul-harvest-panel">
+        <h2><img src="icons/soul.svg" class="icon" alt="Soul"> Soul Harvest</h2>
+        <div class="stat"><span>Collected Souls:</span> <span id="collected-souls">12,453,219</span></div>
+        <div class="stat"><span>Harvest Rate:</span> <span id="harvest-rate">+3.7%/day</span></div>
+        <div class="stat"><span>Ritual Cost:</span> <span id="ritual-cost">1.2 B Essence</span></div>
+    </div>
+
+    <!-- Eldritch Influence Panel -->
+    <div class="df-ui" id="eldritch-influence-panel">
+        <h2><img src="icons/eldritch.svg" class="icon" alt="Eldritch"> Eldritch Influence</h2>
+        <div class="stat"><span>Corruption Level:</span> <span id="corruption-level">68%</span></div>
+        <div class="stat"><span>Forbidden Knowledge:</span> <span id="forbidden-knowledge">7,842</span></div>
+        <div class="stat"><span>Dark Pact Bonus:</span> <span id="dark-pact-bonus">+12% Production</span></div>
+    </div>
+
+    <!-- Necrotic Resources Panel -->
+    <div class="df-ui" id="necrotic-resources-panel">
+        <h2><img src="icons/necrotic.svg" class="icon" alt="Necrotic"> Necrotic Resources</h2>
+        <div class="stat"><span>Obsidian:</span> <span id="obsidian">3,712,048</span></div>
+        <div class="stat"><span>Bone Ash:</span> <span id="bone-ash">9,104,321</span></div>
+        <div class="stat"><span>Blood Quartz:</span> <span id="blood-quartz">1,578,904</span></div>
+    </div>
+
+    <!-- Arcane Corruption Panel -->
+    <div class="df-ui" id="arcane-corruption-panel">
+        <h2><img src="icons/arcane.svg" class="icon" alt="Arcane"> Arcane Corruption</h2>
+        <div class="stat"><span>Mana Leech:</span> <span id="mana-leech">+5%/day</span></div>
+        <div class="stat"><span>Curse Decay:</span> <span id="curse-decay">-0.3%/day</span></div>
+        <div class="stat"><span>Ritual Slots:</span> <span id="ritual-slots">4 / 6</span></div>
+    </div>
+</div>
 </body>
 </html>
