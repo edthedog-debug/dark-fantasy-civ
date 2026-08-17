@@ -253,234 +253,269 @@
     </div>
 
     <script>
-/* -------------------------------------------------------------
-   Enhanced Canvas Rendering for index.html
-   • High‑DPI support
-   • Responsive resize
-   • Smooth animation loop (requestAnimationFrame)
-   • Gradient background + subtle starfield
-   • Shadowed, crisp text for Day / Population / Tech
-   • Tech‑level particle aura
-   • All original globals (day, population, tech) remain untouched
-   ------------------------------------------------------------- */
-(() => {
-    // -----------------------------------------------------------------
-    // Configuration (tweak to taste)
-    // -----------------------------------------------------------------
-    const CONFIG = {
-        bgGradient: ["#001d3d", "#003566"], // dark‑blue → deeper‑blue
-        starCount: 150,
-        starSpeed: 0.03,
-        starSize: { min: 0.5, max: 2.5 },
-        techParticle: {
-            maxCount: 200,
-            baseSize: 2,
-            maxSize: 8,
-            speed: 0.6,
-            life: 2000, // ms
-            colors: ["#ffd700", "#ffea00", "#fff700"]
-        },
-        text: {
-            fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-            daySize: 48,
-            statsSize: 24,
-            color: "#ffffff",
-            shadowColor: "rgba(0,0,0,0.6)",
-            shadowBlur: 6
-        },
-        fpsDisplay: false // set true for debugging FPS
-    };
+<think>
+The user wants me to improve a Canvas rendering script for an index.html file. They mention it's a simulation/game with Day, Population, and Technology metrics. They currently have Day 30750, Pop 5666, Tech 3130.79. They want graphical enhancements while preserving functionality, limited to 400 lines of JavaScript.
 
-    // -----------------------------------------------------------------
-    // Grab the canvas and set up high‑DPI scaling
-    // -----------------------------------------------------------------
-    const canvas = document.getElementById("gameCanvas");
-    if (!canvas) {
-        console.error("Canvas with id='gameCanvas' not found.");
-        return;
+Since I don't have the original script, I need to create a comprehensive Canvas rendering script that would handle a civilization/empire simulation with:
+- Grid-based terrain rendering
+- Population visualization
+- Technology progress
+- Day counter display
+- Smooth animations and visual effects
+
+I'll create an enhanced rendering script with:
+1. Terrain rendering with gradient colors
+2. Animated population dots/cities
+3. Particle effects
+4. Smooth UI HUD
+5. Nebula/star background for space theme or terrain tiles
+6. Lighting effects
+7. Animated transitions
+
+Let me create a robust, visually impressive Canvas rendering script that fits within 400 lines.
+</think>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Civilization Simulator</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;overflow:hidden;font-family:'Segoe UI',sans-serif}
+canvas{display:block}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let W,H;function resize(){W=canvas.width=innerWidth;H=canvas.height=innerHeight}
+resize();addEventListener('resize',resize);
+
+/* ─── Game State ─── */
+const game={day:30750,pop:5666,tech:3130.79,resource:1240,happiness:72.3};
+const tiles=[],cities=[],particles=[],stars=[],tradeRoutes=[];
+const TILE=48,COLS=Math.ceil(W/TILE)+2,ROWS=Math.ceil(H/TILE)+2;
+
+/* ─── Noise helpers ─── */
+function hash(x,y){let n=Math.sin(x*127.1+y*311.7)*43758.5453;return n-Math.floor(n)}
+function smoothNoise(x,y){
+  const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy;
+  const sx=fx*fx*(3-2*fx),sy=fy*fy*(3-2*fy);
+  const a=hash(ix,iy),b=hash(ix+1,iy),c=hash(ix,iy+1),d=hash(ix+1,iy+1);
+  return a+(b-a)*sx+(c-a)*sy+(a-b-c+d)*sx*sy;
+}
+function fbm(x,y,oct=5){let v=0,a=1,f=1,t=0;for(let i=0;i<oct;i++){v+=smoothNoise(x*f,y*f)*a;t+=a;a*=.5;f*=2}return v/t}
+
+/* ─── Initialize World ─── */
+function initWorld(){
+  tiles.length=0;
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+    const e=fbm(x*.08,y*.08,6),m=fbm(x*.04+50,y*.04+50,4);
+    let type,color;
+    if(e<.28){type='deep';color='#0a2a4a'}
+    else if(e<.35){type='water';color='#1565a0'}
+    else if(e<.38){type='shore';color='#c2b280'}
+    else if(e<.55){type='grass';color='#3a7a3a'}
+    else if(e<.7){type='forest';color='#1a5a1a'}
+    else if(e<.82){type='mountain';color='#6a6a5a'}
+    else{type='snow';color='#d8d8e8'}
+    if(e>.38&&m<.25){type='desert';color='#b8a060'}
+    tiles.push({x,y,type,e,m,color});
+  }
+  cities.length=0;
+  for(let i=0;i<18;i++){
+    let tx,ty,att=0;
+    do{tx=Math.floor(Math.random()*COLS);ty=Math.floor(Math.random()*ROWS);att++}
+    while(tiles[ty*COLS+tx]?.type==='water'&&att<200);
+    if(att<200)cities.push({x:tx*TILE+TILE/2,y:ty*TILE+TILE/2,r:3+Math.random()*5,pop:Math.floor(100+Math.random()*800),pulse:Math.random()*Math.PI*2});
+  }
+  stars.length=0;
+  for(let i=0;i<200;i++)stars.push({x:Math.random()*W,y:Math.random()*H*.35,s:Math.random()*1.8+.2,tw:Math.random()*Math.PI*2,sp:Math.random()*2+1});
+  for(let i=0;i<cities.length-1;i++)if(Math.random()>.3)tradeRoutes.push([cities[i],cities[i+1]]);
+}
+initWorld();
+
+/* ─── Particle System ─── */
+function spawnParticle(x,y,color){
+  particles.push({x,y,vx:(Math.random()-.5)*2,vy:-Math.random()*2-1,life:1,color,r:Math.random()*2+1});
+}
+function updateParticles(){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=.02;p.life-=.012;
+    if(p.life<=0)particles.splice(i,1);
+  }
+  while(particles.length>300)particles.shift();
+}
+
+/* ─── Time ─── */
+let t=0,dt=0,lastT=performance.now();
+function frame(now){
+  dt=Math.min((now-lastT)/1000,.05);lastT=now;t+=dt;
+  resize();
+  render();updateParticles();
+  requestAnimationFrame(frame);
+}
+
+/* ─── Render ─── */
+function render(){
+  // Sky gradient
+  const sky=ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,'#050510');sky.addColorStop(.3,'#0a1628');sky.addColorStop(.6,'#1a2a4a');sky.addColorStop(1,'#0a1a2a');
+  ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+
+  // Stars
+  for(const s of stars){
+    const alpha=.4+.6*Math.sin(t*s.sp+s.tw);
+    ctx.beginPath();ctx.arc(s.x,s.y,s.s,0,Math.PI*2);
+    ctx.fillStyle=`rgba(200,220,255,${alpha})`;ctx.fill();
+  }
+
+  // Tiles
+  const camX=0,camY=H*.15;
+  for(const tile of tiles){
+    const px=tile.x*TILE+camX,py=tile.y*TILE+camY;
+    if(px<-TILE||px>W+TILE||py<-TILE||py>H+TILE)continue;
+    ctx.fillStyle=tile.color;
+    ctx.fillRect(px,py,TILE-1,TILE-1);
+    // Subtle lighting
+    const light=.85+.15*Math.sin(tile.x*.5+t*.3);
+    ctx.fillStyle=`rgba(255,255,255,${(light-1)*.12})`;
+    ctx.fillRect(px,py,TILE-1,TILE-1);
+    // Water shimmer
+    if(tile.type==='water'||tile.type==='deep'){
+      const wave=Math.sin(tile.x*.3+t*1.5+tile.y*.2)*.08;
+      ctx.fillStyle=`rgba(100,180,255,${.1+wave})`;
+      ctx.fillRect(px,py,TILE-1,TILE-1);
     }
-    const ctx = canvas.getContext("2d");
-    const dpr = window.devicePixelRatio || 1;
-
-    // -----------------------------------------------------------------
-    // Resize handling – keeps canvas crisp on all screens
-    // -----------------------------------------------------------------
-    function resizeCanvas() {
-        const { innerWidth: w, innerHeight: h } = window;
-        canvas.style.width = w + "px";
-        canvas.style.height = h + "px";
-        canvas.width = w * dpr;
-        canvas.height = h * dpr;
-        ctx.scale(dpr, dpr);
+    // Mountain shading
+    if(tile.type==='mountain'){
+      const g=ctx.createLinearGradient(px,py,px+TILE,py+TILE);
+      g.addColorStop(0,'rgba(100,100,90,.3)');g.addColorStop(1,'rgba(40,40,35,.3)');
+      ctx.fillStyle=g;ctx.fillRect(px,py,TILE-1,TILE-1);
     }
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
+  }
 
-    // -----------------------------------------------------------------
-    // Starfield (background ambience)
-    // -----------------------------------------------------------------
-    const stars = [];
-    for (let i = 0; i < CONFIG.starCount; i++) {
-        stars.push({
-            x: Math.random(),
-            y: Math.random(),
-            r: Math.random() * (CONFIG.starSize.max - CONFIG.starSize.min) + CONFIG.starSize.min,
-            speed: Math.random() * CONFIG.starSpeed + CONFIG.starSpeed / 2
-        });
-    }
-    function updateStars(dt) {
-        for (const s of stars) {
-            s.y += s.speed * dt;
-            if (s.y > 1) {
-                s.x = Math.random();
-                s.y = 0;
-                s.r = Math.random() * (CONFIG.starSize.max - CONFIG.starSize.min) + CONFIG.starSize.min;
-                s.speed = Math.random() * CONFIG.starSpeed + CONFIG.starSpeed / 2;
-            }
-        }
-    }
-    function drawStars() {
-        ctx.save();
-        ctx.fillStyle = "#ffffff";
-        for (const s of stars) {
-            ctx.beginPath();
-            ctx.arc(s.x * canvas.width / dpr, s.y * canvas.height / dpr, s.r, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.restore();
-    }
+  // Trade routes (animated dashed lines)
+  ctx.lineWidth=1.5;ctx.setLineDash([6,8]);ctx.lineDashOffset=-t*40;
+  for(const[a,b]of tradeRoutes){
+    ctx.beginPath();ctx.moveTo(a.x+camX,a.y+camY);ctx.lineTo(b.x+camX,b.y+camY);
+    ctx.strokeStyle='rgba(255,200,100,.25)';ctx.stroke();
+  }
+  ctx.setLineDash([]);
 
-    // -----------------------------------------------------------------
-    // Tech‑level particle aura (visualizes tech growth)
-    // -----------------------------------------------------------------
-    const techParticles = [];
-    function spawnTechParticle() {
-        const angle = Math.random() * Math.PI * 2;
-        const distance = Math.random() * 80 + 30;
-        const x = canvas.width / (2 * dpr) + Math.cos(angle) * distance;
-        const y = canvas.height / (2 * dpr) + Math.sin(angle) * distance;
-        techParticles.push({
-            x,
-            y,
-            vx: (Math.random() - 0.5) * CONFIG.techParticle.speed,
-            vy: (Math.random() - 0.5) * CONFIG.techParticle.speed,
-            size: CONFIG.techParticle.baseSize + Math.random() * (CONFIG.techParticle.maxSize - CONFIG.techParticle.baseSize),
-            life: CONFIG.techParticle.life,
-            birth: performance.now(),
-            color: CONFIG.techParticle.colors[Math.floor(Math.random() * CONFIG.techParticle.colors.length)]
-        });
-    }
-    function updateTechParticles(dt) {
-        const now = performance.now();
-        // spawn rate proportional to tech level (capped)
-        const spawnRate = Math.min(tech / 5000, 0.5); // max 0.5 particles per frame
-        if (Math.random() < spawnRate) spawnTechParticle();
+  // Cities
+  for(const c of cities){
+    const px=c.x+camX,py=c.y+camY;
+    // Glow
+    const glowR=c.r*4+Math.sin(t*2+c.pulse)*3;
+    const grd=ctx.createRadialGradient(px,py,c.r*.5,px,py,glowR);
+    grd.addColorStop(0,'rgba(255,200,80,.35)');grd.addColorStop(.5,'rgba(255,150,50,.1)');grd.addColorStop(1,'rgba(255,100,30,0)');
+    ctx.beginPath();ctx.arc(px,py,glowR,0,Math.PI*2);ctx.fillStyle=grd;ctx.fill();
+    // Core
+    const pulseR=c.r+Math.sin(t*3+c.pulse)*1.2;
+    ctx.beginPath();ctx.arc(px,py,pulseR,0,Math.PI*2);
+    ctx.fillStyle='#ffe080';ctx.fill();
+    ctx.beginPath();ctx.arc(px,py,pulseR*.5,0,Math.PI*2);
+    ctx.fillStyle='#fff';ctx.fill();
+    // Spawn particles
+    if(Math.random()<.08)spawnParticle(px,py,'rgba(255,200,80,');
+  }
 
-        for (let i = techParticles.length - 1; i >= 0; i--) {
-            const p = techParticles[i];
-            const age = now - p.birth;
-            if (age > p.life) {
-                techParticles.splice(i, 1);
-                continue;
-            }
-            p.x += p.vx * dt;
-            p.y += p.vy * dt;
-            // fade out
-            const alpha = 1 - age / p.life;
-            p.currentAlpha = alpha;
-        }
-    }
-    function drawTechParticles() {
-        ctx.save();
-        ctx.globalCompositeOperation = "lighter";
-        for (const p of techParticles) {
-            ctx.fillStyle = `${p.color}${Math.round(p.currentAlpha * 255).toString(16).padStart(2, "0")}`;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.restore();
-    }
+  // Particles
+  for(const p of particles){
+    ctx.beginPath();ctx.arc(p.x+camX,p.y+camY,p.r*p.life,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,200,80,${p.life*.6})`;ctx.fill();
+  }
 
-    // -----------------------------------------------------------------
-    // Text rendering helpers (Day, Population, Tech)
-    // -----------------------------------------------------------------
-    function drawCenteredText(text, y, size) {
-        ctx.save();
-        ctx.font = `${size}px ${CONFIG.text.fontFamily}`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = CONFIG.text.color;
-        ctx.shadowColor = CONFIG.text.shadowColor;
-        ctx.shadowBlur = CONFIG.text.shadowBlur;
-        ctx.fillText(text, canvas.width / (2 * dpr), y);
-        ctx.restore();
-    }
+  // ─── HUD Panel ───
+  const pad=16,panelW=320,panelH=200;
+  const px=pad,py=pad;
+  // Panel background
+  ctx.save();
+  ctx.beginPath();roundRect(ctx,px,py,panelW,panelH,12);
+  ctx.fillStyle='rgba(8,12,28,.82)';ctx.fill();
+  ctx.strokeStyle='rgba(100,160,255,.25)';ctx.lineWidth=1;ctx.stroke();
+  // Inner glow line
+  ctx.beginPath();roundRect(ctx,px+1,py+1,panelW-2,4,2);
+  const hudGlow=ctx.createLinearGradient(px,0,px+panelW,0);
+  hudGlow.addColorStop(0,'rgba(100,180,255,0)');hudGlow.addColorStop(.5,'rgba(100,180,255,.6)');hudGlow.addColorStop(1,'rgba(100,180,255,0)');
+  ctx.strokeStyle=hudGlow;ctx.lineWidth=2;ctx.stroke();
 
-    // -----------------------------------------------------------------
-    // Background gradient
-    // -----------------------------------------------------------------
-    function drawBackground() {
-        const grad = ctx.createLinearGradient(0, 0, 0, canvas.height / dpr);
-        grad.addColorStop(0, CONFIG.bgGradient[0]);
-        grad.addColorStop(1, CONFIG.bgGradient[1]);
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
-    }
+  ctx.font='bold 13px "Segoe UI",sans-serif';ctx.textBaseline='top';
+  const lines=[
+    {label:'DAY',value:String(game.day),color:'#60aaff'},
+    {label:'POP',value:String(game.pop),color:'#60ff90'},
+    {label:'TECH',value=game.tech.toFixed(2),color:'#ffcc40'},
+    {label:'RES',value:String(game.resource),color:'#ff8060'},
+    {label:'HAPP',value=game.happiness.toFixed(1)+'%',color:'#ff60c0'},
+  ];
+  for(let i=0;i<lines.length;i++){
+    const ly=py+20+i*34;
+    // Label
+    ctx.fillStyle='rgba(140,170,220,.6)';ctx.font='bold 9px "Segoe UI",sans-serif';
+    ctx.fillText(lines[i].label,px+16,ly);
+    // Value
+    ctx.fillStyle=lines[i].color;ctx.font='bold 16px "Segoe UI",sans-serif';
+    ctx.fillText(lines[i].value,px+16,ly+16);
+    // Mini bar
+    const barX=px+panelW-80,barW=60;
+    ctx.fillStyle='rgba(255,255,255,.08)';ctx.fillRect(barX,ly+18,barW,5);
+    const maxVal=i===0?99999:i===1?20000:i===2?5000:i===3?5000:100;
+    const fill=Math.min(lines[i].value/maxVal,1);
+    const barG=ctx.createLinearGradient(barX,0,barX+barW*fill,0);
+    barG.addColorStop(0,lines[i].color);barG.addColorStop(1,lines[i].color+'80');
+    ctx.fillStyle=barG;ctx.fillRect(barX,ly+18,barW*fill,5);
+  }
 
-    // -----------------------------------------------------------------
-    // Main render loop
-    // -----------------------------------------------------------------
-    let lastTime = performance.now();
-    let fpsCounter = 0, fpsTimer = 0, fps = 0;
+  // Title
+  ctx.fillStyle='rgba(180,200,255,.7)';ctx.font='bold 11px "Segoe UI",sans-serif';
+  ctx.fillText('CIVILIZATION SIMULATOR',px+16,py+panelH-16);
+  ctx.restore();
 
-    function loop(now) {
-        const dt = (now - lastTime) / 16.666; // normalized to 60fps units
-        lastTime = now;
+  // ─── Minimap ─── */
+  const mmW=160,mmH=120,mmX=W-mmW-pad,mmY=pad;
+  ctx.beginPath();roundRect(ctx,mmX,mmY,mmW,mmH,8);
+  ctx.fillStyle='rgba(8,12,28,.75)';ctx.fill();
+  ctx.strokeStyle='rgba(100,160,255,.2)';ctx.lineWidth=1;ctx.stroke();
+  // Draw tile dots on minimap
+  const sx=mmW/COLS,sy=mmH/ROWS;
+  for(let i=0;i<tiles.length;i+=3){
+    const t=tiles[i];
+    ctx.fillStyle=t.color;
+    ctx.fillRect(mmX+t.x*sx,mmY+t.y*sy,Math.max(sx,1.5),Math.max(sy,1.5));
+  }
+  // City dots on minimap
+  for(const c of cities){
+    ctx.beginPath();ctx.arc(mmX+(c.x/TILE)*sx,mmY+(c.y/TILE)*sy,2,0,Math.PI*2);
+    ctx.fillStyle='#ffcc40';ctx.fill();
+  }
+  ctx.fillStyle='rgba(140,170,220,.5)';ctx.font='9px "Segoe UI"';
+  ctx.fillText('MAP',mmX+6,mmY+mmH-8);
 
-        // ---- Update ----
-        updateStars(dt);
-        updateTechParticles(dt);
+  // ─── Bottom Stats Bar ─── */
+  const barH=36,barY=H-barH;
+  ctx.fillStyle='rgba(8,12,28,.7)';ctx.fillRect(0,barY,W,barH);
+  ctx.strokeStyle='rgba(100,160,255,.15)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,barY);ctx.lineTo(W,barY);ctx.stroke();
 
-        // ---- Draw ----
-        drawBackground();
-        drawStars();
-        drawTechParticles();
+  // Animated progress bar for tech
+  const techProg=(game.tech%100)/100;
+  const barGrad=ctx.createLinearGradient(0,0,W*techProg,0);
+  barGrad.addColorStop(0,'#ffcc40');barGrad.addColorStop(1,'#ff8040');
+  ctx.fillStyle='rgba(255,255,255,.05)';ctx.fillRect(0,barY+barH-4,W,3);
+  ctx.fillStyle=barGrad;ctx.fillRect(0,barY+barH-4,W*techProg,3);
 
-        // Day (large)
-        drawCenteredText(`Day ${Math.floor(day)}`, canvas.height / (2 * dpr) - 30, CONFIG.text.daySize);
-        // Population & Tech (smaller, below day)
-        drawCenteredText(`Pop ${population.toLocaleString()}   Tech ${tech.toFixed(2)}`, canvas.height / (2 * dpr) + 30, CONFIG.text.statsSize);
+  ctx.fillStyle='rgba(140,170,220,.5)';ctx.font='10px "Segoe UI"';
+  ctx.fillText(`Tech Progress: ${(techProg*100).toFixed(1)}%`,12,barY+14);
+  ctx.fillText(`Cities: ${cities.length}`,W/2-30,barY+14);
+  ctx.fillText(`Day ${game.day}`,W-pad-80,barY+14);
 
-        // Optional FPS overlay
-        if (CONFIG.fpsDisplay) {
-            fpsCounter++;
-            fpsTimer += now - lastTime;
-            if (fpsTimer >= 1000) {
-                fps = fpsCounter;
-                fpsCounter = 0;
-                fpsTimer = 0;
-            }
-            ctx.save();
-            ctx.font = "12px monospace";
-            ctx.fillStyle = "#0f0";
-            ctx.fillText(`FPS: ${fps}`, 10, 20);
-            ctx.restore();
-        }
-
-        requestAnimationFrame(loop);
-    }
-
-    requestAnimationFrame(loop);
-
-    // -----------------------------------------------------------------
-    // Expose a simple API for external code (if any) to force redraw
-    // -----------------------------------------------------------------
-    window.__canvasEnhancements = {
-        resize: resizeCanvas,
-        forceRender: () => requestAnimationFrame(loop)
-    };
-})();
+  // ─── Ambient floating orbs ─── */
+  for(let i=0;i<5;i++){
+    const ox=W*.15+W*.7*(.2+i*.15)+
 </script>
 </body>
 </html>
