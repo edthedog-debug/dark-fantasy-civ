@@ -31,11 +31,16 @@
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
             padding: 12px;
             gap: 10px;
             overflow: hidden;
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
         }
 
         .dashboard {
@@ -43,7 +48,8 @@
             border: 1px solid var(--border-glow);
             border-radius: 12px;
             padding: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(0, 210, 255, 0.05);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            flex-shrink: 0;
         }
 
         .dash-header {
@@ -94,12 +100,6 @@
             cursor: default;
         }
 
-        .stat-card:hover {
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
         .stat-label {
             font-size: 10px;
             color: #6b7c93;
@@ -114,10 +114,10 @@
             color: #ffffff;
         }
 
-        .val-gold { color: var(--accent-gold); text-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
-        .val-pop { color: var(--accent-green); text-shadow: 0 0 8px rgba(46, 204, 113, 0.4); }
-        .val-tech { color: var(--accent-blue); text-shadow: 0 0 8px rgba(52, 152, 219, 0.4); }
-        .val-era { color: var(--accent-purple); text-shadow: 0 0 8px rgba(155, 89, 182, 0.4); }
+        .val-gold { color: var(--accent-gold); }
+        .val-pop { color: var(--accent-green); }
+        .val-tech { color: var(--accent-blue); }
+        .val-era { color: var(--accent-purple); }
 
         #map-container {
             flex: 1;
@@ -126,8 +126,8 @@
             border-radius: 12px;
             position: relative;
             overflow: hidden;
-            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 210, 255, 0.1);
-            min-height: 300px;
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8);
+            min-height: 0;
         }
 
         canvas {
@@ -149,7 +149,6 @@
             pointer-events: none;
             color: var(--accent-cyan);
             z-index: 10;
-            backdrop-filter: blur(4px);
         }
 
         .log-container {
@@ -161,6 +160,7 @@
             overflow-y: auto;
             font-family: 'Courier New', Courier, monospace;
             font-size: 11px;
+            flex-shrink: 0;
         }
 
         .log-container::-webkit-scrollbar {
@@ -193,7 +193,6 @@
 
         .log-entry:last-child {
             color: var(--accent-cyan);
-            text-shadow: 0 0 8px rgba(0, 210, 255, 0.3);
         }
 
         @media (max-width: 768px) {
@@ -208,10 +207,7 @@
                 gap: 8px;
             }
             .log-container {
-                height: 80px;
-            }
-            #map-container {
-                min-height: 200px;
+                height: 70px;
             }
         }
 
@@ -222,193 +218,381 @@
             .stat-label {
                 font-size: 8px;
             }
-            .dash-header {
-                font-size: 11px;
-            }
         }
     </style>
 </head>
 <body>
-    <!-- TOP DASHBOARD -->
     <div class="dashboard">
         <div class="dash-header">
             <span>SOVEREIGN AI ENGINE</span>
             <div class="status-badge"><div class="status-dot"></div> 24/7 AUTONOMOUS</div>
         </div>
         <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">DAY</div>
-                <div class="stat-value" id="stat-day">1</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">ERA</div>
-                <div class="stat-value val-era" id="stat-era">Era 1</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">POPULATION</div>
-                <div class="stat-value val-pop" id="stat-pop">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">TREASURY</div>
-                <div class="stat-value val-gold" id="stat-gold">0 G</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">TECH POWER</div>
-                <div class="stat-value val-tech" id="stat-tech">0.0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">DEFENSES</div>
-                <div class="stat-value" id="stat-tanks">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">STATUS</div>
-                <div class="stat-value" style="color: #2ecc71;" id="stat-status">PEACE</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">BUILD</div>
-                <div class="stat-value" id="stat-build" style="font-size: 10px;">v2.0</div>
-            </div>
+            <div class="stat-card"><div class="stat-label">DAY</div><div class="stat-value" id="stat-day">1</div></div>
+            <div class="stat-card"><div class="stat-label">ERA</div><div class="stat-value val-era" id="stat-era">Era 1</div></div>
+            <div class="stat-card"><div class="stat-label">POPULATION</div><div class="stat-value val-pop" id="stat-pop">0</div></div>
+            <div class="stat-card"><div class="stat-label">TREASURY</div><div class="stat-value val-gold" id="stat-gold">0 G</div></div>
+            <div class="stat-card"><div class="stat-label">TECH</div><div class="stat-value val-tech" id="stat-tech">0.0</div></div>
+            <div class="stat-card"><div class="stat-label">DEFENSES</div><div class="stat-value" id="stat-tanks">0</div></div>
+            <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value" id="stat-status">PEACE</div></div>
+            <div class="stat-card"><div class="stat-label">BUILDINGS</div><div class="stat-value" id="stat-building-count">0</div></div>
         </div>
     </div>
 
-    <!-- MAP CONTAINER -->
     <div id="map-container">
         <div class="map-overlay-info">Drag to Pan | Scroll or Pinch to Zoom</div>
         <canvas id="gameCanvas"></canvas>
     </div>
 
-    <!-- SYSTEM EVENT LOGS STREAM -->
     <div class="log-container">
         <div class="log-title">SYSTEM EVENT STREAM</div>
-        <div id="log-stream">Connecting to AI Sovereign Neural Link...</div>
+        <div id="log-stream">Connecting...</div>
     </div>
 
     <script>
 (() => {
-    // ----- Canvas Setup -----
+    // ============================================
+    // FIXED WORLD MAP - POSITIONS BY PERCENTAGE
+    // Same layout on ALL devices, stable on zoom
+    // ============================================
+    
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
 
-    // ----- Configuration -----
-    const TILE = 4;                     // size of one pixel block
-    const FPS = 60;
-    const WALK_SPEED = 0.5;             // pixels per frame
-    const ANIM_STEPS = 8;               // frames per walk cycle
-
-    // ----- Color Palette -----
-    const COLORS = {
-        buildingBody: '#7B9ACC',
-        roof: '#5A7AA0',
-        windowOn: '#FFD700',
-        windowOff: '#333333',
-        door: '#8B5A2B',
-        unitBody: '#C46210',
-        unitShade: '#8A3B00'
+    // World state
+    let worldState = {
+        day: 1, era: "Era 1", population: 10, treasury: 500,
+        techPower: 1, tanks: 0, logs: [], inWar: false,
+        activeEvents: [], buildings: []
     };
 
-    // ----- Utility -----
-    const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
-
-    // ----- Mock Data (replace with real game data) -----
-    const buildings = new Array(1132).fill().map((_, i) => ({
-        x: (i * 23) % (canvas.width - 60),
-        y: Math.floor(i / 20) * 40 + 20,
-        w: 40,
-        h: 60,
-        windows: 3,
-        doors: 1
-    }));
-    const units = new Array(566).fill().map((_, i) => ({
-        x: (i * 13) % (canvas.width - 20),
-        y: Math.floor(i / 30) * 30 + 100,
-        dir: i % 2 === 0 ? 1 : -1,   // 1 = right, -1 = left
-        walkPhase: 0
-    }));
-
-    // ----- Drawing Functions -----
-    function drawBuilding(b) {
-        // Clamp position
-        const x = clamp(b.x, 0, canvas.width - b.w);
-        const y = clamp(b.y, 0, canvas.height - b.h);
-
-        // Body
-        ctx.fillStyle = COLORS.buildingBody;
-        ctx.fillRect(x, y, b.w, b.h);
-
-        // Roof (simple triangle using blocks)
-        ctx.fillStyle = COLORS.roof;
-        const roofHeight = Math.floor(b.w / 2);
-        for (let i = 0; i < roofHeight; i++) {
-            const w = b.w - i * 2;
-            ctx.fillRect(x + i, y - i - 1, w, 1);
+    // WebSocket
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(protocol + '//' + window.location.host);
+    ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'WORLD_UPDATE') {
+            worldState = msg.data;
+            updateUI();
+            generateObjects();
         }
+    };
 
-        // Windows (grid)
-        const winW = Math.floor(b.w / (b.windows + 1));
-        const winH = Math.floor(b.h / (b.windows + 1));
-        ctx.fillStyle = COLORS.windowOn;
-        for (let i = 1; i <= b.windows; i++) {
-            const wx = x + i * winW - Math.floor(winW / 2);
-            const wy = y + i * winH - Math.floor(winH / 2);
-            ctx.fillRect(wx, wy, Math.max(2, Math.floor(winW / 3)), Math.max(2, Math.floor(winH / 3)));
+    function updateUI() {
+        document.getElementById('stat-day').innerText = worldState.day;
+        document.getElementById('stat-era').innerText = worldState.era;
+        document.getElementById('stat-pop').innerText = worldState.population;
+        document.getElementById('stat-gold').innerText = Math.floor(worldState.treasury).toLocaleString() + ' G';
+        document.getElementById('stat-tech').innerText = Number(worldState.techPower).toFixed(1);
+        document.getElementById('stat-tanks').innerText = worldState.tanks;
+        document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
+        document.getElementById('stat-status').style.color = worldState.inWar ? '#e74c3c' : '#2ecc71';
+        
+        const buildingCount = Math.floor(worldState.population / 5) + 2;
+        document.getElementById('stat-building-count').innerText = buildingCount;
+
+        const logBox = document.getElementById('log-stream');
+        if (worldState.logs && worldState.logs.length > 0) {
+            logBox.innerHTML = worldState.logs.map(l => '<div class="log-entry">' + l + '</div>').join('');
+            logBox.scrollTop = logBox.scrollHeight;
         }
+    }
 
+    // Camera
+    let camera = { x: 0, y: 0, zoom: 1.0 };
+    let isDragging = false;
+    let startX, startY;
+
+    // Object arrays - positions stored as PERCENTAGES (0-100)
+    let buildings = [];
+    let units = [];
+    let frameCount = 0;
+
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+    // Generate objects with PERCENTAGE positions (same on all devices)
+    function generateObjects() {
+        buildings = [];
+        units = [];
+        
+        const buildingCount = clamp(Math.floor(worldState.population / 5) + 2, 5, 80);
+        const unitCount = clamp(Math.floor(worldState.population / 10) + 2, 3, 50);
+        
+        // Fixed percentage positions - same layout everywhere
+        for (let i = 0; i < buildingCount; i++) {
+            buildings.push({
+                xPercent: 5 + ((i * 7) % 90),   // 5% to 95% of width
+                yPercent: 10 + ((i * 5) % 80),  // 10% to 90% of height
+                type: i % 4,
+                heightPercent: 5 + (i % 5) * 2  // 5% to 13% of canvas height
+            });
+        }
+        
+        for (let u = 0; u < unitCount; u++) {
+            units.push({
+                xPercent: 5 + Math.random() * 90,
+                yPercent: 10 + Math.random() * 80,
+                targetXPercent: 5 + Math.random() * 90,
+                targetYPercent: 10 + Math.random() * 80,
+                speed: 0.3 + Math.random() * 0.7,
+                color: ['#ff6666', '#6666ff', '#66ff66', '#ffff66', '#ff66ff'][u % 5]
+            });
+        }
+    }
+
+    // Convert percentage to pixel
+    function px(percent, dimension) {
+        return (percent / 100) * dimension;
+    }
+
+    // Canvas resize
+    function resizeCanvas() {
+        const container = document.getElementById('map-container');
+        const w = Math.floor(container.clientWidth);
+        const h = Math.floor(container.clientHeight);
+        if (w > 50 && h > 50) {
+            canvas.width = w;
+            canvas.height = h;
+        }
+    }
+
+    // Initialize
+    function initMap() {
+        resizeCanvas();
+        generateObjects();
+        console.log('Map initialized:', canvas.width + 'x' + canvas.height, '| Buildings:', buildings.length, '| Units:', units.length);
+    }
+
+    if (document.readyState === 'complete') {
+        setTimeout(initMap, 100);
+    } else {
+        window.addEventListener('load', () => setTimeout(initMap, 100));
+    }
+    setTimeout(() => { if (buildings.length === 0) initMap(); }, 500);
+
+    // Debounced resize
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            resizeCanvas();
+            // Positions are percentages, no need to regenerate
+        }, 150);
+    });
+
+    // Mouse controls
+    canvas.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startX = e.clientX - camera.x;
+        startY = e.clientY - camera.y;
+    });
+    window.addEventListener('mouseup', () => isDragging = false);
+    canvas.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            camera.x = e.clientX - startX;
+            camera.y = e.clientY - startY;
+        }
+    });
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+        camera.zoom = clamp(camera.zoom * zoomFactor, 0.5, 2.5);
+    }, { passive: false });
+
+    // Touch controls
+    let lastTouchDistance = 0;
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (e.touches.length === 1) {
+            isDragging = true;
+            startX = e.touches[0].clientX - camera.x;
+            startY = e.touches[0].clientY - camera.y;
+        } else if (e.touches.length === 2) {
+            isDragging = false;
+            lastTouchDistance = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+        }
+    });
+    canvas.addEventListener('touchend', () => isDragging = false);
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (e.touches.length === 1 && isDragging) {
+            camera.x = e.touches[0].clientX - startX;
+            camera.y = e.touches[0].clientY - startY;
+        } else if (e.touches.length === 2) {
+            const dist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            camera.zoom = clamp(camera.zoom * (dist / lastTouchDistance), 0.5, 2.5);
+            lastTouchDistance = dist;
+        }
+    }, { passive: false });
+
+    // Pixel drawing - positions converted from percentage
+    function drawPixelCastle(x, y, h) {
+        ctx.fillStyle = '#8a8a8a';
+        ctx.fillRect(Math.round(x - h*0.3), Math.round(y - h), Math.round(h*0.6), h);
+        // Crenellations
+        for (let i = -3; i < 3; i++) {
+            ctx.fillRect(Math.round(x + i * h*0.1), Math.round(y - h - 3), 3, 3);
+        }
+        // Windows
+        ctx.fillStyle = '#ffff88';
+        for (let w = 0; w < 3; w++) {
+            ctx.fillRect(Math.round(x - 2), Math.round(y - h + 5 + w * 10), 4, 4);
+        }
         // Door
-        const doorW = Math.max(4, Math.floor(b.w * 0.2));
-        const doorH = Math.max(8, Math.floor(b.h * 0.25));
-        const dx = x + Math.floor((b.w - doorW) / 2);
-        const dy = y + b.h - doorH;
-        ctx.fillStyle = COLORS.door;
-        ctx.fillRect(dx, dy, doorW, doorH);
+        ctx.fillStyle = '#3a1a0a';
+        ctx.fillRect(Math.round(x - 3), Math.round(y - 6), 6, 6);
     }
 
-    function drawUnit(u, frame) {
-        // Update walking phase
-        u.walkPhase = (u.walkPhase + 1) % ANIM_STEPS;
-        const offset = Math.sin((u.walkPhase / ANIM_STEPS) * Math.PI * 2) * 1.5;
-
-        // Position with walking offset
-        const x = clamp(u.x + offset * u.dir, 0, canvas.width - 12);
-        const y = clamp(u.y, 0, canvas.height - 20);
-
-        // Body
-        ctx.fillStyle = COLORS.unitBody;
-        ctx.fillRect(x, y - 12, 12, 12); // head
-        ctx.fillRect(x, y, 12, 12);     // torso
-
-        // Shade for leg animation
-        ctx.fillStyle = COLORS.unitShade;
-        const legOffset = (u.walkPhase < ANIM_STEPS / 2) ? 1 : -1;
-        ctx.fillRect(x + 2, y + 12 + legOffset, 3, 4); // left leg
-        ctx.fillRect(x + 7, y + 12 - legOffset, 3, 4); // right leg
+    function drawPixelHouse(x, y, h) {
+        ctx.fillStyle = '#c4a060';
+        ctx.fillRect(Math.round(x - h*0.4), Math.round(y - h), Math.round(h*0.8), h);
+        // Roof
+        ctx.fillStyle = '#8a3a1a';
+        ctx.fillRect(Math.round(x - h*0.5), Math.round(y - h - 3), Math.round(h*1.0), 3);
+        // Window
+        ctx.fillStyle = '#ffff88';
+        ctx.fillRect(Math.round(x - 2), Math.round(y - h + 4), 4, 4);
+        // Door
+        ctx.fillStyle = '#3a1a0a';
+        ctx.fillRect(Math.round(x - 2), Math.round(y - 4), 4, 4);
     }
 
-    // ----- Main Render Loop -----
-    let lastTime = 0;
-    function render(time) {
-        const delta = time - lastTime;
-        if (delta >= 1000 / FPS) {
-            // Clear
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function drawPixelBarracks(x, y, h) {
+        ctx.fillStyle = '#6a6a6a';
+        ctx.fillRect(Math.round(x - h*0.5), Math.round(y - h), Math.round(h), h);
+        ctx.fillStyle = '#4a4a4a';
+        ctx.fillRect(Math.round(x - h*0.6), Math.round(y - h - 2), Math.round(h*1.2), 2);
+    }
 
-            // Draw Buildings
-            for (const b of buildings) drawBuilding(b);
+    function drawPixelTower(x, y, h) {
+        ctx.fillStyle = '#7a7a7a';
+        ctx.fillRect(Math.round(x - h*0.2), Math.round(y - h), Math.round(h*0.4), h);
+        ctx.fillStyle = '#5a5a5a';
+        ctx.fillRect(Math.round(x - h*0.3), Math.round(y - h - 2), Math.round(h*0.6), 2);
+    }
 
-            // Draw Units with simple walking animation
-            for (const u of units) {
-                // Move unit
-                u.x += WALK_SPEED * u.dir;
-                if (u.x < 0 || u.x > canvas.width - 12) u.dir *= -1; // bounce
-                drawUnit(u, Math.floor(time / (1000 / FPS)));
+    function drawPixelUnit(unit, unitX, unitY) {
+        const legOffset = Math.sin(frameCount * 0.1 + unitX) > 0 ? 0 : 3;
+        ctx.fillStyle = unit.color;
+        ctx.fillRect(Math.round(unitX), Math.round(unitY - 6), 3, 6);
+        ctx.fillStyle = '#ffcc99';
+        ctx.fillRect(Math.round(unitX), Math.round(unitY - 9), 3, 3);
+        ctx.fillStyle = '#333';
+        ctx.fillRect(Math.round(unitX), Math.round(unitY), 1, 3 + legOffset);
+        ctx.fillRect(Math.round(unitX + 2), Math.round(unitY), 1, 3 - legOffset);
+    }
+
+    function updateUnits() {
+        units.forEach(unit => {
+            const dx = unit.targetXPercent - unit.xPercent;
+            const dy = unit.targetYPercent - unit.yPercent;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist < 2) {
+                unit.targetXPercent = 5 + Math.random() * 90;
+                unit.targetYPercent = 10 + Math.random() * 80;
+            } else {
+                unit.xPercent += (dx / dist) * unit.speed * 0.1;
+                unit.yPercent += (dy / dist) * unit.speed * 0.1;
             }
+            
+            unit.xPercent = clamp(unit.xPercent, 3, 97);
+            unit.yPercent = clamp(unit.yPercent, 5, 95);
+        });
+    }
 
-            lastTime = time;
+    // Main render loop
+    function render() {
+        frameCount++;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+        ctx.translate(camera.x, camera.y);
+        ctx.scale(camera.zoom, camera.zoom);
+
+        // Terrain
+        const tileSize = 12;
+        const startX = Math.floor(-camera.x / tileSize) - 1;
+        const endX = Math.ceil((canvas.width - camera.x) / tileSize) + 1;
+        const startY = Math.floor(-camera.y / tileSize) - 1;
+        const endY = Math.ceil((canvas.height - camera.y) / tileSize) + 1;
+        
+        for (let x = startX; x < endX; x++) {
+            for (let y = startY; y < endY; y++) {
+                ctx.fillStyle = ((x + y) % 2 === 0) ? '#2a3a1a' : '#1a2a1a';
+                ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+            }
         }
+
+        // Water river
+        for (let y = 0; y < canvas.height; y += 3) {
+            const waveOffset = Math.sin((y * 0.05) + (frameCount * 0.03)) * 6;
+            ctx.fillStyle = '#1a3a5a';
+            ctx.fillRect(Math.round(canvas.width * 0.35 + waveOffset), y, 12, 3);
+        }
+
+        // Trees - FIXED percentage positions
+        const treePositions = [
+            {x: 8, y: 15}, {x: 22, y: 25}, {x: 45, y: 12},
+            {x: 60, y: 30}, {x: 75, y: 18}, {x: 15, y: 50},
+            {x: 38, y: 45}, {x: 65, y: 55}, {x: 85, y: 40}
+        ];
+        treePositions.forEach(t => {
+            const tx = px(t.x, canvas.width);
+            const ty = px(t.y, canvas.height);
+            ctx.fillStyle = '#5a3a1a';
+            ctx.fillRect(Math.round(tx), Math.round(ty), 3, 9);
+            ctx.fillStyle = '#1a5a1a';
+            ctx.fillRect(Math.round(tx - 6), Math.round(ty - 9), 15, 9);
+        });
+
+        // Gold mines - FIXED percentage positions
+        const goldPositions = [
+            {x: 25, y: 65}, {x: 55, y: 20}, {x: 75, y: 65}
+        ];
+        goldPositions.forEach(g => {
+            const gx = px(g.x, canvas.width);
+            const gy = px(g.y, canvas.height);
+            ctx.fillStyle = '#555555';
+            ctx.fillRect(Math.round(gx - 6), Math.round(gy - 4), 12, 8);
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(Math.round(gx - 4), Math.round(gy - 6), 3, 3);
+            ctx.fillRect(Math.round(gx), Math.round(gy - 6), 3, 3);
+        });
+
+        // Buildings - percentage to pixel conversion
+        buildings.forEach(building => {
+            const bx = px(building.xPercent, canvas.width);
+            const by = px(building.yPercent, canvas.height);
+            const bh = px(building.heightPercent, canvas.height);
+            
+            switch(building.type) {
+                case 0: drawPixelCastle(bx, by, bh); break;
+                case 1: drawPixelHouse(bx, by, bh * 0.6); break;
+                case 2: drawPixelBarracks(bx, by, bh * 0.7); break;
+                case 3: drawPixelTower(bx, by, bh * 1.2); break;
+            }
+        });
+
+        // Units - percentage to pixel
+        updateUnits();
+        units.forEach(unit => {
+            const ux = px(unit.xPercent, canvas.width);
+            const uy = px(unit.yPercent, canvas.height);
+            drawPixelUnit(unit, ux, uy);
+        });
+
+        ctx.restore();
         requestAnimationFrame(render);
     }
 
-    // ----- Start -----
     requestAnimationFrame(render);
 })();
 </script>
