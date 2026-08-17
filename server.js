@@ -21,10 +21,10 @@ const SERVER = http.createServer(APP);
 const WSS = new WebSocket.Server({ server: SERVER });
 const STATE_FILE = path.join(__dirname, 'worldState.json');
 
-// Rate limiter for Groq API
+// Rate limiter for Groq API - INCREASED to 20 seconds
 const rateLimiter = {
     lastCallTime: 0,
-    minInterval: 7000,
+    minInterval: 20000, // 20 seconds between calls (was 7000)
     
     async waitForSlot() {
         const now = Date.now();
@@ -97,7 +97,7 @@ function addLog(msg) {
 }
 
 /**
- * GROQ API - Uses OpenAI GPT-OSS 120B model with rate limiting
+ * GROQ API - Uses Qwen 3.6 27B with 20s rate limiter
  */
 async function queryAI(prompt) {
     if (!GROQ_API_KEY) {
@@ -112,7 +112,7 @@ async function queryAI(prompt) {
         
         const url = 'https://api.groq.com/openai/v1/chat/completions';
         
-        console.log('🔄 Trying Groq (GPT-OSS 120B)...');
+        console.log('🔄 Trying Groq (Qwen 3.6 27B)...');
         
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -124,7 +124,7 @@ async function queryAI(prompt) {
                 'Authorization': `Bearer ${GROQ_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'openai/gpt-oss-120b',
+                model: 'qwen/qwen3.6-27b',
                 messages: [
                     {
                         role: 'user',
@@ -164,7 +164,7 @@ async function queryAI(prompt) {
                     'Authorization': `Bearer ${GROQ_API_KEY}`
                 },
                 body: JSON.stringify({
-                    model: 'openai/gpt-oss-120b',
+                    model: 'qwen/qwen3.6-27b',
                     messages: [
                         {
                             role: 'user',
@@ -242,21 +242,17 @@ async function pushToGitHub(htmlPath, improvementTypeName, day) {
         const cleanToken = GITHUB_TOKEN.trim();
         const repoUrl = `https://${cleanToken}@github.com/edthedog-debug/dark-fantasy-civ.git`;
         
-        // ALWAYS clone fresh to /tmp/repo - avoids 'origin' not found
         console.log("📁 Cloning fresh repository...");
         await executeGitCommand('rm -rf /tmp/repo', 1);
         await executeGitCommand(`git clone --depth 1 ${repoUrl} /tmp/repo`, 2);
         
-        // Change to repo directory
         const originalDir = process.cwd();
         process.chdir('/tmp/repo');
         console.log("📂 Working in:", process.cwd());
         
-        // Configure git
         await executeGitCommand('git config user.email "ai@example.com"');
         await executeGitCommand('git config user.name "AI Auto-Improver"');
         
-        // Copy files into repo
         const targetPublicDir = path.join('/tmp/repo', 'public');
         if (!fs.existsSync(targetPublicDir)) {
             fs.mkdirSync(targetPublicDir, { recursive: true });
@@ -266,7 +262,6 @@ async function pushToGitHub(htmlPath, improvementTypeName, day) {
         fs.copyFileSync(STATE_FILE, path.join('/tmp/repo', 'worldState.json'));
         console.log("✅ Files copied to /tmp/repo");
         
-        // Git operations
         await executeGitCommand('git add public/index.html worldState.json');
         
         const commitMessage = `🤖 [AI] ${improvementTypeName} - Day ${day}`;
@@ -276,7 +271,6 @@ async function pushToGitHub(htmlPath, improvementTypeName, day) {
         
         console.log("✅ Successfully pushed to GitHub!");
         
-        // Return to original directory
         process.chdir(originalDir);
         
         addLog(`[GITHUB] Committed: ${improvementTypeName} - Day ${day}`);
@@ -468,7 +462,6 @@ async function autoImproveGameCode() {
         const improvementTypeName = improvementType === 0 ? "Graphics CSS" : improvementType === 1 ? "Event Canvas JS" : "Civilization HTML";
         addLog(`[AI COMMIT SUCCESS] ${improvementTypeName}! Total: ${worldState.aiImprovements}`);
         
-        // Push to GitHub
         await pushToGitHub(htmlPath, improvementTypeName, worldState.day);
         
     } catch (err) {
@@ -705,13 +698,13 @@ WSS.on('connection', (ws) => {
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Day:", worldState.day, "| AI Improvements:", worldState.aiImprovements);
-    console.log("🤖 Groq API (GPT-OSS 120B) | 🔧 Git: fresh clone each push");
+    console.log("🤖 Groq API (Qwen 3.6 27B) | 🔧 Git: fresh clone each push");
     
     queryAI("Say 'OK'")
         .then(response => {
             if (response) {
                 console.log("✅ Groq ready");
-                addLog("[SYSTEM] AI System ready (Groq Pixel Art Engine).");
+                addLog("[SYSTEM] AI System ready (Groq Qwen 3.6).");
             } else {
                 console.log("⚠️ Groq not responding");
                 addLog("[SYSTEM] AI System in fallback mode.");
