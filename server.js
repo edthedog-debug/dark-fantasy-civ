@@ -295,29 +295,48 @@ async function autoImproveGameCode() {
         let codeToAdd;
         
         switch(improvementType) {
-            case 0: // CSS/Design improvement
-                prompt = `Improve the visual design of this dark fantasy civilization game. 
+            case 0: // CSS/Design improvement - RESPONSIVE
+                prompt = `Create SPECTACULAR responsive CSS for a dark fantasy civilization game.
                 Current stats: Day ${worldState.day}, Population: ${worldState.population}, Tech: ${worldState.techPower}.
                 Era: ${worldState.era}
-                Return ONLY CSS code that enhances the visual appearance, adds animations, or improves the layout.
-                Make it dark fantasy themed with mystical elements.`;
+                
+                REQUIREMENTS:
+                - MUST work perfectly on BOTH desktop AND mobile
+                - Use @media queries for mobile (max-width: 768px)
+                - Dark fantasy theme: dark backgrounds, gold borders, mystical glow
+                - Use CSS Grid and Flexbox for responsive layout
+                - Add smooth animations and transitions
+                - Use viewport units (vh, vw) for responsive sizing
+                - Include hover effects for desktop and touch-friendly for mobile
+                - Font sizes must be readable on mobile
+                - Panels should stack vertically on mobile, side-by-side on desktop
+                
+                Return ONLY valid CSS code. No explanations, no comments.`;
                 break;
                 
             case 1: // JavaScript functionality
                 prompt = `Add new interactive functionality to this dark fantasy civilization game.
                 Current stats: Day ${worldState.day}, Population: ${worldState.population}, Tech: ${worldState.techPower}.
-                Return ONLY JavaScript code that adds new features, animations, or gameplay mechanics.`;
+                Return ONLY JavaScript code that adds new features, animations, or gameplay mechanics.
+                Make it work on both desktop and mobile.`;
                 break;
                 
-            case 2: // UI/HTML structure improvement
-                prompt = `Add new UI elements to this dark fantasy civilization game.
+            case 2: // UI/HTML structure improvement - RESPONSIVE
+                prompt = `Add new responsive UI elements to this dark fantasy civilization game.
                 Current stats: Day ${worldState.day}, Era: ${worldState.era}, Treasury: ${worldState.treasury}.
-                Return ONLY HTML code that adds new displays, panels, or information widgets.
-                Make it thematically appropriate for a dark fantasy setting.`;
+                
+                REQUIREMENTS:
+                - MUST work on both desktop AND mobile
+                - Use responsive HTML structure
+                - Include viewport meta tag if not present
+                - Use CSS Grid/Flexbox classes
+                - Dark fantasy themed
+                
+                Return ONLY valid HTML code. No explanations, no comments.`;
                 break;
         }
         
-        console.log("🔍 Asking Groq (GPT-OSS 120B) for", improvementType === 0 ? "CSS" : improvementType === 1 ? "JavaScript" : "HTML", "improvement...");
+        console.log("🔍 Asking Groq (GPT-OSS 120B) for", improvementType === 0 ? "RESPONSIVE CSS" : improvementType === 1 ? "JavaScript" : "RESPONSIVE HTML", "improvement...");
         const aiResponse = await queryAI(prompt);
         
         // Check if AI response is valid
@@ -332,34 +351,83 @@ async function autoImproveGameCode() {
             codeToAdd = null;
         }
         
-        // If AI failed or code is too short, use elaborate fallback
+        // If AI failed or code is too short, use elaborate RESPONSIVE fallback
         if (!codeToAdd || codeToAdd.length < 10) {
             if (improvementType === 0) {
                 codeToAdd = `
-/* AI Design Improvement - Dark Fantasy Theme - Day ${worldState.day} */
+/* RESPONSIVE Dark Fantasy Design - Day ${worldState.day} */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
+    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #0a0a1a 100%);
     color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
+    font-family: 'Cinzel', 'Georgia', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.game-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
 .stats-panel {
-    background: rgba(20, 10, 10, 0.8);
+    background: rgba(20, 10, 10, 0.85);
     border: 2px solid #8b6914;
-    border-radius: 10px;
+    border-radius: 15px;
     padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
+    box-shadow: 0 0 25px rgba(139, 105, 20, 0.4);
     animation: glow 3s ease-in-out infinite;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.stats-panel:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 40px rgba(139, 105, 20, 0.7);
 }
 
 @keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
+    0%, 100% { box-shadow: 0 0 25px rgba(139, 105, 20, 0.4); }
+    50% { box-shadow: 0 0 50px rgba(139, 105, 20, 0.8); }
+}
+
+/* MOBILE RESPONSIVE */
+@media (max-width: 768px) {
+    .game-container {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        padding: 15px;
+    }
+    
+    .stats-panel {
+        padding: 15px;
+        border-radius: 12px;
+    }
+    
+    body {
+        font-size: 14px;
+    }
+}
+
+/* TABLET */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .game-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
+    }
 }`;
             } else if (improvementType === 1) {
                 codeToAdd = `
-// AI Functionality Improvement - Day ${worldState.day}
+// AI Functionality - Responsive - Day ${worldState.day}
 function createMagicEffect() {
     const effect = document.createElement('div');
     effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
@@ -369,14 +437,43 @@ function createMagicEffect() {
     style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
     document.head.appendChild(style);
 }
-createMagicEffect();`;
+
+// Touch-friendly for mobile
+function initTouchSupport() {
+    if ('ontouchstart' in window) {
+        document.querySelectorAll('.stats-panel').forEach(panel => {
+            panel.addEventListener('touchstart', () => {
+                panel.style.transform = 'scale(0.98)';
+            });
+            panel.addEventListener('touchend', () => {
+                panel.style.transform = 'scale(1)';
+            });
+        });
+    }
+}
+
+createMagicEffect();
+initTouchSupport();`;
             } else {
                 codeToAdd = `
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #${worldState.aiImprovements + 1}</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: ${worldState.era}</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: ${worldState.techPower.toFixed(2)}</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: ${worldState.population}</p>
+<div class="game-container" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;padding:20px;max-width:1400px;margin:0 auto;">
+    <div class="stats-panel" style="background:rgba(20,10,10,0.85);border:2px solid #8b6914;border-radius:15px;padding:20px;box-shadow:0 0 25px rgba(139,105,20,0.4);">
+        <h3 style="color:#ffd700;margin-bottom:15px;text-align:center;">⚔️ Kingdom Overview - Day ${worldState.day}</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
+            <div style="background:rgba(10,5,5,0.6);padding:10px;border-radius:8px;border:1px solid #8b6914;">
+                <span style="color:#d4c5a0;">👥 Population</span>
+                <span style="float:right;color:#ffd700;font-weight:bold;">${worldState.population}</span>
+            </div>
+            <div style="background:rgba(10,5,5,0.6);padding:10px;border-radius:8px;border:1px solid #8b6914;">
+                <span style="color:#d4c5a0;">💰 Treasury</span>
+                <span style="float:right;color:#ffd700;font-weight:bold;">${Math.floor(worldState.treasury)}</span>
+            </div>
+            <div style="background:rgba(10,5,5,0.6);padding:10px;border-radius:8px;border:1px solid #8b6914;">
+                <span style="color:#d4c5a0;">⚡ Tech Power</span>
+                <span style="float:right;color:#ffd700;font-weight:bold;">${worldState.techPower.toFixed(2)}</span>
+            </div>
+        </div>
+    </div>
 </div>`;
             }
         }
@@ -386,7 +483,7 @@ createMagicEffect();`;
         
         if (improvementType === 0) {
             // CSS improvement
-            const cssBlock = `\n<!-- === AI CSS IMPROVEMENT (Day ${worldState.day}) === -->\n<style>\n${codeToAdd}\n</style>\n`;
+            const cssBlock = `\n<!-- === AI RESPONSIVE CSS IMPROVEMENT (Day ${worldState.day}) === -->\n<style>\n${codeToAdd}\n</style>\n`;
             if (improvedHtml.includes('</head>')) {
                 improvedHtml = improvedHtml.replace('</head>', cssBlock + '</head>');
             } else {
@@ -402,7 +499,7 @@ createMagicEffect();`;
             }
         } else {
             // HTML structure improvement
-            const htmlBlock = `\n<!-- === AI HTML IMPROVEMENT (Day ${worldState.day}) === -->\n${codeToAdd}\n`;
+            const htmlBlock = `\n<!-- === AI RESPONSIVE HTML IMPROVEMENT (Day ${worldState.day}) === -->\n${codeToAdd}\n`;
             if (improvedHtml.includes('</body>')) {
                 improvedHtml = improvedHtml.replace('</body>', htmlBlock + '</body>');
             } else {
@@ -415,7 +512,7 @@ createMagicEffect();`;
         console.log("✅ HTML improved! New size:", improvedHtml.length);
         
         worldState.aiImprovements += 1;
-        const improvementTypeName = improvementType === 0 ? "CSS Design" : improvementType === 1 ? "JavaScript Functionality" : "HTML Structure";
+        const improvementTypeName = improvementType === 0 ? "Responsive CSS" : improvementType === 1 ? "JavaScript" : "Responsive HTML";
         addLog(`[AI COMMIT SUCCESS] ${improvementTypeName} improved! Total: ${worldState.aiImprovements}`);
         
         // Push to GitHub
@@ -553,6 +650,7 @@ SERVER.listen(PORT, () => {
     console.log("🤖 Using Groq API (OpenAI GPT-OSS 120B)");
     console.log("📅 AI Events: every 150 days | Code Improvements: every 250 days");
     console.log("⏳ Rate limiter: 7 seconds minimum between calls");
+    console.log("📱 Responsive design: Desktop + Mobile optimized");
     
     queryAI("Say 'OK'")
         .then(response => {
