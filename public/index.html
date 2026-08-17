@@ -5,6 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Sovereign AI Engine - World Map</title>
     <style>
+        :root {
+            --bg-primary: #070913;
+            --bg-panel: rgba(16, 22, 36, 0.9);
+            --bg-card: rgba(25, 33, 52, 0.6);
+            --border-glow: rgba(0, 210, 255, 0.25);
+            --text-primary: #e0e6ed;
+            --text-secondary: #8a99ad;
+            --accent-cyan: #00d2ff;
+            --accent-gold: #ffd700;
+            --accent-green: #2ecc71;
+            --accent-red: #e74c3c;
+            --accent-purple: #9b59b6;
+            --accent-blue: #3498db;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -13,19 +28,31 @@
         }
 
         body {
-            background-color: #0d1117;
-            color: #c9d1d9;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            padding: 12px;
+            gap: 10px;
             overflow: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
         }
 
-        /* Dashboard de Métricas */
         .dashboard {
-            background-color: #161b22;
-            border-bottom: 1px solid #30363d;
-            padding: 12px 20px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            flex-shrink: 0;
         }
 
         .dash-header {
@@ -33,213 +60,427 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
-            font-size: 0.85rem;
+            font-size: 13px;
+            font-weight: bold;
             letter-spacing: 1px;
+            color: var(--text-secondary);
         }
 
         .status-badge {
+            color: #00ff88;
+            font-size: 11px;
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-size: 0.75rem;
-            color: #8b949e;
+            gap: 5px;
         }
 
         .status-dot {
             width: 8px;
             height: 8px;
-            background-color: #2ecc71;
+            background-color: #00ff88;
             border-radius: 50%;
-            box-shadow: 0 0 8px #2ecc71;
+            box-shadow: 0 0 8px #00ff88;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { box-shadow: 0 0 8px #00ff88; }
+            50% { box-shadow: 0 0 16px #00ff88, 0 0 24px #00ff88; }
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
         }
 
         .stat-card {
-            background-color: #0d1117;
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: 1px solid #21262d;
-            text-align: center;
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 8px;
+            transition: all 0.3s ease;
         }
 
         .stat-label {
-            font-size: 0.65rem;
-            color: #8b949e;
-            margin-bottom: 2px;
+            font-size: 10px;
+            color: #6b7c93;
             text-transform: uppercase;
+            margin-bottom: 2px;
+            letter-spacing: 0.5px;
         }
 
         .stat-value {
-            font-size: 1.1rem;
+            font-size: 14px;
             font-weight: bold;
-            color: #f0f6fc;
+            color: #ffffff;
         }
 
-        /* Contenedor del Mapa Canvas */
+        .val-gold { color: var(--accent-gold); }
+        .val-pop { color: var(--accent-green); }
+        .val-tech { color: var(--accent-blue); }
+        .val-era { color: var(--accent-purple); }
+
         #map-container {
             flex: 1;
+            background: #04060d;
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
             position: relative;
-            background-color: #05070a;
-            width: 100%;
-            height: 100%;
+            overflow: hidden;
+            min-height: 0;
         }
 
         canvas {
             display: block;
             width: 100%;
             height: 100%;
+            touch-action: none;
         }
 
-        /* Paneles Inferiores de Eventos y Logs */
+        .map-overlay-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(8, 12, 22, 0.85);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            pointer-events: none;
+            color: var(--accent-cyan);
+            z-index: 10;
+        }
+
         .event-panel {
-            background-color: #161b22;
-            border-top: 1px solid #30363d;
-            padding: 8px 15px;
-            font-size: 0.85rem;
-            color: #e6edf3;
-            text-align: center;
+            background: rgba(12, 17, 29, 0.95);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 10px;
+            color: #00ff88;
+            max-height: 50px;
+            overflow-y: auto;
+            flex-shrink: 0;
         }
 
         .log-container {
-            background-color: #0d1117;
-            border-top: 1px solid #21262d;
-            padding: 10px 15px;
-            font-family: monospace;
-            font-size: 0.8rem;
-            max-height: 80px;
+            height: 80px;
+            background: rgba(12, 17, 29, 0.95);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 10px;
             overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            flex-shrink: 0;
+        }
+
+        .log-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .log-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .log-container::-webkit-scrollbar-thumb {
+            background: rgba(0, 210, 255, 0.3);
+        }
+
+        .log-title {
+            font-size: 11px;
+            color: #6b7c93;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        .log-entry {
+            margin-bottom: 3px;
+            color: #a0aec0;
+            line-height: 1.3;
+        }
+
+        .log-entry:last-child {
+            color: var(--accent-cyan);
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .stat-value { font-size: 12px; }
+            body { padding: 8px; gap: 8px; }
+            .log-container { height: 60px; }
+        }
+
+        @media (max-width: 400px) {
+            .stat-value { font-size: 10px; }
+            .stat-label { font-size: 8px; }
         }
     </style>
 </head>
 <body>
-
+    <!-- TOP DASHBOARD -->
     <div class="dashboard">
         <div class="dash-header">
-            <span style="color:#8a99ad; font-weight:bold;">SOVEREIGN AI ENGINE</span>
-            <div class="status-badge">
-                <div class="status-dot" id="connection-dot"></div> 
-                <span id="connection-text">24/7 AUTONOMOUS</span>
-            </div>
+            <span>SOVEREIGN AI ENGINE</span>
+            <div class="status-badge"><div class="status-dot"></div> 24/7 AUTONOMOUS</div>
         </div>
         <div class="stats-grid">
-            <div class="stat-card"><div class="stat-label">DAY</div><div class="stat-value" id="stat-day">-</div></div>
-            <div class="stat-card"><div class="stat-label">ERA</div><div class="stat-value" id="stat-era" style="color:#9b59b6;">-</div></div>
-            <div class="stat-card"><div class="stat-label">POPULATION</div><div class="stat-value" id="stat-pop" style="color:#2ecc71;">-</div></div>
-            <div class="stat-card"><div class="stat-label">TREASURY</div><div class="stat-value" id="stat-gold" style="color:#ffd700;">-</div></div>
-            <div class="stat-card"><div class="stat-label">TECH</div><div class="stat-value" id="stat-tech" style="color:#3498db;">-</div></div>
-            <div class="stat-card"><div class="stat-label">DEFENSES</div><div class="stat-value" id="stat-tanks">-</div></div>
-            <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value" id="stat-status" style="color:#2ecc71;">-</div></div>
-            <div class="stat-card"><div class="stat-label">BUILDINGS</div><div class="stat-value" id="stat-building-count">-</div></div>
+            <div class="stat-card"><div class="stat-label">DAY</div><div class="stat-value" id="stat-day">1</div></div>
+            <div class="stat-card"><div class="stat-label">ERA</div><div class="stat-value val-era" id="stat-era">Era 1</div></div>
+            <div class="stat-card"><div class="stat-label">POPULATION</div><div class="stat-value val-pop" id="stat-pop">0</div></div>
+            <div class="stat-card"><div class="stat-label">TREASURY</div><div class="stat-value val-gold" id="stat-gold">0 G</div></div>
+            <div class="stat-card"><div class="stat-label">TECH</div><div class="stat-value val-tech" id="stat-tech">0.0</div></div>
+            <div class="stat-card"><div class="stat-label">DEFENSES</div><div class="stat-value" id="stat-tanks">0</div></div>
+            <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value" id="stat-status">PEACE</div></div>
+            <div class="stat-card"><div class="stat-label">BUILDINGS</div><div class="stat-value" id="stat-building-count">0</div></div>
         </div>
     </div>
 
+    <!-- MAP CONTAINER -->
     <div id="map-container">
+        <div class="map-overlay-info">Drag to Pan | Scroll or Pinch to Zoom</div>
         <canvas id="gameCanvas"></canvas>
     </div>
 
+    <!-- EVENT PANEL -->
     <div class="event-panel" id="event-panel">No active events</div>
 
+    <!-- LOGS -->
     <div class="log-container">
-        <div id="log-stream" style="color:#6b7c93;">Connecting to server...</div>
+        <div class="log-title">SYSTEM EVENT STREAM</div>
+        <div id="log-stream">Connecting...</div>
     </div>
 
     <script>
-        // Configuración de resolución dinámica del Canvas
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+/* -------------------------------------------------------------
+   Enhanced Canvas Rendering for index.html
+   • High‑DPI support
+   • Responsive resize
+   • Smooth animation loop (requestAnimationFrame)
+   • Gradient background + subtle starfield
+   • Shadowed, crisp text for Day / Population / Tech
+   • Tech‑level particle aura
+   • All original globals (day, population, tech) remain untouched
+   ------------------------------------------------------------- */
+(() => {
+    // -----------------------------------------------------------------
+    // Configuration (tweak to taste)
+    // -----------------------------------------------------------------
+    const CONFIG = {
+        bgGradient: ["#001d3d", "#003566"], // dark‑blue → deeper‑blue
+        starCount: 150,
+        starSpeed: 0.03,
+        starSize: { min: 0.5, max: 2.5 },
+        techParticle: {
+            maxCount: 200,
+            baseSize: 2,
+            maxSize: 8,
+            speed: 0.6,
+            life: 2000, // ms
+            colors: ["#ffd700", "#ffea00", "#fff700"]
+        },
+        text: {
+            fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+            daySize: 48,
+            statsSize: 24,
+            color: "#ffffff",
+            shadowColor: "rgba(0,0,0,0.6)",
+            shadowBlur: 6
+        },
+        fpsDisplay: false // set true for debugging FPS
+    };
 
-        function resizeCanvas() {
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = canvas.parentElement.clientHeight;
+    // -----------------------------------------------------------------
+    // Grab the canvas and set up high‑DPI scaling
+    // -----------------------------------------------------------------
+    const canvas = document.getElementById("gameCanvas");
+    if (!canvas) {
+        console.error("Canvas with id='gameCanvas' not found.");
+        return;
+    }
+    const ctx = canvas.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+
+    // -----------------------------------------------------------------
+    // Resize handling – keeps canvas crisp on all screens
+    // -----------------------------------------------------------------
+    function resizeCanvas() {
+        const { innerWidth: w, innerHeight: h } = window;
+        canvas.style.width = w + "px";
+        canvas.style.height = h + "px";
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        ctx.scale(dpr, dpr);
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    // -----------------------------------------------------------------
+    // Starfield (background ambience)
+    // -----------------------------------------------------------------
+    const stars = [];
+    for (let i = 0; i < CONFIG.starCount; i++) {
+        stars.push({
+            x: Math.random(),
+            y: Math.random(),
+            r: Math.random() * (CONFIG.starSize.max - CONFIG.starSize.min) + CONFIG.starSize.min,
+            speed: Math.random() * CONFIG.starSpeed + CONFIG.starSpeed / 2
+        });
+    }
+    function updateStars(dt) {
+        for (const s of stars) {
+            s.y += s.speed * dt;
+            if (s.y > 1) {
+                s.x = Math.random();
+                s.y = 0;
+                s.r = Math.random() * (CONFIG.starSize.max - CONFIG.starSize.min) + CONFIG.starSize.min;
+                s.speed = Math.random() * CONFIG.starSpeed + CONFIG.starSpeed / 2;
+            }
         }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+    }
+    function drawStars() {
+        ctx.save();
+        ctx.fillStyle = "#ffffff";
+        for (const s of stars) {
+            ctx.beginPath();
+            ctx.arc(s.x * canvas.width / dpr, s.y * canvas.height / dpr, s.r, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
 
-        // Conexión por WebSockets con protocolo flexible (HTTP/WS o HTTPS/WSS)
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}`;
-        let ws;
+    // -----------------------------------------------------------------
+    // Tech‑level particle aura (visualizes tech growth)
+    // -----------------------------------------------------------------
+    const techParticles = [];
+    function spawnTechParticle() {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * 80 + 30;
+        const x = canvas.width / (2 * dpr) + Math.cos(angle) * distance;
+        const y = canvas.height / (2 * dpr) + Math.sin(angle) * distance;
+        techParticles.push({
+            x,
+            y,
+            vx: (Math.random() - 0.5) * CONFIG.techParticle.speed,
+            vy: (Math.random() - 0.5) * CONFIG.techParticle.speed,
+            size: CONFIG.techParticle.baseSize + Math.random() * (CONFIG.techParticle.maxSize - CONFIG.techParticle.baseSize),
+            life: CONFIG.techParticle.life,
+            birth: performance.now(),
+            color: CONFIG.techParticle.colors[Math.floor(Math.random() * CONFIG.techParticle.colors.length)]
+        });
+    }
+    function updateTechParticles(dt) {
+        const now = performance.now();
+        // spawn rate proportional to tech level (capped)
+        const spawnRate = Math.min(tech / 5000, 0.5); // max 0.5 particles per frame
+        if (Math.random() < spawnRate) spawnTechParticle();
 
-        function connect() {
-            ws = new WebSocket(wsUrl);
+        for (let i = techParticles.length - 1; i >= 0; i--) {
+            const p = techParticles[i];
+            const age = now - p.birth;
+            if (age > p.life) {
+                techParticles.splice(i, 1);
+                continue;
+            }
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            // fade out
+            const alpha = 1 - age / p.life;
+            p.currentAlpha = alpha;
+        }
+    }
+    function drawTechParticles() {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        for (const p of techParticles) {
+            ctx.fillStyle = `${p.color}${Math.round(p.currentAlpha * 255).toString(16).padStart(2, "0")}`;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
 
-            ws.onopen = () => {
-                document.getElementById('log-stream').innerText = 'Connected to AI Sovereign Neural Link.';
-                document.getElementById('log-stream').style.color = '#2ecc71';
-                document.getElementById('connection-dot').style.backgroundColor = '#2ecc71';
-                document.getElementById('connection-dot').style.boxShadow = '0 0 8px #2ecc71';
-            };
+    // -----------------------------------------------------------------
+    // Text rendering helpers (Day, Population, Tech)
+    // -----------------------------------------------------------------
+    function drawCenteredText(text, y, size) {
+        ctx.save();
+        ctx.font = `${size}px ${CONFIG.text.fontFamily}`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = CONFIG.text.color;
+        ctx.shadowColor = CONFIG.text.shadowColor;
+        ctx.shadowBlur = CONFIG.text.shadowBlur;
+        ctx.fillText(text, canvas.width / (2 * dpr), y);
+        ctx.restore();
+    }
 
-            ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
+    // -----------------------------------------------------------------
+    // Background gradient
+    // -----------------------------------------------------------------
+    function drawBackground() {
+        const grad = ctx.createLinearGradient(0, 0, 0, canvas.height / dpr);
+        grad.addColorStop(0, CONFIG.bgGradient[0]);
+        grad.addColorStop(1, CONFIG.bgGradient[1]);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+    }
 
-                    // Renderizado de métricas en la interfaz
-                    if (data.day !== undefined) document.getElementById('stat-day').innerText = data.day;
-                    if (data.era !== undefined) document.getElementById('stat-era').innerText = data.era;
-                    if (data.population !== undefined) document.getElementById('stat-pop').innerText = data.population;
-                    if (data.treasury !== undefined) document.getElementById('stat-gold').innerText = `${data.treasury} G`;
-                    if (data.techPower !== undefined) document.getElementById('stat-tech').innerText = data.techPower;
-                    if (data.defenses !== undefined) document.getElementById('stat-tanks').innerText = data.defenses;
-                    if (data.status !== undefined) document.getElementById('stat-status').innerText = data.status;
-                    
-                    if (data.buildings !== undefined) {
-                        const count = Array.isArray(data.buildings) ? data.buildings.length : data.buildings;
-                        document.getElementById('stat-building-count').innerText = count;
-                    }
+    // -----------------------------------------------------------------
+    // Main render loop
+    // -----------------------------------------------------------------
+    let lastTime = performance.now();
+    let fpsCounter = 0, fpsTimer = 0, fps = 0;
 
-                    if (data.event) {
-                        document.getElementById('event-panel').innerText = data.event;
-                    }
+    function loop(now) {
+        const dt = (now - lastTime) / 16.666; // normalized to 60fps units
+        lastTime = now;
 
-                    if (data.log) {
-                        document.getElementById('log-stream').innerText = data.log;
-                    }
+        // ---- Update ----
+        updateStars(dt);
+        updateTechParticles(dt);
 
-                    // Redibujado opcional en Canvas si el servidor manda entidades o matriz de mapa
-                    if (data.entities && Array.isArray(data.entities)) {
-                        drawMap(data.entities);
-                    }
-                } catch (e) {
-                    console.error('Error parsing incoming WebSocket message:', e);
-                }
-            };
+        // ---- Draw ----
+        drawBackground();
+        drawStars();
+        drawTechParticles();
 
-            ws.onclose = () => {
-                document.getElementById('log-stream').innerText = 'Connection lost. Reconnecting...';
-                document.getElementById('log-stream').style.color = '#e74c3c';
-                document.getElementById('connection-dot').style.backgroundColor = '#e74c3c';
-                document.getElementById('connection-dot').style.boxShadow = 'none';
-                
-                // Reconexión automática tras 3 segundos
-                setTimeout(connect, 3000);
-            };
+        // Day (large)
+        drawCenteredText(`Day ${Math.floor(day)}`, canvas.height / (2 * dpr) - 30, CONFIG.text.daySize);
+        // Population & Tech (smaller, below day)
+        drawCenteredText(`Pop ${population.toLocaleString()}   Tech ${tech.toFixed(2)}`, canvas.height / (2 * dpr) + 30, CONFIG.text.statsSize);
 
-            ws.onerror = (err) => {
-                console.error('WebSocket Error:', err);
-                ws.close();
-            };
+        // Optional FPS overlay
+        if (CONFIG.fpsDisplay) {
+            fpsCounter++;
+            fpsTimer += now - lastTime;
+            if (fpsTimer >= 1000) {
+                fps = fpsCounter;
+                fpsCounter = 0;
+                fpsTimer = 0;
+            }
+            ctx.save();
+            ctx.font = "12px monospace";
+            ctx.fillStyle = "#0f0";
+            ctx.fillText(`FPS: ${fps}`, 10, 20);
+            ctx.restore();
         }
 
-        // Función básica para dibujar entidades en el canvas cuando se reciben datos
-        function drawMap(entities) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#1e293b';
-            
-            entities.forEach(entity => {
-                ctx.beginPath();
-                ctx.arc(entity.x || 100, entity.y || 100, entity.size || 5, 0, Math.PI * 2);
-                ctx.fillStyle = entity.color || '#3498db';
-                ctx.fill();
-            });
-        }
+        requestAnimationFrame(loop);
+    }
 
-        connect();
-    </script>
+    requestAnimationFrame(loop);
+
+    // -----------------------------------------------------------------
+    // Expose a simple API for external code (if any) to force redraw
+    // -----------------------------------------------------------------
+    window.__canvasEnhancements = {
+        resize: resizeCanvas,
+        forceRender: () => requestAnimationFrame(loop)
+    };
+})();
+</script>
 </body>
 </html>
