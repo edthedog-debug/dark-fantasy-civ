@@ -96,7 +96,7 @@ function addLog(msg) {
 }
 
 /**
- * GROQ API - Uses Llama 3.3 70B model with rate limiting
+ * GROQ API - Uses OpenAI GPT-OSS 120B model with rate limiting
  */
 async function queryAI(prompt) {
     if (!GROQ_API_KEY) {
@@ -112,7 +112,7 @@ async function queryAI(prompt) {
         
         const url = 'https://api.groq.com/openai/v1/chat/completions';
         
-        console.log('🔄 Trying Groq (Llama 3.3 70B)...');
+        console.log('🔄 Trying Groq (GPT-OSS 120B)...');
         
         // Add timeout to prevent hanging
         const controller = new AbortController();
@@ -125,7 +125,7 @@ async function queryAI(prompt) {
                 'Authorization': `Bearer ${GROQ_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
+                model: 'openai/gpt-oss-120b',
                 messages: [
                     {
                         role: 'user',
@@ -167,7 +167,7 @@ async function queryAI(prompt) {
                     'Authorization': `Bearer ${GROQ_API_KEY}`
                 },
                 body: JSON.stringify({
-                    model: 'llama-3.3-70b-versatile',
+                    model: 'openai/gpt-oss-120b',
                     messages: [
                         {
                             role: 'user',
@@ -317,7 +317,7 @@ async function autoImproveGameCode() {
                 break;
         }
         
-        console.log("🔍 Asking Groq (Llama 3.3) for", improvementType === 0 ? "CSS" : improvementType === 1 ? "JavaScript" : "HTML", "improvement...");
+        console.log("🔍 Asking Groq (GPT-OSS 120B) for", improvementType === 0 ? "CSS" : improvementType === 1 ? "JavaScript" : "HTML", "improvement...");
         const aiResponse = await queryAI(prompt);
         
         // Check if AI response is valid
@@ -531,7 +531,7 @@ function runSimulationTick() {
     // Code improvement every 250 days (non-blocking)
     if (worldState.day % 250 === 0) {
         const patch = Math.floor(Math.random() * 9) + 1;
-        worldState.engineBuild = "v" + (2 + Math.floor(worldState.aiImprovements / 10)) + "." + patch + ".0-Groq-Llama3.3";
+        worldState.engineBuild = "v" + (2 + Math.floor(worldState.aiImprovements / 10)) + "." + patch + ".0-Groq-GPT-OSS";
         autoImproveGameCode().catch(err => console.error("AI Improvement error:", err));
     }
 
@@ -550,7 +550,7 @@ WSS.on('connection', (ws) => {
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Current state - Day:", worldState.day, "AI Improvements:", worldState.aiImprovements);
-    console.log("🤖 Using Groq API (Llama 3.3 70B)");
+    console.log("🤖 Using Groq API (OpenAI GPT-OSS 120B)");
     console.log("📅 AI Events: every 150 days | Code Improvements: every 250 days");
     console.log("⏳ Rate limiter: 7 seconds minimum between calls");
     
@@ -558,7 +558,7 @@ SERVER.listen(PORT, () => {
         .then(response => {
             if (response) {
                 console.log("✅ Groq response:", response.substring(0, 100));
-                addLog("[SYSTEM] AI System ready (Groq Llama 3.3).");
+                addLog("[SYSTEM] AI System ready (Groq GPT-OSS 120B).");
             } else {
                 console.log("⚠️ Groq not responding, using fallbacks");
                 addLog("[SYSTEM] AI System in fallback mode.");
