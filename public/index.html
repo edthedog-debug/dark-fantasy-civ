@@ -135,6 +135,11 @@
             width: 100%;
             height: 100%;
             touch-action: none;
+            cursor: grab;
+        }
+
+        canvas:active {
+            cursor: grabbing;
         }
 
         .map-overlay-info {
@@ -149,6 +154,7 @@
             pointer-events: none;
             color: var(--accent-cyan);
             z-index: 10;
+            box-shadow: 0 0 10px rgba(0, 210, 255, 0.1);
         }
 
         .log-container {
@@ -193,6 +199,7 @@
 
         .log-entry:last-child {
             color: var(--accent-cyan);
+            text-shadow: 0 0 5px rgba(0, 210, 255, 0.5);
         }
 
         @media (max-width: 768px) {
@@ -252,13 +259,17 @@
     <script>
 (() => {
     // ============================================
-    // FIXED WORLD MAP - POSITIONS BY PERCENTAGE
+    // FIXED WORLD MAP - VIRTUAL RESOLUTION
     // Same layout on ALL devices, stable on zoom
     // ============================================
     
     const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false });
     ctx.imageSmoothingEnabled = false;
+
+    // Defines the universal fixed size of the game world.
+    const WORLD_WIDTH = 2000;
+    const WORLD_HEIGHT = 2000;
 
     // World state
     let worldState = {
@@ -267,17 +278,21 @@
         activeEvents: [], buildings: []
     };
 
-    // WebSocket
+    // WebSocket (Optional / Placeholder functionality matches original)
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(protocol + '//' + window.location.host);
-    ws.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        if (msg.type === 'WORLD_UPDATE') {
-            worldState = msg.data;
-            updateUI();
-            generateObjects();
-        }
-    };
+    try {
+        const ws = new WebSocket(protocol + '//' + window.location.host);
+        ws.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            if (msg.type === 'WORLD_UPDATE') {
+                worldState = msg.data;
+                updateUI();
+                generateObjects();
+            }
+        };
+    } catch(e) {
+        console.log("Running in offline/preview mode.");
+    }
 
     function updateUI() {
         document.getElementById('stat-day').innerText = worldState.day;
@@ -299,8 +314,8 @@
         }
     }
 
-    // Camera
-    let camera = { x: 0, y: 0, zoom: 1.0 };
+    // Camera setup - Centered initially
+    let camera = { x: 0, y: 0, zoom: 0.8 };
     let isDragging = false;
     let startX, startY;
 
@@ -311,7 +326,7 @@
 
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-    // Generate objects with PERCENTAGE positions (same on all devices)
+    // Generate objects with PERCENTAGE positions mapped to VIRTUAL WORLD
     function generateObjects() {
         buildings = [];
         units = [];
@@ -322,26 +337,26 @@
         // Fixed percentage positions - same layout everywhere
         for (let i = 0; i < buildingCount; i++) {
             buildings.push({
-                xPercent: 5 + ((i * 7) % 90),   // 5% to 95% of width
-                yPercent: 10 + ((i * 5) % 80),  // 10% to 90% of height
+                xPercent: 15 + ((i * 7) % 70),   // Clustered towards middle 
+                yPercent: 15 + ((i * 5) % 70),  
                 type: i % 4,
-                heightPercent: 5 + (i % 5) * 2  // 5% to 13% of canvas height
+                heightPercent: 2 + (i % 5) * 1.5 // Height relative to world height
             });
         }
         
         for (let u = 0; u < unitCount; u++) {
             units.push({
-                xPercent: 5 + Math.random() * 90,
+                xPercent: 10 + Math.random() * 80,
                 yPercent: 10 + Math.random() * 80,
-                targetXPercent: 5 + Math.random() * 90,
+                targetXPercent: 10 + Math.random() * 80,
                 targetYPercent: 10 + Math.random() * 80,
                 speed: 0.3 + Math.random() * 0.7,
-                color: ['#ff6666', '#6666ff', '#66ff66', '#ffff66', '#ff66ff'][u % 5]
+                color: ['#ff4757', '#3742fa', '#2ed573', '#eccc68', '#ff7f50'][u % 5]
             });
         }
     }
 
-    // Convert percentage to pixel
+    // Convert percentage to pixel relative to the FIXED VIRTUAL WORLD
     function px(percent, dimension) {
         return (percent / 100) * dimension;
     }
@@ -354,6 +369,11 @@
         if (w > 50 && h > 50) {
             canvas.width = w;
             canvas.height = h;
+            // Center camera on initial load
+            if (buildings.length === 0) {
+                camera.x = (canvas.width - WORLD_WIDTH * camera.zoom) / 2;
+                camera.y = (canvas.height - WORLD_HEIGHT * camera.zoom) / 2;
+            }
         }
     }
 
@@ -361,7 +381,8 @@
     function initMap() {
         resizeCanvas();
         generateObjects();
-        console.log('Map initialized:', canvas.width + 'x' + canvas.height, '| Buildings:', buildings.length, '| Units:', units.length);
+        updateUI(); // Initial UI update
+        console.log('Map initialized with virtual bounds:', WORLD_WIDTH + 'x' + WORLD_HEIGHT);
     }
 
     if (document.readyState === 'complete') {
@@ -375,39 +396,51 @@
     let resizeTimeout;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            resizeCanvas();
-            // Positions are percentages, no need to regenerate
-        }, 150);
+        resizeTimeout = setTimeout(resizeCanvas, 150);
     });
 
-    // Mouse controls
+    // MOUSE CONTROLS (With precision Zoom-To-Cursor)
     canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
         isDragging = true;
-        startX = e.clientX - camera.x;
-        startY = e.clientY - camera.y;
+        startX = (e.clientX - rect.left) - camera.x;
+        startY = (e.clientY - rect.top) - camera.y;
     });
+    
     window.addEventListener('mouseup', () => isDragging = false);
+    
     canvas.addEventListener('mousemove', (e) => {
         if (isDragging) {
-            camera.x = e.clientX - startX;
-            camera.y = e.clientY - startY;
+            const rect = canvas.getBoundingClientRect();
+            camera.x = (e.clientX - rect.left) - startX;
+            camera.y = (e.clientY - rect.top) - startY;
         }
     });
+
     canvas.addEventListener('wheel', (e) => {
         e.preventDefault();
-        const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-        camera.zoom = clamp(camera.zoom * zoomFactor, 0.5, 2.5);
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+        const newZoom = clamp(camera.zoom * zoomFactor, 0.2, 3.5);
+
+        // Adjust camera position to zoom directly towards the mouse cursor
+        camera.x = mouseX - (mouseX - camera.x) * (newZoom / camera.zoom);
+        camera.y = mouseY - (mouseY - camera.y) * (newZoom / camera.zoom);
+        camera.zoom = newZoom;
     }, { passive: false });
 
-    // Touch controls
+    // TOUCH CONTROLS (With precision Pinch-To-Zoom)
     let lastTouchDistance = 0;
     canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
         if (e.touches.length === 1) {
             isDragging = true;
-            startX = e.touches[0].clientX - camera.x;
-            startY = e.touches[0].clientY - camera.y;
+            startX = (e.touches[0].clientX - rect.left) - camera.x;
+            startY = (e.touches[0].clientY - rect.top) - camera.y;
         } else if (e.touches.length === 2) {
             isDragging = false;
             lastTouchDistance = Math.hypot(
@@ -416,77 +449,141 @@
             );
         }
     });
+    
     canvas.addEventListener('touchend', () => isDragging = false);
+    
     canvas.addEventListener('touchmove', (e) => {
         e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        
         if (e.touches.length === 1 && isDragging) {
-            camera.x = e.touches[0].clientX - startX;
-            camera.y = e.touches[0].clientY - startY;
+            camera.x = (e.touches[0].clientX - rect.left) - startX;
+            camera.y = (e.touches[0].clientY - rect.top) - startY;
         } else if (e.touches.length === 2) {
-            const dist = Math.hypot(
-                e.touches[0].clientX - e.touches[1].clientX,
-                e.touches[0].clientY - e.touches[1].clientY
-            );
-            camera.zoom = clamp(camera.zoom * (dist / lastTouchDistance), 0.5, 2.5);
+            const touch1 = { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+            const touch2 = { x: e.touches[1].clientX - rect.left, y: e.touches[1].clientY - rect.top };
+            
+            const dist = Math.hypot(touch1.x - touch2.x, touch1.y - touch2.y);
+            const centerX = (touch1.x + touch2.x) / 2;
+            const centerY = (touch1.y + touch2.y) / 2;
+
+            const zoomFactor = dist / lastTouchDistance;
+            const newZoom = clamp(camera.zoom * zoomFactor, 0.2, 3.5);
+
+            camera.x = centerX - (centerX - camera.x) * (newZoom / camera.zoom);
+            camera.y = centerY - (centerY - camera.y) * (newZoom / camera.zoom);
+            
+            camera.zoom = newZoom;
             lastTouchDistance = dist;
         }
     }, { passive: false });
 
-    // Pixel drawing - positions converted from percentage
+
+    // ==========================================
+    // GRAPHICAL IMPROVEMENTS & DRAWING LOGIC
+    // ==========================================
     function drawPixelCastle(x, y, h) {
-        ctx.fillStyle = '#8a8a8a';
+        ctx.fillStyle = '#636e72';
         ctx.fillRect(Math.round(x - h*0.3), Math.round(y - h), Math.round(h*0.6), h);
+        ctx.fillStyle = '#2d3436'; // Shading
+        ctx.fillRect(Math.round(x + h*0.1), Math.round(y - h), Math.round(h*0.2), h);
+        
         // Crenellations
         for (let i = -3; i < 3; i++) {
             ctx.fillRect(Math.round(x + i * h*0.1), Math.round(y - h - 3), 3, 3);
         }
-        // Windows
-        ctx.fillStyle = '#ffff88';
+        
+        // Windows (Glow effect)
+        ctx.fillStyle = '#ffeaa7';
+        ctx.shadowColor = '#fdcb6e';
+        ctx.shadowBlur = 5;
         for (let w = 0; w < 3; w++) {
-            ctx.fillRect(Math.round(x - 2), Math.round(y - h + 5 + w * 10), 4, 4);
+            ctx.fillRect(Math.round(x - 2), Math.round(y - h + 5 + w * 12), 4, 4);
         }
+        ctx.shadowBlur = 0; // Reset
+        
         // Door
-        ctx.fillStyle = '#3a1a0a';
-        ctx.fillRect(Math.round(x - 3), Math.round(y - 6), 6, 6);
+        ctx.fillStyle = '#2d3436';
+        ctx.fillRect(Math.round(x - 4), Math.round(y - 8), 8, 8);
     }
 
     function drawPixelHouse(x, y, h) {
-        ctx.fillStyle = '#c4a060';
+        ctx.fillStyle = '#d2b48c';
         ctx.fillRect(Math.round(x - h*0.4), Math.round(y - h), Math.round(h*0.8), h);
+        ctx.fillStyle = '#b89970'; // Shading
+        ctx.fillRect(Math.round(x), Math.round(y - h), Math.round(h*0.4), h);
+        
         // Roof
-        ctx.fillStyle = '#8a3a1a';
-        ctx.fillRect(Math.round(x - h*0.5), Math.round(y - h - 3), Math.round(h*1.0), 3);
+        ctx.fillStyle = '#c0392b';
+        ctx.beginPath();
+        ctx.moveTo(x - h*0.5, y - h);
+        ctx.lineTo(x + h*0.5, y - h);
+        ctx.lineTo(x, y - h - h*0.4);
+        ctx.fill();
+        
         // Window
-        ctx.fillStyle = '#ffff88';
-        ctx.fillRect(Math.round(x - 2), Math.round(y - h + 4), 4, 4);
+        ctx.fillStyle = '#ffeaa7';
+        ctx.fillRect(Math.round(x - 3), Math.round(y - h + 6), 6, 6);
+        
         // Door
-        ctx.fillStyle = '#3a1a0a';
-        ctx.fillRect(Math.round(x - 2), Math.round(y - 4), 4, 4);
+        ctx.fillStyle = '#4a2311';
+        ctx.fillRect(Math.round(x - 3), Math.round(y - 6), 6, 6);
     }
 
     function drawPixelBarracks(x, y, h) {
-        ctx.fillStyle = '#6a6a6a';
+        ctx.fillStyle = '#7f8c8d';
         ctx.fillRect(Math.round(x - h*0.5), Math.round(y - h), Math.round(h), h);
-        ctx.fillStyle = '#4a4a4a';
-        ctx.fillRect(Math.round(x - h*0.6), Math.round(y - h - 2), Math.round(h*1.2), 2);
+        
+        // Roof
+        ctx.fillStyle = '#2c3e50';
+        ctx.fillRect(Math.round(x - h*0.6), Math.round(y - h - 4), Math.round(h*1.2), 4);
+        
+        // Target practice board
+        ctx.fillStyle = '#e74c3c';
+        ctx.beginPath();
+        ctx.arc(x, y - h/2, 4, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(x, y - h/2, 2, 0, Math.PI*2);
+        ctx.fill();
     }
 
     function drawPixelTower(x, y, h) {
-        ctx.fillStyle = '#7a7a7a';
+        ctx.fillStyle = '#bdc3c7';
         ctx.fillRect(Math.round(x - h*0.2), Math.round(y - h), Math.round(h*0.4), h);
-        ctx.fillStyle = '#5a5a5a';
-        ctx.fillRect(Math.round(x - h*0.3), Math.round(y - h - 2), Math.round(h*0.6), 2);
+        ctx.fillStyle = '#95a5a6'; // Shadow
+        ctx.fillRect(Math.round(x), Math.round(y - h), Math.round(h*0.2), h);
+        
+        // Top section
+        ctx.fillStyle = '#34495e';
+        ctx.fillRect(Math.round(x - h*0.3), Math.round(y - h - 6), Math.round(h*0.6), 6);
+        
+        // Flag
+        ctx.fillStyle = '#e74c3c';
+        ctx.fillRect(Math.round(x + h*0.1), Math.round(y - h - 14), 10, 6);
+        ctx.fillStyle = '#7f8c8d';
+        ctx.fillRect(Math.round(x), Math.round(y - h - 16), 2, 12);
     }
 
     function drawPixelUnit(unit, unitX, unitY) {
-        const legOffset = Math.sin(frameCount * 0.1 + unitX) > 0 ? 0 : 3;
+        const legOffset = Math.sin(frameCount * 0.15 + unitX) > 0 ? 0 : 3;
+        
+        // Unit Body Glow
+        ctx.shadowColor = unit.color;
+        ctx.shadowBlur = 4;
         ctx.fillStyle = unit.color;
-        ctx.fillRect(Math.round(unitX), Math.round(unitY - 6), 3, 6);
+        ctx.fillRect(Math.round(unitX), Math.round(unitY - 6), 4, 6);
+        ctx.shadowBlur = 0;
+        
+        // Head
         ctx.fillStyle = '#ffcc99';
-        ctx.fillRect(Math.round(unitX), Math.round(unitY - 9), 3, 3);
-        ctx.fillStyle = '#333';
-        ctx.fillRect(Math.round(unitX), Math.round(unitY), 1, 3 + legOffset);
-        ctx.fillRect(Math.round(unitX + 2), Math.round(unitY), 1, 3 - legOffset);
+        ctx.fillRect(Math.round(unitX + 0.5), Math.round(unitY - 9), 3, 3);
+        
+        // Legs
+        ctx.fillStyle = '#111';
+        ctx.fillRect(Math.round(unitX), Math.round(unitY), 1.5, 3 + legOffset);
+        ctx.fillRect(Math.round(unitX + 2.5), Math.round(unitY), 1.5, 3 - legOffset);
     }
 
     function updateUnits() {
@@ -495,15 +592,15 @@
             const dy = unit.targetYPercent - unit.yPercent;
             const dist = Math.sqrt(dx * dx + dy * dy);
             
-            if (dist < 2) {
-                unit.targetXPercent = 5 + Math.random() * 90;
+            if (dist < 1) {
+                unit.targetXPercent = 10 + Math.random() * 80;
                 unit.targetYPercent = 10 + Math.random() * 80;
             } else {
-                unit.xPercent += (dx / dist) * unit.speed * 0.1;
-                unit.yPercent += (dy / dist) * unit.speed * 0.1;
+                unit.xPercent += (dx / dist) * unit.speed * 0.05;
+                unit.yPercent += (dy / dist) * unit.speed * 0.05;
             }
             
-            unit.xPercent = clamp(unit.xPercent, 3, 97);
+            unit.xPercent = clamp(unit.xPercent, 5, 95);
             unit.yPercent = clamp(unit.yPercent, 5, 95);
         });
     }
@@ -511,81 +608,130 @@
     // Main render loop
     function render() {
         frameCount++;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Base dark background (Outer void)
+        ctx.fillStyle = '#04060d';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         ctx.save();
         ctx.translate(camera.x, camera.y);
         ctx.scale(camera.zoom, camera.zoom);
 
-        // Terrain
-        const tileSize = 12;
-        const startX = Math.floor(-camera.x / tileSize) - 1;
-        const endX = Math.ceil((canvas.width - camera.x) / tileSize) + 1;
-        const startY = Math.floor(-camera.y / tileSize) - 1;
-        const endY = Math.ceil((canvas.height - camera.y) / tileSize) + 1;
+        // Render Visible Terrain Grid (Zoom & Pan Aware)
+        const tileSize = 25; // Slightly larger for better aesthetics
         
+        // Calculate viewport boundaries inside the virtual world
+        const startX = Math.max(0, Math.floor(-camera.x / (tileSize * camera.zoom)));
+        const endX = Math.min(WORLD_WIDTH / tileSize, Math.ceil((canvas.width - camera.x) / (tileSize * camera.zoom)));
+        const startY = Math.max(0, Math.floor(-camera.y / (tileSize * camera.zoom)));
+        const endY = Math.min(WORLD_HEIGHT / tileSize, Math.ceil((canvas.height - camera.y) / (tileSize * camera.zoom)));
+        
+        // Base world bounds map background
+        ctx.fillStyle = '#1a2215';
+        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+        // Draw Checkerboard Grass
         for (let x = startX; x < endX; x++) {
             for (let y = startY; y < endY; y++) {
-                ctx.fillStyle = ((x + y) % 2 === 0) ? '#2a3a1a' : '#1a2a1a';
-                ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+                if ((x + y) % 2 === 0) {
+                    ctx.fillStyle = '#22301b';
+                    ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+                }
             }
         }
 
-        // Water river
-        for (let y = 0; y < canvas.height; y += 3) {
-            const waveOffset = Math.sin((y * 0.05) + (frameCount * 0.03)) * 6;
-            ctx.fillStyle = '#1a3a5a';
-            ctx.fillRect(Math.round(canvas.width * 0.35 + waveOffset), y, 12, 3);
+        // River Improvement - Curve and Glow
+        ctx.shadowColor = 'rgba(0, 210, 255, 0.5)';
+        ctx.shadowBlur = 15;
+        ctx.fillStyle = '#0984e3';
+        ctx.beginPath();
+        for (let y = 0; y < WORLD_HEIGHT; y += 10) {
+            const waveOffset = Math.sin((y * 0.005) + (frameCount * 0.02)) * 30;
+            ctx.rect(Math.round(WORLD_WIDTH * 0.45 + waveOffset), y, 35, 12);
         }
+        ctx.fill();
+        ctx.shadowBlur = 0; // Reset Shadow
 
-        // Trees - FIXED percentage positions
+        // Trees - mapped to WORLD_WIDTH / HEIGHT
         const treePositions = [
             {x: 8, y: 15}, {x: 22, y: 25}, {x: 45, y: 12},
             {x: 60, y: 30}, {x: 75, y: 18}, {x: 15, y: 50},
-            {x: 38, y: 45}, {x: 65, y: 55}, {x: 85, y: 40}
+            {x: 38, y: 45}, {x: 65, y: 55}, {x: 85, y: 40},
+            {x: 10, y: 80}, {x: 30, y: 85}, {x: 80, y: 80}
         ];
+        
         treePositions.forEach(t => {
-            const tx = px(t.x, canvas.width);
-            const ty = px(t.y, canvas.height);
+            const tx = px(t.x, WORLD_WIDTH);
+            const ty = px(t.y, WORLD_HEIGHT);
+            
+            // Trunk
             ctx.fillStyle = '#5a3a1a';
-            ctx.fillRect(Math.round(tx), Math.round(ty), 3, 9);
-            ctx.fillStyle = '#1a5a1a';
-            ctx.fillRect(Math.round(tx - 6), Math.round(ty - 9), 15, 9);
+            ctx.fillRect(Math.round(tx), Math.round(ty), 4, 12);
+            
+            // Leaves with simple shading
+            ctx.fillStyle = '#218c35';
+            ctx.beginPath();
+            ctx.arc(tx + 2, ty - 6, 12, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#1e752d';
+            ctx.beginPath();
+            ctx.arc(tx + 4, ty - 4, 8, 0, Math.PI*2);
+            ctx.fill();
         });
 
-        // Gold mines - FIXED percentage positions
+        // Gold mines - mapped to WORLD
         const goldPositions = [
             {x: 25, y: 65}, {x: 55, y: 20}, {x: 75, y: 65}
         ];
+        
         goldPositions.forEach(g => {
-            const gx = px(g.x, canvas.width);
-            const gy = px(g.y, canvas.height);
-            ctx.fillStyle = '#555555';
-            ctx.fillRect(Math.round(gx - 6), Math.round(gy - 4), 12, 8);
-            ctx.fillStyle = '#ffd700';
-            ctx.fillRect(Math.round(gx - 4), Math.round(gy - 6), 3, 3);
-            ctx.fillRect(Math.round(gx), Math.round(gy - 6), 3, 3);
+            const gx = px(g.x, WORLD_WIDTH);
+            const gy = px(g.y, WORLD_HEIGHT);
+            
+            ctx.fillStyle = '#2d3436';
+            ctx.beginPath();
+            ctx.ellipse(gx, gy, 18, 10, 0, 0, Math.PI*2);
+            ctx.fill();
+            
+            // Gold sparkles
+            ctx.fillStyle = '#f1c40f';
+            ctx.shadowColor = '#f39c12';
+            ctx.shadowBlur = 8;
+            ctx.fillRect(Math.round(gx - 8), Math.round(gy - 4), 4, 4);
+            ctx.fillRect(Math.round(gx + 2), Math.round(gy - 6), 5, 5);
+            ctx.fillRect(Math.round(gx + 6), Math.round(gy + 2), 3, 3);
+            ctx.shadowBlur = 0;
         });
 
-        // Buildings - percentage to pixel conversion
+        // Buildings - percentage to pixel conversion (MAPPED TO FIXED WORLD)
         buildings.forEach(building => {
-            const bx = px(building.xPercent, canvas.width);
-            const by = px(building.yPercent, canvas.height);
-            const bh = px(building.heightPercent, canvas.height);
+            const bx = px(building.xPercent, WORLD_WIDTH);
+            const by = px(building.yPercent, WORLD_HEIGHT);
+            const bh = px(building.heightPercent, WORLD_HEIGHT); // Scale heights relatively
+            
+            // Sort shadow
+            ctx.shadowColor = 'rgba(0,0,0,0.6)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetY = 5;
             
             switch(building.type) {
                 case 0: drawPixelCastle(bx, by, bh); break;
-                case 1: drawPixelHouse(bx, by, bh * 0.6); break;
-                case 2: drawPixelBarracks(bx, by, bh * 0.7); break;
-                case 3: drawPixelTower(bx, by, bh * 1.2); break;
+                case 1: drawPixelHouse(bx, by, bh * 0.7); break;
+                case 2: drawPixelBarracks(bx, by, bh * 0.8); break;
+                case 3: drawPixelTower(bx, by, bh * 1.3); break;
             }
+            
+            // Reset shadow to prevent bleeding into next elements
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
         });
 
-        // Units - percentage to pixel
+        // Units - Update and Map to WORLD
         updateUnits();
         units.forEach(unit => {
-            const ux = px(unit.xPercent, canvas.width);
-            const uy = px(unit.yPercent, canvas.height);
+            const ux = px(unit.xPercent, WORLD_WIDTH);
+            const uy = px(unit.yPercent, WORLD_HEIGHT);
             drawPixelUnit(unit, ux, uy);
         });
 
@@ -595,6 +741,6 @@
 
     requestAnimationFrame(render);
 })();
-</script>
+    </script>
 </body>
 </html>
