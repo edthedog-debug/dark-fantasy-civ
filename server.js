@@ -77,7 +77,8 @@ function addLog(msg) {
 }
 
 /**
- * GEMINI API - FIXED - Tries 3.7 Flash, then 3.5 Flash, then generic Flash
+ * GEMINI API - FIXED - Tries 3.7 Flash, then 3.5 Flash, then 3.6 Flash
+ * Includes delays between models to avoid rate limiting (RPM)
  */
 async function queryGemini(prompt) {
     if (!AI_API_KEY) {
@@ -94,7 +95,9 @@ async function queryGemini(prompt) {
         { name: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash' }
     ];
     
-    for (const model of models) {
+    for (let i = 0; i < models.length; i++) {
+        const model = models[i];
+        
         try {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model.name}:generateContent?key=${AI_API_KEY}`;
             
@@ -132,12 +135,22 @@ async function queryGemini(prompt) {
                     console.log("📝 Text:", text.substring(0, 200));
                     return text;
                 }
+            } else if (response.status === 429) {
+                // Rate limited - wait 60 seconds before trying next model
+                console.log(`⏳ Rate limit (429) with ${model.label}. Waiting 60 seconds...`);
+                await new Promise(resolve => setTimeout(resolve, 60000));
             } else {
                 const errorText = await response.text();
                 console.error(`❌ Error with ${model.label}:`, response.status, errorText.substring(0, 300));
             }
         } catch (e) {
             console.error(`❌ Fetch error with ${model.label}:`, e.message);
+        }
+        
+        // Wait 5 seconds between models to avoid RPM limit
+        if (i < models.length - 1) {
+            console.log("⏳ Waiting 5 seconds before next model...");
+            await new Promise(resolve => setTimeout(resolve, 5000));
         }
     }
     
@@ -496,14 +509,15 @@ WSS.on('connection', (ws) => {
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Current state - Day:", worldState.day, "AI Improvements:", worldState.aiImprovements);
-    console.log("🤖 Using Gemini 3.7 Flash with 3.5 Flash and generic Flash fallback");
+    console.log("🤖 Using Gemini 3.7 Flash with 3.5 Flash and 3.6 Flash fallback");
     console.log("📅 AI Events: every 150 days | Code Improvements: every 250 days (Free quota optimized)");
+    console.log("⏳ Rate limit protection: 60s wait on 429, 5s between models");
     
     queryGemini("Say 'OK'")
         .then(response => {
             if (response) {
                 console.log("✅ Gemini response:", response.substring(0, 100));
-                addLog("[SYSTEM] AI System ready (Gemini 3.7/3.5/Generic Flash).");
+                addLog("[SYSTEM] AI System ready (Gemini 3.7/3.5/3.6 Flash).");
             } else {
                 console.log("⚠️ Gemini not responding, using fallbacks");
                 addLog("[SYSTEM] AI System in fallback mode.");
