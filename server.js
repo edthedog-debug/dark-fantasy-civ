@@ -79,7 +79,25 @@ function saveWorldState() {
 }
 
 function broadcastState() {
-    const payload = JSON.stringify({ type: 'WORLD_UPDATE', data: worldState });
+    const latestLog = worldState.logs.length > 0 ? worldState.logs[worldState.logs.length - 1] : "";
+    const activeEventText = worldState.activeEvents && worldState.activeEvents.length > 0 
+        ? worldState.activeEvents.map(e => e.description).join(' | ') 
+        : "No active events";
+
+    const payload = JSON.stringify({
+        day: worldState.day,
+        era: worldState.era,
+        population: worldState.population,
+        treasury: Math.floor(worldState.treasury),
+        techPower: Number(worldState.techPower).toFixed(1),
+        defenses: worldState.tanks,
+        status: worldState.inWar ? "WAR" : "PEACE",
+        buildings: Array.isArray(worldState.buildings) ? worldState.buildings.length : worldState.buildings,
+        event: activeEventText,
+        log: latestLog,
+        entities: []
+    });
+
     WSS.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(payload);
@@ -173,7 +191,7 @@ async function pushToGitHub(htmlPath, type, day) {
 }
 
 /**
- * AI EVENTS - With immediate fallback
+ * AI EVENTS
  */
 async function generateAIEvents() {
     const fallbacks = [
@@ -184,7 +202,6 @@ async function generateAIEvents() {
         { event: "Golden age of prosperity", newPhilosophy: "Enlightenment", goldImpact: 5000000000, happinessImpact: 20, techImpact: 1.0, visualEffect: "prosperity", duration: 40 }
     ];
     
-    // Use fallback immediately for reliability
     const parsed = fallbacks[Math.floor(Math.random() * fallbacks.length)];
     
     addLog("[AI EVENT] " + parsed.event);
@@ -208,7 +225,7 @@ async function generateAIEvents() {
 }
 
 /**
- * SIMULATION TICK - Generates logs every tick
+ * SIMULATION TICK
  */
 function runSimulationTick() {
     worldState.day += 1;
@@ -238,7 +255,6 @@ function runSimulationTick() {
 
     worldState.techPower += 0.01;
 
-    // DEMOGRAPHICS LOGS - Every 4 days
     if (worldState.happiness > 75 && worldState.treasury > 100 && worldState.day % 4 === 0) {
         worldState.population += 1;
         addLog("[DEMOGRAPHICS] Prosperous conditions attracted 1 immigrant. Pop: " + worldState.population);
@@ -247,7 +263,6 @@ function runSimulationTick() {
         addLog("[DEMOGRAPHICS] 1 Citizen emigrated. Pop: " + worldState.population);
     }
 
-    // ECONOMY LOGS - Every 20 days
     if (worldState.treasury > 1500 && worldState.day % 20 === 0) {
         worldState.treasury -= 400;
         worldState.techPower += 0.2;
@@ -255,26 +270,22 @@ function runSimulationTick() {
         addLog("[ECONOMY] Reinvested 400 Gold into Tech R&D.");
     }
 
-    // DEFENSE LOGS - Every 25 days
     if (worldState.treasury > 2500 && worldState.tanks < 12 && worldState.day % 25 === 0) {
         worldState.treasury -= 600;
         worldState.tanks += 1;
         addLog("[DEFENSE] Manufactured 1 Heavy Defense Unit.");
     }
 
-    // AI EVENT - Every 50 days (3.3 minutes)
     if (worldState.day % 50 === 0) {
         generateAIEvents();
     }
 
-    // CODE IMPROVEMENT - Every 250 days (17 minutes)
     if (worldState.day % 250 === 0) {
         const patch = Math.floor(Math.random() * 9) + 1;
         worldState.engineBuild = "v" + (2 + Math.floor(worldState.aiImprovements / 10)) + "." + patch + ".0-Groq";
         autoImproveGameCode().catch(err => console.error(err.message));
     }
 
-    // Clean expired events
     if (worldState.activeEvents) {
         worldState.activeEvents = worldState.activeEvents.filter(e => e.endDay > worldState.day);
     }
@@ -283,32 +294,48 @@ function runSimulationTick() {
     broadcastState();
 }
 
-// Run simulation every 4 seconds
 setInterval(runSimulationTick, 4000);
 
-// WebSocket connection
 WSS.on('connection', (ws) => {
     console.log('🔗 Client connected');
-    ws.send(JSON.stringify({ type: 'WORLD_UPDATE', data: worldState }));
+    
+    const latestLog = worldState.logs.length > 0 ? worldState.logs[worldState.logs.length - 1] : "";
+    const activeEventText = worldState.activeEvents && worldState.activeEvents.length > 0 
+        ? worldState.activeEvents.map(e => e.description).join(' | ') 
+        : "No active events";
+
+    const payload = JSON.stringify({
+        day: worldState.day,
+        era: worldState.era,
+        population: worldState.population,
+        treasury: Math.floor(worldState.treasury),
+        techPower: Number(worldState.techPower).toFixed(1),
+        defenses: worldState.tanks,
+        status: worldState.inWar ? "WAR" : "PEACE",
+        buildings: Array.isArray(worldState.buildings) ? worldState.buildings.length : worldState.buildings,
+        event: activeEventText,
+        log: latestLog,
+        entities: []
+    });
+
+    ws.send(payload);
     
     ws.on('error', (error) => {
         console.error('❌ WS error:', error.message);
     });
 });
 
-// Start server
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
     console.log("⏱️ Simulation: every 4s | AI Events: every 50 days | Code: every 250 days");
     
-    // Start simulation immediately
     addLog("[SYSTEM] Simulation started.");
     broadcastState();
 });
 
 /**
- * AI CODE IMPROVEMENT - Simplified
+ * AI CODE IMPROVEMENT
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT...");
@@ -348,7 +375,7 @@ async function autoImproveGameCode() {
 }
 
 /**
- * Clean HTML
+ * Clean HTML Template
  */
 function getCleanHTML() {
     return `<!DOCTYPE html>
@@ -356,7 +383,7 @@ function getCleanHTML() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Sovereign AI Engine</title>
+    <title>Sovereign AI Engine - World Map</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body { background: #070913; color: #e0e6ed; min-height: 100dvh; display: flex; flex-direction: column; padding: 10px; gap: 8px; overflow: hidden; position: fixed; inset: 0; }
@@ -377,60 +404,43 @@ function getCleanHTML() {
         <div class="stats-grid">
             <div class="stat-card"><div class="stat-label">DAY</div><div class="stat-value" id="stat-day">-</div></div>
             <div class="stat-card"><div class="stat-label">ERA</div><div class="stat-value" id="stat-era">-</div></div>
-            <div class="stat-card"><div class="stat-label">POP</div><div class="stat-value" id="stat-pop">-</div></div>
-            <div class="stat-card"><div class="stat-label">GOLD</div><div class="stat-value" id="stat-gold">-</div></div>
+            <div class="stat-card"><div class="stat-label">POPULATION</div><div class="stat-value" id="stat-pop">-</div></div>
+            <div class="stat-card"><div class="stat-label">TREASURY</div><div class="stat-value" id="stat-gold">-</div></div>
             <div class="stat-card"><div class="stat-label">TECH</div><div class="stat-value" id="stat-tech">-</div></div>
-            <div class="stat-card"><div class="stat-label">DEF</div><div class="stat-value" id="stat-tanks">-</div></div>
+            <div class="stat-card"><div class="stat-label">DEFENSES</div><div class="stat-value" id="stat-tanks">-</div></div>
             <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value" id="stat-status">-</div></div>
-            <div class="stat-card"><div class="stat-label">BUILD</div><div class="stat-value" id="stat-build">-</div></div>
+            <div class="stat-card"><div class="stat-label">BUILDINGS</div><div class="stat-value" id="stat-building-count">-</div></div>
         </div>
     </div>
     <div id="map-container"><canvas id="gameCanvas"></canvas></div>
     <div class="event-panel" id="event-panel">No active events</div>
-    <div class="log-container"><div id="log-stream">Connecting...</div></div>
+    <div class="log-container"><div id="log-stream">Connecting to server...</div></div>
     <script>
         let ws;
-        let worldState = null;
-        function connectWebSocket() {
+        function connect() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             ws = new WebSocket(protocol + '//' + window.location.host);
-            ws.onopen = () => { document.getElementById('log-stream').innerHTML = '<span style="color:#00ff88;">Connected</span>'; };
+            ws.onopen = () => { document.getElementById('log-stream').innerText = 'Connected to AI Sovereign Neural Link.'; };
             ws.onmessage = (event) => {
                 try {
-                    const msg = JSON.parse(event.data);
-                    if (msg.type === 'WORLD_UPDATE') {
-                        worldState = msg.data;
-                        updateUI();
-                    }
-                } catch (e) {}
+                    const data = JSON.parse(event.data);
+                    document.getElementById('stat-day').innerText = data.day;
+                    document.getElementById('stat-era').innerText = data.era;
+                    document.getElementById('stat-pop').innerText = data.population;
+                    document.getElementById('stat-gold').innerText = data.treasury + ' G';
+                    document.getElementById('stat-tech').innerText = data.techPower;
+                    document.getElementById('stat-tanks').innerText = data.defenses;
+                    document.getElementById('stat-status').innerText = data.status;
+                    document.getElementById('stat-building-count').innerText = data.buildings;
+                    if (data.event) document.getElementById('event-panel').innerText = data.event;
+                    if (data.log) document.getElementById('log-stream').innerText = data.log;
+                } catch (e) {
+                    console.error('Error parsing message:', e);
+                }
             };
-            ws.onclose = () => { setTimeout(connectWebSocket, 2000); };
+            ws.onclose = () => { setTimeout(connect, 3000); };
         }
-        function updateUI() {
-            if (!worldState) return;
-            document.getElementById('stat-day').innerText = worldState.day;
-            document.getElementById('stat-era').innerText = worldState.era;
-            document.getElementById('stat-pop').innerText = worldState.population;
-            document.getElementById('stat-gold').innerText = Math.floor(worldState.treasury).toLocaleString();
-            document.getElementById('stat-tech').innerText = Number(worldState.techPower).toFixed(1);
-            document.getElementById('stat-tanks').innerText = worldState.tanks;
-            document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
-            document.getElementById('stat-build').innerText = worldState.engineBuild || 'v2.0';
-            const ep = document.getElementById('event-panel');
-            if (worldState.activeEvents && worldState.activeEvents.length > 0) {
-                ep.innerHTML = worldState.activeEvents.map(e => '⚡ ' + e.description).join(' | ');
-                ep.style.borderColor = '#ff4444';
-            } else {
-                ep.innerHTML = 'No active events';
-                ep.style.borderColor = '#00ff88';
-            }
-            const logBox = document.getElementById('log-stream');
-            if (worldState.logs && worldState.logs.length > 0) {
-                logBox.innerHTML = worldState.logs.map(l => '<div>' + l + '</div>').join('');
-                logBox.scrollTop = logBox.scrollHeight;
-            }
-        }
-        connectWebSocket();
+        connect();
     </script>
 </body>
 </html>`;
