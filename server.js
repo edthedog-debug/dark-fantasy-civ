@@ -21,7 +21,7 @@ const SERVER = http.createServer(APP);
 const WSS = new WebSocket.Server({ server: SERVER, perMessageDeflate: false });
 const STATE_FILE = path.join(__dirname, 'worldState.json');
 
-// Rate limiter - 20 seconds to avoid 429
+// Rate limiter
 const rateLimiter = {
     lastCallTime: 0,
     minInterval: 20000,
@@ -98,22 +98,23 @@ function addLog(msg) {
 }
 
 /**
- * GROQ API - Qwen 3.6 27B
+ * GROQ API - Qwen 3.6 27B - WITH VISIBLE CONNECTION LOGS
  */
 async function queryAI(prompt) {
     if (!GROQ_API_KEY) {
-        console.error("❌ No GROQ_API_KEY");
+        console.error("❌ No GROQ_API_KEY - AI DISABLED");
         return null;
     }
 
-    console.log("🔑 Groq Key:", GROQ_API_KEY.substring(0, 10) + "...");
+    console.log("🔑 GROQ API KEY:", GROQ_API_KEY.substring(0, 15) + "...");
+    console.log("🤖 AI MODEL: qwen/qwen3.6-27b");
+    console.log("📡 Connecting to Groq API...");
     
     try {
         await rateLimiter.waitForSlot();
         
         const url = 'https://api.groq.com/openai/v1/chat/completions';
-        
-        console.log('🔄 Trying Groq (Qwen 3.6 27B)...');
+        console.log('🔄 Sending request to Groq...');
         
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -135,22 +136,28 @@ async function queryAI(prompt) {
         
         clearTimeout(timeoutId);
         
-        console.log('📊 Groq Status:', response.status);
+        console.log('📊 Groq Response Status:', response.status);
         
         if (response.ok) {
             const data = await response.json();
             const text = data.choices?.[0]?.message?.content;
             if (text && text.length > 0) {
-                console.log('✅ Success with Groq!');
+                console.log('✅ Groq AI RESPONSE RECEIVED');
+                console.log('📝 Response preview:', text.substring(0, 150) + '...');
                 return text;
             }
+        } else if (response.status === 429) {
+            console.error('❌ GROQ RATE LIMIT (429) - Too many requests');
+        } else if (response.status === 401) {
+            console.error('❌ GROQ AUTH ERROR (401) - Invalid API key');
         } else {
-            console.error('❌ Groq Error:', response.status);
+            console.error('❌ GROQ ERROR:', response.status);
         }
     } catch (e) {
-        console.error('❌ Groq Fetch error:', e.message);
+        console.error('❌ GROQ CONNECTION FAILED:', e.message);
     }
     
+    console.log('⚠️ Groq unavailable - using fallback');
     return null;
 }
 
@@ -177,7 +184,7 @@ function executeGitCommand(command, retries = 3) {
 }
 
 /**
- * Push to GitHub - Fresh clone each time
+ * Push to GitHub
  */
 async function pushToGitHub(htmlPath, improvementTypeName, day) {
     if (!GITHUB_TOKEN) return false;
@@ -221,15 +228,36 @@ async function pushToGitHub(htmlPath, improvementTypeName, day) {
  * AI EVENTS - With immediate fallback
  */
 async function generateAIEvents() {
-    const fallbacks = [
-        { event: "Blood moon rises over the kingdom", newPhilosophy: "Lunar Worship", goldImpact: -50000000000, happinessImpact: -15, techImpact: 0.5, visualEffect: "blood_moon", duration: 50 },
-        { event: "Great fire ravages the capital", newPhilosophy: "Phoenix Rebirth", goldImpact: -30000000000, happinessImpact: -20, techImpact: 0.2, visualEffect: "fire", duration: 30 },
-        { event: "Devastating storm destroys crops", newPhilosophy: "Storm Resilience", goldImpact: -20000000000, happinessImpact: -10, techImpact: 0.1, visualEffect: "storm", duration: 20 },
-        { event: "Plague sweeps through population", newPhilosophy: "Medical Revolution", goldImpact: -40000000000, happinessImpact: -25, techImpact: 0.8, visualEffect: "plague", duration: 60 },
-        { event: "Golden age of prosperity", newPhilosophy: "Enlightenment", goldImpact: 5000000000, happinessImpact: 20, techImpact: 1.0, visualEffect: "prosperity", duration: 40 }
-    ];
+    console.log("\n🎲 GENERATING AI EVENT...");
     
-    const parsed = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+    // Try Groq first with timeout
+    const prompt = `Generate a dark fantasy event. Day ${worldState.day}, Pop ${worldState.population}. Return JSON.`;
+    const aiResult = await Promise.race([
+        queryAI(prompt),
+        new Promise(resolve => setTimeout(() => resolve(null), 20000))
+    ]);
+    
+    let parsed = null;
+    if (aiResult) {
+        try {
+            const jsonMatch = aiResult.match(/\{[\s\S]*\}/);
+            if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+        } catch (e) {}
+    }
+    
+    if (!parsed || !parsed.event) {
+        console.log('⚠️ Using fallback event');
+        const fallbacks = [
+            { event: "Blood moon rises over the kingdom", newPhilosophy: "Lunar Worship", goldImpact: -50000000000, happinessImpact: -15, techImpact: 0.5, visualEffect: "blood_moon", duration: 50 },
+            { event: "Great fire ravages the capital", newPhilosophy: "Phoenix Rebirth", goldImpact: -30000000000, happinessImpact: -20, techImpact: 0.2, visualEffect: "fire", duration: 30 },
+            { event: "Devastating storm destroys crops", newPhilosophy: "Storm Resilience", goldImpact: -20000000000, happinessImpact: -10, techImpact: 0.1, visualEffect: "storm", duration: 20 },
+            { event: "Plague sweeps through population", newPhilosophy: "Medical Revolution", goldImpact: -40000000000, happinessImpact: -25, techImpact: 0.8, visualEffect: "plague", duration: 60 },
+            { event: "Golden age of prosperity", newPhilosophy: "Enlightenment", goldImpact: 5000000000, happinessImpact: 20, techImpact: 1.0, visualEffect: "prosperity", duration: 40 }
+        ];
+        parsed = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+    } else {
+        console.log('✅ AI event generated by Groq');
+    }
     
     addLog("[AI EVENT] " + parsed.event);
     if (parsed.newPhilosophy) worldState.philosophy = parsed.newPhilosophy;
@@ -252,47 +280,7 @@ async function generateAIEvents() {
 }
 
 /**
- * AI CODE IMPROVEMENT
- */
-async function autoImproveGameCode() {
-    console.log("\n🤖 AI CODE IMPROVEMENT...");
-    addLog("[AI AUTO-CODING] Applying AI improvement...");
-
-    try {
-        const htmlPath = path.join(__dirname, 'public', 'index.html');
-        if (!fs.existsSync(htmlPath)) return;
-        
-        let currentHtml = fs.readFileSync(htmlPath, 'utf8');
-        if (currentHtml.length > 100000) {
-            currentHtml = getCleanHTML();
-            fs.writeFileSync(htmlPath, currentHtml);
-        }
-        
-        const improvementType = worldState.aiImprovements % 3;
-        const aiResponse = await queryAI("Improve game code. Return only code.");
-        
-        if (aiResponse && aiResponse.length > 50) {
-            const codeToAdd = aiResponse.replace(/```/g, '').trim();
-            let improvedHtml = currentHtml;
-            if (improvementType === 0) {
-                improvedHtml = improvedHtml.replace(/<style>[\s\S]*?<\/style>/g, `<style>\n${codeToAdd}\n</style>`);
-            } else if (improvementType === 1) {
-                improvedHtml = improvedHtml.replace(/<script>[\s\S]*?<\/script>/g, `<script>\n${codeToAdd}\n</script>`);
-            }
-            fs.writeFileSync(htmlPath, improvedHtml);
-        }
-        
-        worldState.aiImprovements += 1;
-        addLog("[AI COMMIT SUCCESS] Total improvements: " + worldState.aiImprovements);
-        await pushToGitHub(htmlPath, "Improvement", worldState.day);
-        
-    } catch (err) {
-        console.error("Error:", err.message);
-    }
-}
-
-/**
- * SIMULATION TICK - Every 4 seconds
+ * SIMULATION TICK
  */
 function runSimulationTick() {
     worldState.day += 1;
@@ -360,10 +348,8 @@ function runSimulationTick() {
     broadcastState();
 }
 
-// Run simulation every 4 seconds
 setInterval(runSimulationTick, 4000);
 
-// WebSocket connection - send state immediately
 WSS.on('connection', (ws) => {
     console.log('🔗 Client connected');
     ws.send(JSON.stringify({ type: 'WORLD_UPDATE', data: worldState }));
@@ -374,14 +360,67 @@ WSS.on('connection', (ws) => {
     });
 });
 
-// Start server
+// AI CODE IMPROVEMENT
+async function autoImproveGameCode() {
+    console.log("\n🤖 AI CODE IMPROVEMENT...");
+    console.log("📡 Calling Groq AI for code improvement...");
+    addLog("[AI AUTO-CODING] Applying AI improvement...");
+
+    try {
+        const htmlPath = path.join(__dirname, 'public', 'index.html');
+        if (!fs.existsSync(htmlPath)) return;
+        
+        let currentHtml = fs.readFileSync(htmlPath, 'utf8');
+        if (currentHtml.length > 100000) {
+            currentHtml = getCleanHTML();
+            fs.writeFileSync(htmlPath, currentHtml);
+        }
+        
+        const aiResponse = await queryAI("Improve game code. Return only code.");
+        
+        if (aiResponse && aiResponse.length > 50) {
+            const codeToAdd = aiResponse.replace(/```/g, '').trim();
+            let improvedHtml = currentHtml;
+            if (worldState.aiImprovements % 3 === 0) {
+                improvedHtml = improvedHtml.replace(/<style>[\s\S]*?<\/style>/g, `<style>\n${codeToAdd}\n</style>`);
+            } else if (worldState.aiImprovements % 3 === 1) {
+                improvedHtml = improvedHtml.replace(/<script>[\s\S]*?<\/script>/g, `<script>\n${codeToAdd}\n</script>`);
+            }
+            fs.writeFileSync(htmlPath, improvedHtml);
+            console.log('✅ AI code applied');
+        }
+        
+        worldState.aiImprovements += 1;
+        addLog("[AI COMMIT SUCCESS] Total improvements: " + worldState.aiImprovements);
+        await pushToGitHub(htmlPath, "Improvement", worldState.day);
+        
+    } catch (err) {
+        console.error("Error:", err.message);
+    }
+}
+
+// START SERVER
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
+    console.log("🤖 AI: Groq (Qwen 3.6 27B) - Connecting...");
     console.log("⏱️ Simulation: every 4s | AI Events: every 50 days | Code: every 250 days");
     
     addLog("[SYSTEM] Simulation started.");
     broadcastState();
+    
+    // Test AI connection at startup
+    console.log("🔌 Testing AI connection...");
+    queryAI("Say OK").then(response => {
+        if (response) {
+            console.log("✅ AI CONNECTION ESTABLISHED - Groq is ready");
+            addLog("[SYSTEM] AI System ready (Groq Qwen 3.6).");
+        } else {
+            console.log("⚠️ AI connection failed - using fallbacks");
+            addLog("[SYSTEM] AI in fallback mode.");
+        }
+        broadcastState();
+    });
 });
 
 /**
