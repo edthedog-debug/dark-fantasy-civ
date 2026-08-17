@@ -31,6 +31,7 @@
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
             padding: 12px;
@@ -44,6 +45,7 @@
             border-radius: 12px;
             padding: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(0, 210, 255, 0.05);
+            flex-shrink: 0;
         }
 
         .dash-header {
@@ -128,6 +130,7 @@
             overflow: hidden;
             box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 210, 255, 0.1);
             min-height: 300px;
+            min-height: 0;
         }
 
         canvas {
@@ -161,6 +164,7 @@
             overflow-y: auto;
             font-family: 'Courier New', Courier, monospace;
             font-size: 11px;
+            flex-shrink: 0;
         }
 
         .log-container::-webkit-scrollbar {
@@ -208,10 +212,14 @@
                 gap: 8px;
             }
             .log-container {
-                height: 80px;
+                height: 70px;
             }
             #map-container {
-                min-height: 200px;
+                min-height: 150px;
+            }
+            .map-overlay-info {
+                font-size: 9px;
+                padding: 4px 8px;
             }
         }
 
@@ -224,6 +232,15 @@
             }
             .dash-header {
                 font-size: 11px;
+            }
+            .stats-grid {
+                gap: 4px;
+            }
+            .stat-card {
+                padding: 5px;
+            }
+            .log-container {
+                height: 60px;
             }
         }
     </style>
@@ -286,7 +303,7 @@
     <script>
         // ============================================
         // UNIFIED GAME ENGINE - SINGLE RENDER LOOP
-        // NO DUPLICATES, NO CONFLICTS
+        // FIXED: no duplicates on resize, clamped positions
         // ============================================
         
         // WebSocket setup
@@ -329,7 +346,7 @@
         }
 
         // ============================================
-        // PIXEL ART MAP ENGINE - SINGLE CANVAS
+        // PIXEL ART MAP ENGINE - FIXED
         // ============================================
         
         const canvas = document.getElementById('gameCanvas');
@@ -344,6 +361,7 @@
         let units = [];
 
         function generateBuildingsAndUnits() {
+            // ALWAYS clear arrays first - prevents duplicates
             buildings = [];
             units = [];
             
@@ -377,12 +395,25 @@
 
         function resizeCanvas() {
             const container = document.getElementById('map-container');
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
-            generateBuildingsAndUnits();
+            const newWidth = container.clientWidth;
+            const newHeight = container.clientHeight;
+            
+            // Only resize if dimensions actually changed
+            if (canvas.width !== newWidth || canvas.height !== newHeight) {
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                generateBuildingsAndUnits();
+            }
         }
 
-        window.addEventListener('resize', resizeCanvas);
+        // Debounced resize to avoid multiple calls
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(resizeCanvas, 150);
+        });
+        
+        // Initial setup
         resizeCanvas();
 
         // Mouse controls
@@ -407,6 +438,7 @@
         // Touch controls
         let lastTouchDistance = 0;
         canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
             if (e.touches.length === 1) {
                 isDragging = true;
                 startX = e.touches[0].clientX - camera.x;
@@ -545,10 +577,15 @@
             ctx.translate(camera.x, camera.y);
             ctx.scale(camera.zoom, camera.zoom);
 
-            // Terrain
+            // Terrain - clamped to visible area
             const tileSize = 12;
-            for (let x = -10; x < canvas.width / tileSize + 10; x++) {
-                for (let y = -10; y < canvas.height / tileSize + 10; y++) {
+            const startX = Math.floor(-camera.x / tileSize) - 1;
+            const endX = Math.ceil((canvas.width - camera.x) / tileSize) + 1;
+            const startY = Math.floor(-camera.y / tileSize) - 1;
+            const endY = Math.ceil((canvas.height - camera.y) / tileSize) + 1;
+            
+            for (let x = startX; x < endX; x++) {
+                for (let y = startY; y < endY; y++) {
                     ctx.fillStyle = ((x + y) % 2 === 0) ? '#2a3a1a' : '#1a2a1a';
                     ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
                 }
@@ -562,21 +599,29 @@
                 ctx.fillRect(riverX + waveOffset, y, 12, 3);
             }
 
-            // Trees
+            // Trees - clamped positions
             const treePositions = [
                 {x: 100, y: 80}, {x: 250, y: 150}, {x: 400, y: 60},
                 {x: 550, y: 200}, {x: 700, y: 100}, {x: 150, y: 300},
                 {x: 350, y: 250}, {x: 600, y: 350}, {x: 750, y: 250}
             ];
-            treePositions.forEach(t => drawPixelTree(t.x, t.y));
+            treePositions.forEach(t => {
+                if (t.x < canvas.width && t.y < canvas.height) {
+                    drawPixelTree(t.x, t.y);
+                }
+            });
 
-            // Gold mines
+            // Gold mines - clamped positions
             const goldPositions = [
                 {x: 200, y: 400}, {x: 500, y: 100}, {x: 650, y: 300}
             ];
-            goldPositions.forEach(g => drawPixelGoldMine(g.x, g.y));
+            goldPositions.forEach(g => {
+                if (g.x < canvas.width && g.y < canvas.height) {
+                    drawPixelGoldMine(g.x, g.y);
+                }
+            });
 
-            // Buildings from worldState
+            // Buildings from worldState - already clamped
             buildings.forEach(building => {
                 switch(building.type) {
                     case 0: drawPixelCastle(building.x, building.y, building.height); break;
@@ -586,7 +631,7 @@
                 }
             });
 
-            // Units walking
+            // Units walking - already clamped
             updateUnits();
             units.forEach(unit => drawPixelUnit(unit));
 
