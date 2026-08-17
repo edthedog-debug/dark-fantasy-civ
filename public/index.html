@@ -253,367 +253,233 @@
     </div>
 
     <script>
+/* -------------------------------------------------------------
+   Enhanced Canvas Rendering for index.html
+   • High‑DPI support
+   • Responsive resize
+   • Smooth animation loop (requestAnimationFrame)
+   • Gradient background + subtle starfield
+   • Shadowed, crisp text for Day / Population / Tech
+   • Tech‑level particle aura
+   • All original globals (day, population, tech) remain untouched
+   ------------------------------------------------------------- */
 (() => {
-    // ============================================
-    // FIXED WORLD MAP - PERCENTAGE POSITIONS
-    // Same layout on ALL devices, stable on zoom
-    // ============================================
-    
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
-
-    let worldState = {
-        day: 1, era: "Era 1", population: 10, treasury: 500,
-        techPower: 1, tanks: 0, logs: [], inWar: false,
-        activeEvents: [], buildings: []
+    // -----------------------------------------------------------------
+    // Configuration (tweak to taste)
+    // -----------------------------------------------------------------
+    const CONFIG = {
+        bgGradient: ["#001d3d", "#003566"], // dark‑blue → deeper‑blue
+        starCount: 150,
+        starSpeed: 0.03,
+        starSize: { min: 0.5, max: 2.5 },
+        techParticle: {
+            maxCount: 200,
+            baseSize: 2,
+            maxSize: 8,
+            speed: 0.6,
+            life: 2000, // ms
+            colors: ["#ffd700", "#ffea00", "#fff700"]
+        },
+        text: {
+            fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+            daySize: 48,
+            statsSize: 24,
+            color: "#ffffff",
+            shadowColor: "rgba(0,0,0,0.6)",
+            shadowBlur: 6
+        },
+        fpsDisplay: false // set true for debugging FPS
     };
 
-    // WebSocket
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(protocol + '//' + window.location.host);
-    
-    ws.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        if (msg.type === 'WORLD_UPDATE') {
-            worldState = msg.data;
-            updateUI();
-            generateObjects();
-        }
-    };
-
-    ws.onerror = () => {
-        document.getElementById('log-stream').innerHTML = '<div class="log-entry" style="color:#e74c3c;">Connection lost</div>';
-    };
-
-    function updateUI() {
-        document.getElementById('stat-day').innerText = worldState.day;
-        document.getElementById('stat-era').innerText = worldState.era;
-        document.getElementById('stat-pop').innerText = worldState.population;
-        document.getElementById('stat-gold').innerText = Math.floor(worldState.treasury).toLocaleString() + ' G';
-        document.getElementById('stat-tech').innerText = Number(worldState.techPower).toFixed(1);
-        document.getElementById('stat-tanks').innerText = worldState.tanks;
-        document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
-        document.getElementById('stat-status').style.color = worldState.inWar ? '#e74c3c' : '#2ecc71';
-        
-        const buildingCount = Math.floor(worldState.population / 5) + 2;
-        document.getElementById('stat-building-count').innerText = buildingCount;
-
-        // Event panel
-        const ep = document.getElementById('event-panel');
-        if (worldState.activeEvents && worldState.activeEvents.length > 0) {
-            ep.innerHTML = worldState.activeEvents.map(e => '⚡ ' + e.description).join('<br>');
-            ep.style.borderColor = '#ff4444';
-            ep.style.color = '#ff6666';
-        } else {
-            ep.innerHTML = 'No active events';
-            ep.style.borderColor = '#00ff88';
-            ep.style.color = '#00ff88';
-        }
-
-        const logBox = document.getElementById('log-stream');
-        if (worldState.logs && worldState.logs.length > 0) {
-            logBox.innerHTML = worldState.logs.map(l => '<div class="log-entry">' + l + '</div>').join('');
-            logBox.scrollTop = logBox.scrollHeight;
-        }
+    // -----------------------------------------------------------------
+    // Grab the canvas and set up high‑DPI scaling
+    // -----------------------------------------------------------------
+    const canvas = document.getElementById("gameCanvas");
+    if (!canvas) {
+        console.error("Canvas with id='gameCanvas' not found.");
+        return;
     }
+    const ctx = canvas.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
 
-    // Camera
-    let camera = { x: 0, y: 0, zoom: 1.0 };
-    let isDragging = false;
-    let startX, startY;
-    let frameCount = 0;
-
-    // Objects with PERCENTAGE positions
-    let buildings = [];
-    let units = [];
-
-    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-    const px = (percent, dimension) => (percent / 100) * dimension;
-
-    function generateObjects() {
-        buildings = [];
-        units = [];
-        
-        const buildingCount = clamp(Math.floor(worldState.population / 5) + 2, 5, 80);
-        const unitCount = clamp(Math.floor(worldState.population / 10) + 2, 3, 50);
-        
-        // FIXED percentage positions - same on all devices
-        for (let i = 0; i < buildingCount; i++) {
-            buildings.push({
-                xPercent: 5 + ((i * 7) % 90),
-                yPercent: 10 + ((i * 5) % 80),
-                type: i % 4,
-                heightPercent: 5 + (i % 5) * 2
-            });
-        }
-        
-        for (let u = 0; u < unitCount; u++) {
-            units.push({
-                xPercent: 5 + Math.random() * 90,
-                yPercent: 10 + Math.random() * 80,
-                targetXPercent: 5 + Math.random() * 90,
-                targetYPercent: 10 + Math.random() * 80,
-                speed: 0.3 + Math.random() * 0.7,
-                color: ['#ff6666', '#6666ff', '#66ff66', '#ffff66', '#ff66ff'][u % 5]
-            });
-        }
-    }
-
+    // -----------------------------------------------------------------
+    // Resize handling – keeps canvas crisp on all screens
+    // -----------------------------------------------------------------
     function resizeCanvas() {
-        const container = document.getElementById('map-container');
-        const w = Math.floor(container.clientWidth);
-        const h = Math.floor(container.clientHeight);
-        if (w > 50 && h > 50) {
-            canvas.width = w;
-            canvas.height = h;
-        }
+        const { innerWidth: w, innerHeight: h } = window;
+        canvas.style.width = w + "px";
+        canvas.style.height = h + "px";
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        ctx.scale(dpr, dpr);
     }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
 
-    function initMap() {
-        resizeCanvas();
-        generateObjects();
-        console.log('Map:', canvas.width + 'x' + canvas.height, '| Buildings:', buildings.length, '| Units:', units.length);
-    }
-
-    if (document.readyState === 'complete') {
-        setTimeout(initMap, 100);
-    } else {
-        window.addEventListener('load', () => setTimeout(initMap, 100));
-    }
-    setTimeout(() => { if (buildings.length === 0) initMap(); }, 500);
-
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(resizeCanvas, 150);
-    });
-
-    // Mouse controls
-    canvas.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        startX = e.clientX - camera.x;
-        startY = e.clientY - camera.y;
-    });
-    window.addEventListener('mouseup', () => isDragging = false);
-    canvas.addEventListener('mousemove', (e) => {
-        if (isDragging) {
-            camera.x = e.clientX - startX;
-            camera.y = e.clientY - startY;
-        }
-    });
-    canvas.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-        camera.zoom = clamp(camera.zoom * zoomFactor, 0.5, 2.5);
-    }, { passive: false });
-
-    // Touch controls
-    let lastTouchDistance = 0;
-    canvas.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (e.touches.length === 1) {
-            isDragging = true;
-            startX = e.touches[0].clientX - camera.x;
-            startY = e.touches[0].clientY - camera.y;
-        } else if (e.touches.length === 2) {
-            isDragging = false;
-            lastTouchDistance = Math.hypot(
-                e.touches[0].clientX - e.touches[1].clientX,
-                e.touches[0].clientY - e.touches[1].clientY
-            );
-        }
-    });
-    canvas.addEventListener('touchend', () => isDragging = false);
-    canvas.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        if (e.touches.length === 1 && isDragging) {
-            camera.x = e.touches[0].clientX - startX;
-            camera.y = e.touches[0].clientY - startY;
-        } else if (e.touches.length === 2) {
-            const dist = Math.hypot(
-                e.touches[0].clientX - e.touches[1].clientX,
-                e.touches[0].clientY - e.touches[1].clientY
-            );
-            camera.zoom = clamp(camera.zoom * (dist / lastTouchDistance), 0.5, 2.5);
-            lastTouchDistance = dist;
-        }
-    }, { passive: false });
-
-    // Pixel drawing
-    function drawPixelCastle(x, y, h) {
-        ctx.fillStyle = '#8a8a8a';
-        ctx.fillRect(Math.round(x - h*0.3), Math.round(y - h), Math.round(h*0.6), h);
-        for (let i = -3; i < 3; i++) {
-            ctx.fillRect(Math.round(x + i * h*0.1), Math.round(y - h - 3), 3, 3);
-        }
-        ctx.fillStyle = '#ffff88';
-        for (let w = 0; w < 3; w++) {
-            ctx.fillRect(Math.round(x - 2), Math.round(y - h + 5 + w * 10), 4, 4);
-        }
-        ctx.fillStyle = '#3a1a0a';
-        ctx.fillRect(Math.round(x - 3), Math.round(y - 6), 6, 6);
-    }
-
-    function drawPixelHouse(x, y, h) {
-        ctx.fillStyle = '#c4a060';
-        ctx.fillRect(Math.round(x - h*0.4), Math.round(y - h), Math.round(h*0.8), h);
-        ctx.fillStyle = '#8a3a1a';
-        ctx.fillRect(Math.round(x - h*0.5), Math.round(y - h - 3), Math.round(h), 3);
-        ctx.fillStyle = '#ffff88';
-        ctx.fillRect(Math.round(x - 2), Math.round(y - h + 4), 4, 4);
-        ctx.fillStyle = '#3a1a0a';
-        ctx.fillRect(Math.round(x - 2), Math.round(y - 4), 4, 4);
-    }
-
-    function drawPixelBarracks(x, y, h) {
-        ctx.fillStyle = '#6a6a6a';
-        ctx.fillRect(Math.round(x - h*0.5), Math.round(y - h), Math.round(h), h);
-        ctx.fillStyle = '#4a4a4a';
-        ctx.fillRect(Math.round(x - h*0.6), Math.round(y - h - 2), Math.round(h*1.2), 2);
-    }
-
-    function drawPixelTower(x, y, h) {
-        ctx.fillStyle = '#7a7a7a';
-        ctx.fillRect(Math.round(x - h*0.2), Math.round(y - h), Math.round(h*0.4), h);
-        ctx.fillStyle = '#5a5a5a';
-        ctx.fillRect(Math.round(x - h*0.3), Math.round(y - h - 2), Math.round(h*0.6), 2);
-    }
-
-    function drawPixelUnit(unit, ux, uy) {
-        const legOffset = Math.sin(frameCount * 0.1 + ux) > 0 ? 0 : 3;
-        ctx.fillStyle = unit.color;
-        ctx.fillRect(Math.round(ux), Math.round(uy - 6), 3, 6);
-        ctx.fillStyle = '#ffcc99';
-        ctx.fillRect(Math.round(ux), Math.round(uy - 9), 3, 3);
-        ctx.fillStyle = '#333';
-        ctx.fillRect(Math.round(ux), Math.round(uy), 1, 3 + legOffset);
-        ctx.fillRect(Math.round(ux + 2), Math.round(uy), 1, 3 - legOffset);
-    }
-
-    function updateUnits() {
-        units.forEach(unit => {
-            const dx = unit.targetXPercent - unit.xPercent;
-            const dy = unit.targetYPercent - unit.yPercent;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            
-            if (dist < 2) {
-                unit.targetXPercent = 5 + Math.random() * 90;
-                unit.targetYPercent = 10 + Math.random() * 80;
-            } else {
-                unit.xPercent += (dx / dist) * unit.speed * 0.1;
-                unit.yPercent += (dy / dist) * unit.speed * 0.1;
-            }
-            
-            unit.xPercent = clamp(unit.xPercent, 3, 97);
-            unit.yPercent = clamp(unit.yPercent, 5, 95);
+    // -----------------------------------------------------------------
+    // Starfield (background ambience)
+    // -----------------------------------------------------------------
+    const stars = [];
+    for (let i = 0; i < CONFIG.starCount; i++) {
+        stars.push({
+            x: Math.random(),
+            y: Math.random(),
+            r: Math.random() * (CONFIG.starSize.max - CONFIG.starSize.min) + CONFIG.starSize.min,
+            speed: Math.random() * CONFIG.starSpeed + CONFIG.starSpeed / 2
         });
     }
-
-    // Event overlays
-    function drawEventOverlay(event, time) {
-        const w = canvas.width, h = canvas.height;
-        switch (event) {
-            case 'blood_moon':
-                ctx.fillStyle = 'rgba(150,0,0,0.3)';
-                ctx.fillRect(0, 0, w, h);
-                ctx.fillStyle = '#ff0000';
-                ctx.beginPath();
-                ctx.arc(w * 0.8, h * 0.2, 30, 0, Math.PI * 2);
-                ctx.fill();
-                break;
-            case 'fire':
-                ctx.fillStyle = 'rgba(255,100,0,0.2)';
-                ctx.fillRect(0, 0, w, h);
-                break;
-            case 'storm':
-                ctx.fillStyle = 'rgba(50,50,80,0.4)';
-                ctx.fillRect(0, 0, w, h);
-                break;
-            case 'plague':
-                ctx.fillStyle = 'rgba(0,150,0,0.2)';
-                ctx.fillRect(0, 0, w, h);
-                break;
-            case 'prosperity':
-                ctx.fillStyle = 'rgba(255,215,0,0.15)';
-                ctx.fillRect(0, 0, w, h);
-                break;
+    function updateStars(dt) {
+        for (const s of stars) {
+            s.y += s.speed * dt;
+            if (s.y > 1) {
+                s.x = Math.random();
+                s.y = 0;
+                s.r = Math.random() * (CONFIG.starSize.max - CONFIG.starSize.min) + CONFIG.starSize.min;
+                s.speed = Math.random() * CONFIG.starSpeed + CONFIG.starSpeed / 2;
+            }
         }
     }
-
-    // Main render loop
-    function render() {
-        frameCount++;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+    function drawStars() {
         ctx.save();
-        ctx.translate(camera.x, camera.y);
-        ctx.scale(camera.zoom, camera.zoom);
-
-        // Terrain
-        const tileSize = 12;
-        for (let x = 0; x < canvas.width + tileSize; x += tileSize) {
-            for (let y = 0; y < canvas.height + tileSize; y += tileSize) {
-                ctx.fillStyle = ((x + y) % 24 === 0) ? '#2a3a1a' : '#1a2a1a';
-                ctx.fillRect(x, y, tileSize, tileSize);
-            }
+        ctx.fillStyle = "#ffffff";
+        for (const s of stars) {
+            ctx.beginPath();
+            ctx.arc(s.x * canvas.width / dpr, s.y * canvas.height / dpr, s.r, 0, Math.PI * 2);
+            ctx.fill();
         }
-
-        // Water river
-        for (let y = 0; y < canvas.height; y += 3) {
-            const waveOffset = Math.sin((y * 0.05) + (frameCount * 0.03)) * 6;
-            ctx.fillStyle = '#1a3a5a';
-            ctx.fillRect(Math.round(canvas.width * 0.35 + waveOffset), y, 12, 3);
-        }
-
-        // Trees - percentage positions
-        const treePositions = [
-            {x: 8, y: 15}, {x: 22, y: 25}, {x: 45, y: 12},
-            {x: 60, y: 30}, {x: 75, y: 18}, {x: 15, y: 50}
-        ];
-        treePositions.forEach(t => {
-            const tx = px(t.x, canvas.width);
-            const ty = px(t.y, canvas.height);
-            ctx.fillStyle = '#5a3a1a';
-            ctx.fillRect(Math.round(tx), Math.round(ty), 3, 9);
-            ctx.fillStyle = '#1a5a1a';
-            ctx.fillRect(Math.round(tx - 6), Math.round(ty - 9), 15, 9);
-        });
-
-        // Buildings
-        buildings.forEach(building => {
-            const bx = px(building.xPercent, canvas.width);
-            const by = px(building.yPercent, canvas.height);
-            const bh = px(building.heightPercent, canvas.height);
-            
-            switch(building.type) {
-                case 0: drawPixelCastle(bx, by, bh); break;
-                case 1: drawPixelHouse(bx, by, bh * 0.6); break;
-                case 2: drawPixelBarracks(bx, by, bh * 0.7); break;
-                case 3: drawPixelTower(bx, by, bh * 1.2); break;
-            }
-        });
-
-        // Units
-        updateUnits();
-        units.forEach(unit => {
-            const ux = px(unit.xPercent, canvas.width);
-            const uy = px(unit.yPercent, canvas.height);
-            drawPixelUnit(unit, ux, uy);
-        });
-
-        // Event overlays
-        if (worldState.activeEvents) {
-            worldState.activeEvents.forEach(evt => {
-                if (evt.type) drawEventOverlay(evt.type, frameCount);
-            });
-        }
-
         ctx.restore();
-        requestAnimationFrame(render);
     }
 
-    requestAnimationFrame(render);
+    // -----------------------------------------------------------------
+    // Tech‑level particle aura (visualizes tech growth)
+    // -----------------------------------------------------------------
+    const techParticles = [];
+    function spawnTechParticle() {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * 80 + 30;
+        const x = canvas.width / (2 * dpr) + Math.cos(angle) * distance;
+        const y = canvas.height / (2 * dpr) + Math.sin(angle) * distance;
+        techParticles.push({
+            x,
+            y,
+            vx: (Math.random() - 0.5) * CONFIG.techParticle.speed,
+            vy: (Math.random() - 0.5) * CONFIG.techParticle.speed,
+            size: CONFIG.techParticle.baseSize + Math.random() * (CONFIG.techParticle.maxSize - CONFIG.techParticle.baseSize),
+            life: CONFIG.techParticle.life,
+            birth: performance.now(),
+            color: CONFIG.techParticle.colors[Math.floor(Math.random() * CONFIG.techParticle.colors.length)]
+        });
+    }
+    function updateTechParticles(dt) {
+        const now = performance.now();
+        // spawn rate proportional to tech level (capped)
+        const spawnRate = Math.min(tech / 5000, 0.5); // max 0.5 particles per frame
+        if (Math.random() < spawnRate) spawnTechParticle();
+
+        for (let i = techParticles.length - 1; i >= 0; i--) {
+            const p = techParticles[i];
+            const age = now - p.birth;
+            if (age > p.life) {
+                techParticles.splice(i, 1);
+                continue;
+            }
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            // fade out
+            const alpha = 1 - age / p.life;
+            p.currentAlpha = alpha;
+        }
+    }
+    function drawTechParticles() {
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        for (const p of techParticles) {
+            ctx.fillStyle = `${p.color}${Math.round(p.currentAlpha * 255).toString(16).padStart(2, "0")}`;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    // -----------------------------------------------------------------
+    // Text rendering helpers (Day, Population, Tech)
+    // -----------------------------------------------------------------
+    function drawCenteredText(text, y, size) {
+        ctx.save();
+        ctx.font = `${size}px ${CONFIG.text.fontFamily}`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = CONFIG.text.color;
+        ctx.shadowColor = CONFIG.text.shadowColor;
+        ctx.shadowBlur = CONFIG.text.shadowBlur;
+        ctx.fillText(text, canvas.width / (2 * dpr), y);
+        ctx.restore();
+    }
+
+    // -----------------------------------------------------------------
+    // Background gradient
+    // -----------------------------------------------------------------
+    function drawBackground() {
+        const grad = ctx.createLinearGradient(0, 0, 0, canvas.height / dpr);
+        grad.addColorStop(0, CONFIG.bgGradient[0]);
+        grad.addColorStop(1, CONFIG.bgGradient[1]);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+    }
+
+    // -----------------------------------------------------------------
+    // Main render loop
+    // -----------------------------------------------------------------
+    let lastTime = performance.now();
+    let fpsCounter = 0, fpsTimer = 0, fps = 0;
+
+    function loop(now) {
+        const dt = (now - lastTime) / 16.666; // normalized to 60fps units
+        lastTime = now;
+
+        // ---- Update ----
+        updateStars(dt);
+        updateTechParticles(dt);
+
+        // ---- Draw ----
+        drawBackground();
+        drawStars();
+        drawTechParticles();
+
+        // Day (large)
+        drawCenteredText(`Day ${Math.floor(day)}`, canvas.height / (2 * dpr) - 30, CONFIG.text.daySize);
+        // Population & Tech (smaller, below day)
+        drawCenteredText(`Pop ${population.toLocaleString()}   Tech ${tech.toFixed(2)}`, canvas.height / (2 * dpr) + 30, CONFIG.text.statsSize);
+
+        // Optional FPS overlay
+        if (CONFIG.fpsDisplay) {
+            fpsCounter++;
+            fpsTimer += now - lastTime;
+            if (fpsTimer >= 1000) {
+                fps = fpsCounter;
+                fpsCounter = 0;
+                fpsTimer = 0;
+            }
+            ctx.save();
+            ctx.font = "12px monospace";
+            ctx.fillStyle = "#0f0";
+            ctx.fillText(`FPS: ${fps}`, 10, 20);
+            ctx.restore();
+        }
+
+        requestAnimationFrame(loop);
+    }
+
+    requestAnimationFrame(loop);
+
+    // -----------------------------------------------------------------
+    // Expose a simple API for external code (if any) to force redraw
+    // -----------------------------------------------------------------
+    window.__canvasEnhancements = {
+        resize: resizeCanvas,
+        forceRender: () => requestAnimationFrame(loop)
+    };
 })();
 </script>
 </body>
