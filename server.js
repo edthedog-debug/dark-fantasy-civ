@@ -55,6 +55,8 @@ let worldState = {
     engineBuild: "v2.0.0-AI-Cloud",
     inWar: false,
     aiImprovements: 0,
+    activeEvents: [],
+    buildings: [],
     logs: [
         "[" + new Date().toLocaleTimeString() + "] Autonomous Cloud Engine Initialized."
     ]
@@ -211,10 +213,27 @@ function executeGitCommand(command) {
 }
 
 /**
- * 1. AI GENERATIVE EVENTS
+ * 1. AI GENERATIVE EVENTS - with visual effects data
  */
 async function generateAIEvents() {
-    const prompt = "Generate a dark fantasy civilization event based on current state. Return ONLY JSON: {\"event\":\"description\",\"newPhilosophy\":\"name\",\"goldImpact\":number,\"happinessImpact\":number,\"techImpact\":number}";
+    const prompt = `Generate a dark fantasy civilization event with VISUAL EFFECT data.
+    Current stats: Day ${worldState.day}, Population: ${worldState.population}, Treasury: ${worldState.treasury}, Tech: ${worldState.techPower}.
+    
+    Return ONLY JSON with this structure:
+    {
+        "event": "description text",
+        "newPhilosophy": "philosophy name",
+        "goldImpact": number (can be negative for losses, LARGE numbers for realism),
+        "happinessImpact": number (-50 to +50),
+        "techImpact": number,
+        "visualEffect": "blood_moon" | "fire" | "storm" | "plague" | "drought" | "prosperity" | "war" | "none",
+        "duration": number (days the effect lasts)
+    }
+    
+    IMPORTANT:
+    - Treasury is ${worldState.treasury} which is TOO HIGH - create events with LARGE negative goldImpact
+    - Visual effects should match the event type
+    - Duration between 10-100 days`;
     
     let parsed = null;
 
@@ -236,11 +255,11 @@ async function generateAIEvents() {
 
     if (!parsed || !parsed.event) {
         const fallbacks = [
-            { event: "Ancient dragon discovered new trade routes.", newPhilosophy: "Draconic Commerce", goldImpact: 150, happinessImpact: 5, techImpact: 0.15 },
-            { event: "Dark wizards optimized mana distribution.", newPhilosophy: "Arcane Efficiency", goldImpact: 250, happinessImpact: 7, techImpact: 0.25 },
-            { event: "Goblin uprising affected resource gathering.", newPhilosophy: "Military Discipline", goldImpact: -60, happinessImpact: -8, techImpact: 0.05 },
-            { event: "Ancient ruins revealed forgotten technologies.", newPhilosophy: "Archaeological Innovation", goldImpact: 300, happinessImpact: 10, techImpact: 0.4 },
-            { event: "Mystical plague struck the population.", newPhilosophy: "Medical Research", goldImpact: -100, happinessImpact: -15, techImpact: 0.3 }
+            { event: "Blood moon rises over the kingdom", newPhilosophy: "Lunar Worship", goldImpact: -50000000000, happinessImpact: -15, techImpact: 0.5, visualEffect: "blood_moon", duration: 50 },
+            { event: "Great fire ravages the capital", newPhilosophy: "Phoenix Rebirth", goldImpact: -30000000000, happinessImpact: -20, techImpact: 0.2, visualEffect: "fire", duration: 30 },
+            { event: "Devastating storm destroys crops", newPhilosophy: "Storm Resilience", goldImpact: -20000000000, happinessImpact: -10, techImpact: 0.1, visualEffect: "storm", duration: 20 },
+            { event: "Plague sweeps through population", newPhilosophy: "Medical Revolution", goldImpact: -40000000000, happinessImpact: -25, techImpact: 0.8, visualEffect: "plague", duration: 60 },
+            { event: "Golden age of prosperity", newPhilosophy: "Enlightenment", goldImpact: 5000000000, happinessImpact: 20, techImpact: 1.0, visualEffect: "prosperity", duration: 40 }
         ];
         parsed = fallbacks[Math.floor(Math.random() * fallbacks.length)];
     }
@@ -251,6 +270,21 @@ async function generateAIEvents() {
     if (typeof parsed.goldImpact === 'number') worldState.treasury = Math.max(0, worldState.treasury + parsed.goldImpact);
     if (typeof parsed.happinessImpact === 'number') worldState.happiness = Math.min(100, Math.max(10, worldState.happiness + parsed.happinessImpact));
     if (typeof parsed.techImpact === 'number') worldState.techPower += Math.max(0, parsed.techImpact);
+    
+    // Store active event for visual rendering
+    if (parsed.visualEffect && parsed.visualEffect !== 'none') {
+        worldState.activeEvents = worldState.activeEvents || [];
+        worldState.activeEvents.push({
+            type: parsed.visualEffect,
+            description: parsed.event,
+            endDay: worldState.day + (parsed.duration || 30)
+        });
+    }
+    
+    // Clean expired events
+    if (worldState.activeEvents) {
+        worldState.activeEvents = worldState.activeEvents.filter(e => e.endDay > worldState.day);
+    }
     
     if (worldState.techPower > 50) {
         worldState.era = "Transcendent AI Era " + Math.floor(worldState.techPower / 10);
@@ -264,7 +298,7 @@ async function generateAIEvents() {
 }
 
 /**
- * 2. AI CODE IMPROVEMENT - REPLACES ENTIRE FILE TO AVOID DUPLICATES
+ * 2. AI CODE IMPROVEMENT - PRIORITIZES GRAPHICS AND EVENTS
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT...");
@@ -282,7 +316,6 @@ async function autoImproveGameCode() {
         const currentHtml = fs.readFileSync(htmlPath, 'utf8');
         console.log("📄 Current HTML size:", currentHtml.length, "chars");
         
-        // If HTML is too large (>100KB), reset it to clean version first
         if (currentHtml.length > 100000) {
             console.log("⚠️ HTML too large, resetting to clean version...");
             currentHtml = getCleanHTML();
@@ -296,60 +329,61 @@ async function autoImproveGameCode() {
         let codeToAdd;
         
         switch(improvementType) {
-            case 0: // REPLACE ENTIRE CSS
-                prompt = `REPLACE the ENTIRE CSS of this pixel art civilization game with OPTIMIZED code.
-                Current stats: Day ${worldState.day}, Population: ${worldState.population}, Tech: ${worldState.techPower}.
-                Era: ${worldState.era}
+            case 0: // GRAPHICS CSS + EVENT VISUALS
+                prompt = `REPLACE ENTIRE CSS with OPTIMIZED pixel art styles.
+                Current: Day ${worldState.day}, Pop ${worldState.population}, Tech ${worldState.techPower}, Era: ${worldState.era}.
                 
-                CRITICAL RULES:
-                - Return the COMPLETE replacement CSS (not additions)
-                - Do NOT duplicate existing styles
-                - Do NOT create new class names that conflict
-                - KEEP existing class names: .dashboard, .stat-card, #map-container, .log-container
-                - IMPROVE: pixel art style, sharp edges, dark fantasy colors
-                - MUST work on desktop AND mobile (@media queries)
-                - Use image-rendering: pixelated
-                - Maximum 200 lines of CSS
+                PRIORITY: GRAPHICS QUALITY AND EVENT VISUALS
                 
-                Return ONLY the complete valid CSS. No HTML, no explanations.`;
+                RULES:
+                - Complete replacement CSS (not additions)
+                - Pixel art style with sharp edges
+                - Include CSS animations for events: blood moon (red overlay), fire (orange glow), storm (dark clouds), plague (green tint), prosperity (golden glow)
+                - Responsive for mobile and desktop
+                - Maximum 250 lines
+                
+                Return ONLY valid CSS.`;
                 break;
                 
-            case 1: // REPLACE ENTIRE CANVAS JS
-                prompt = `REPLACE the ENTIRE canvas rendering JavaScript with OPTIMIZED pixel art code.
-                Current stats: Day ${worldState.day}, Population: ${worldState.population}, Tech: ${worldState.techPower}.
-                Buildings to draw: ${Math.floor(worldState.population / 5)}
-                Units to draw: ${Math.floor(worldState.population / 10)}
+            case 1: // CANVAS JS + EVENT RENDERING
+                prompt = `REPLACE ENTIRE canvas JavaScript with OPTIMIZED pixel art engine.
+                Current: Day ${worldState.day}, Pop ${worldState.population}, Tech ${worldState.techPower}.
+                Buildings: ${Math.floor(worldState.population / 5)}, Units: ${Math.floor(worldState.population / 10)}.
                 
-                CRITICAL RULES:
-                - Return the COMPLETE replacement JavaScript (not additions)
-                - Do NOT create duplicate functions
-                - Do NOT create a second canvas
-                - USE the existing canvas #gameCanvas
-                - REPLACE all draw functions with improved versions
-                - Use ctx.imageSmoothingEnabled = false
-                - Use fillRect for EVERYTHING (pixel art)
-                - Draw buildings with windows, doors, roofs
-                - Draw units with walking animation
-                - Clamp all positions within canvas bounds
-                - Maximum 300 lines of JavaScript
+                PRIORITY: GRAPHICS QUALITY AND EVENT VISUALIZATION
                 
-                Return ONLY the complete valid JavaScript. No HTML, no explanations.`;
+                RULES:
+                - Complete replacement JavaScript (not additions)
+                - Draw pixel art buildings with windows, doors, roofs
+                - Draw animated units walking
+                - RENDER ACTIVE EVENTS from worldState.activeEvents:
+                  - blood_moon: red overlay + red moon
+                  - fire: orange flames + smoke particles
+                  - storm: dark clouds + lightning
+                  - plague: green fog + particles
+                  - prosperity: golden sparkles
+                - Clamp ALL positions within canvas
+                - Handle resize without duplicates
+                - Maximum 400 lines
+                
+                Return ONLY valid JavaScript.`;
                 break;
                 
-            case 2: // REPLACE ENTIRE HTML STRUCTURE
-                prompt = `REPLACE the ENTIRE HTML body structure with OPTIMIZED pixel art layout.
-                Current stats: Day ${worldState.day}, Population: ${worldState.population}, Era: ${worldState.era}.
+            case 2: // HTML + EVENT DISPLAY
+                prompt = `REPLACE ENTIRE HTML body with OPTIMIZED structure.
+                Current: Day ${worldState.day}, Pop ${worldState.population}, Era: ${worldState.era}.
                 
-                CRITICAL RULES:
-                - Return the COMPLETE replacement HTML body (not additions)
-                - Do NOT duplicate existing elements
-                - KEEP: #dashboard, #map-container, #gameCanvas, .log-container
-                - Show building count: ${Math.floor(worldState.population / 5)}
-                - Show population: ${worldState.population}
-                - Use pixel art style
-                - Maximum 100 lines of HTML
+                PRIORITY: EVENT DISPLAY AND CIVILIZATION COMPLEXITY
                 
-                Return ONLY the complete valid HTML body. No CSS, no JS, no explanations.`;
+                RULES:
+                - Complete replacement HTML (not additions)
+                - Show: day, era, population, treasury, tech, defenses, status
+                - Add EVENT DISPLAY PANEL showing worldState.activeEvents
+                - Add BUILDING LIST showing civilization buildings
+                - Pixel art style
+                - Maximum 150 lines
+                
+                Return ONLY valid HTML body.`;
                 break;
         }
         
@@ -365,29 +399,24 @@ async function autoImproveGameCode() {
         }
         
         if (codeToAdd && codeToAdd.length > 50) {
-            // REPLACE the entire relevant section instead of appending
             let improvedHtml = currentHtml;
             
             if (improvementType === 0) {
-                // Replace entire <style> block
                 improvedHtml = improvedHtml.replace(/<style>[\s\S]*?<\/style>/g, `<style>\n${codeToAdd}\n</style>`);
             } else if (improvementType === 1) {
-                // Replace entire <script> block (the main game engine)
                 improvedHtml = improvedHtml.replace(/<script>[\s\S]*?<\/script>/g, `<script>\n${codeToAdd}\n</script>`);
             } else {
-                // Replace entire <body> content
                 improvedHtml = improvedHtml.replace(/<body>[\s\S]*?<\/body>/g, `<body>\n${codeToAdd}\n</body>`);
             }
             
             fs.writeFileSync(htmlPath, improvedHtml);
             console.log("✅ HTML REPLACED! New size:", improvedHtml.length);
         } else {
-            console.log("⚠️ Using clean HTML reset");
             fs.writeFileSync(htmlPath, getCleanHTML());
         }
         
         worldState.aiImprovements += 1;
-        const improvementTypeName = improvementType === 0 ? "Replaced CSS" : improvementType === 1 ? "Replaced Canvas JS" : "Replaced HTML";
+        const improvementTypeName = improvementType === 0 ? "Graphics CSS" : improvementType === 1 ? "Event Canvas JS" : "Civilization HTML";
         addLog(`[AI COMMIT SUCCESS] ${improvementTypeName}! Total: ${worldState.aiImprovements}`);
         
         if (GITHUB_TOKEN) {
@@ -430,7 +459,7 @@ async function autoImproveGameCode() {
 }
 
 /**
- * Returns clean HTML template to avoid hyper-extended files
+ * Returns clean HTML with event display support
  */
 function getCleanHTML() {
     return `<!DOCTYPE html>
@@ -441,102 +470,126 @@ function getCleanHTML() {
     <title>Sovereign AI Engine - World Map</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background: #070913; color: #e0e6ed; min-height: 100vh; display: flex; flex-direction: column; padding: 12px; gap: 10px; overflow: hidden; }
-        .dashboard { background: rgba(16,22,36,0.9); border: 1px solid rgba(0,210,255,0.25); border-radius: 12px; padding: 12px; }
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-        .stat-card { background: rgba(25,33,52,0.6); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 8px; }
-        .stat-label { font-size: 10px; color: #6b7c93; text-transform: uppercase; }
-        .stat-value { font-size: 14px; font-weight: bold; color: #fff; }
-        #map-container { flex: 1; background: #04060d; border: 1px solid rgba(0,210,255,0.25); border-radius: 12px; position: relative; overflow: hidden; min-height: 300px; }
-        canvas { display: block; width: 100%; height: 100%; touch-action: none; }
-        .log-container { height: 100px; background: rgba(12,17,29,0.95); border: 1px solid rgba(0,210,255,0.2); border-radius: 12px; padding: 10px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 11px; }
+        body { background: #070913; color: #e0e6ed; min-height: 100dvh; display: flex; flex-direction: column; padding: 10px; gap: 8px; overflow: hidden; position: fixed; inset: 0; }
+        .dashboard { background: rgba(16,22,36,0.9); border: 1px solid rgba(0,210,255,0.25); border-radius: 10px; padding: 10px; flex-shrink: 0; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+        .stat-card { background: rgba(25,33,52,0.6); border-radius: 6px; padding: 6px; }
+        .stat-label { font-size: 9px; color: #6b7c93; text-transform: uppercase; }
+        .stat-value { font-size: 12px; font-weight: bold; color: #fff; }
+        #map-container { flex: 1; background: #04060d; border: 1px solid rgba(0,210,255,0.25); border-radius: 10px; position: relative; overflow: hidden; min-height: 0; }
+        canvas { display: block; width: 100%; height: 100%; }
+        .event-panel { background: rgba(12,17,29,0.95); border: 1px solid #ff4444; border-radius: 8px; padding: 8px; font-size: 10px; color: #ff6666; max-height: 60px; overflow-y: auto; flex-shrink: 0; }
+        .log-container { height: 80px; background: rgba(12,17,29,0.95); border: 1px solid rgba(0,210,255,0.2); border-radius: 10px; padding: 8px; overflow-y: auto; font-family: monospace; font-size: 10px; flex-shrink: 0; }
         @media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
     </style>
 </head>
 <body>
     <div class="dashboard">
-        <div class="dash-header"><span>SOVEREIGN AI ENGINE</span><div class="status-badge">24/7 AUTONOMOUS</div></div>
         <div class="stats-grid">
             <div class="stat-card"><div class="stat-label">DAY</div><div class="stat-value" id="stat-day">1</div></div>
             <div class="stat-card"><div class="stat-label">ERA</div><div class="stat-value" id="stat-era">Era 1</div></div>
-            <div class="stat-card"><div class="stat-label">POPULATION</div><div class="stat-value" id="stat-pop">0</div></div>
-            <div class="stat-card"><div class="stat-label">TREASURY</div><div class="stat-value" id="stat-gold">0 G</div></div>
+            <div class="stat-card"><div class="stat-label">POP</div><div class="stat-value" id="stat-pop">0</div></div>
+            <div class="stat-card"><div class="stat-label">GOLD</div><div class="stat-value" id="stat-gold">0</div></div>
             <div class="stat-card"><div class="stat-label">TECH</div><div class="stat-value" id="stat-tech">0.0</div></div>
-            <div class="stat-card"><div class="stat-label">DEFENSES</div><div class="stat-value" id="stat-tanks">0</div></div>
+            <div class="stat-card"><div class="stat-label">DEF</div><div class="stat-value" id="stat-tanks">0</div></div>
             <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value" id="stat-status">PEACE</div></div>
             <div class="stat-card"><div class="stat-label">BUILD</div><div class="stat-value" id="stat-build">v2.0</div></div>
         </div>
     </div>
     <div id="map-container"><canvas id="gameCanvas"></canvas></div>
+    <div class="event-panel" id="event-panel">No active events</div>
     <div class="log-container"><div id="log-stream">Connecting...</div></div>
     <script>
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const ws = new WebSocket(protocol + '//' + window.location.host);
-        let worldState = { day: 1, era: "Era 1", population: 10, treasury: 500, techPower: 1, tanks: 0, logs: [], inWar: false };
+        let worldState = { day: 1, era: "Era 1", population: 10, treasury: 500, techPower: 1, tanks: 0, logs: [], inWar: false, activeEvents: [] };
         ws.onmessage = (event) => { const msg = JSON.parse(event.data); if (msg.type === 'WORLD_UPDATE') { worldState = msg.data; updateUI(); } };
         function updateUI() {
             document.getElementById('stat-day').innerText = worldState.day;
             document.getElementById('stat-era').innerText = worldState.era;
             document.getElementById('stat-pop').innerText = worldState.population;
-            document.getElementById('stat-gold').innerText = worldState.treasury.toLocaleString() + ' G';
-            document.getElementById('stat-tech').innerText = Number(worldState.techPower).toFixed(2);
+            document.getElementById('stat-gold').innerText = Math.floor(worldState.treasury).toLocaleString();
+            document.getElementById('stat-tech').innerText = Number(worldState.techPower).toFixed(1);
             document.getElementById('stat-tanks').innerText = worldState.tanks;
             document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
             document.getElementById('stat-build').innerText = worldState.engineBuild || 'v2.0';
+            // Event panel
+            const ep = document.getElementById('event-panel');
+            if (worldState.activeEvents && worldState.activeEvents.length > 0) {
+                ep.innerHTML = worldState.activeEvents.map(e => '⚡ ' + e.description).join('<br>');
+                ep.style.borderColor = '#ff4444';
+            } else {
+                ep.innerHTML = 'No active events';
+                ep.style.borderColor = '#00ff88';
+            }
             const logBox = document.getElementById('log-stream');
             if (worldState.logs && worldState.logs.length > 0) {
                 logBox.innerHTML = worldState.logs.map(l => '<div>' + l + '</div>').join('');
+                logBox.scrollTop = logBox.scrollHeight;
             }
         }
-        // Pixel Art Map Engine
+        // Pixel Art Engine with event rendering
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = false;
         let frameCount = 0;
         let buildings = [];
         let units = [];
-        function resizeCanvas() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; }
-        window.addEventListener('resize', resizeCanvas);
+        function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+        function resizeCanvas() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; generateObjects(); }
+        window.addEventListener('resize', () => setTimeout(resizeCanvas, 150));
         resizeCanvas();
         function generateObjects() {
             buildings = []; units = [];
-            const bCount = Math.min(80, Math.floor(worldState.population / 5) + 2);
-            const uCount = Math.min(50, Math.floor(worldState.population / 10) + 2);
+            const bCount = clamp(Math.floor(worldState.population / 5) + 2, 5, 80);
+            const uCount = clamp(Math.floor(worldState.population / 10) + 2, 3, 50);
+            const m = 30;
             for (let i = 0; i < bCount; i++) {
-                buildings.push({ x: 20 + (i * 47) % (canvas.width - 40), y: 20 + (i * 31) % (canvas.height - 40), type: i % 4, height: 20 + (i % 5) * 8 });
+                buildings.push({ x: clamp(m + (i*47) % (canvas.width-2*m), m, canvas.width-m), y: clamp(m + (i*31) % (canvas.height-2*m), m, canvas.height-m), type: i%4, h: clamp(20 + (i%5)*8, 15, 60) });
             }
             for (let u = 0; u < uCount; u++) {
-                units.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, tx: Math.random() * canvas.width, ty: Math.random() * canvas.height, speed: 0.5 + Math.random(), color: ['#f66','#66f','#6f6','#ff6','#f6f'][u%5] });
+                units.push({ x: m + Math.random()*(canvas.width-2*m), y: m + Math.random()*(canvas.height-2*m), tx: m + Math.random()*(canvas.width-2*m), ty: m + Math.random()*(canvas.height-2*m), speed: 0.5+Math.random(), color: ['#f66','#66f','#6f6','#ff6','#f6f'][u%5] });
             }
         }
-        generateObjects();
         function render() {
             frameCount++;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             // Terrain
             for (let x = 0; x < canvas.width; x += 12) {
                 for (let y = 0; y < canvas.height; y += 12) {
-                    ctx.fillStyle = ((x + y) % 24 === 0) ? '#2a3a1a' : '#1a2a1a';
+                    ctx.fillStyle = ((x+y)%24===0) ? '#2a3a1a' : '#1a2a1a';
                     ctx.fillRect(x, y, 12, 12);
                 }
             }
+            // Event visual effects
+            if (worldState.activeEvents) {
+                worldState.activeEvents.forEach(evt => {
+                    if (evt.type === 'blood_moon') { ctx.fillStyle = 'rgba(150,0,0,0.3)'; ctx.fillRect(0,0,canvas.width,canvas.height); }
+                    if (evt.type === 'fire') { ctx.fillStyle = 'rgba(255,100,0,0.2)'; ctx.fillRect(0,0,canvas.width,canvas.height); }
+                    if (evt.type === 'storm') { ctx.fillStyle = 'rgba(50,50,80,0.4)'; ctx.fillRect(0,0,canvas.width,canvas.height); }
+                    if (evt.type === 'plague') { ctx.fillStyle = 'rgba(0,150,0,0.2)'; ctx.fillRect(0,0,canvas.width,canvas.height); }
+                    if (evt.type === 'prosperity') { ctx.fillStyle = 'rgba(255,215,0,0.15)'; ctx.fillRect(0,0,canvas.width,canvas.height); }
+                });
+            }
             // Buildings
             buildings.forEach(b => {
-                ctx.fillStyle = ['#8a8a8a', '#c4a060', '#6a6a6a', '#7a7a7a'][b.type];
-                ctx.fillRect(b.x - 6, b.y - b.height, 12, b.height);
+                ctx.fillStyle = ['#8a8a8a','#c4a060','#6a6a6a','#7a7a7a'][b.type];
+                ctx.fillRect(Math.round(b.x-6), Math.round(b.y-b.h), 12, b.h);
                 ctx.fillStyle = '#ffff88';
-                ctx.fillRect(b.x - 2, b.y - b.height + 4, 4, 4);
+                ctx.fillRect(Math.round(b.x-2), Math.round(b.y-b.h+4), 4, 4);
             });
             // Units
             units.forEach(u => {
-                const dx = u.tx - u.x, dy = u.ty - u.y;
-                const dist = Math.hypot(dx, dy);
-                if (dist < 5) { u.tx = Math.random() * canvas.width; u.ty = Math.random() * canvas.height; }
-                else { u.x += dx / dist * u.speed; u.y += dy / dist * u.speed; }
+                const dx = u.tx-u.x, dy = u.ty-u.y;
+                const dist = Math.hypot(dx,dy);
+                if (dist < 5) { u.tx = Math.random()*canvas.width; u.ty = Math.random()*canvas.height; }
+                else { u.x += dx/dist*u.speed; u.y += dy/dist*u.speed; }
+                u.x = clamp(u.x, 10, canvas.width-10);
+                u.y = clamp(u.y, 10, canvas.height-10);
                 ctx.fillStyle = u.color;
-                ctx.fillRect(Math.round(u.x), Math.round(u.y - 6), 3, 6);
+                ctx.fillRect(Math.round(u.x), Math.round(u.y-6), 3, 6);
                 ctx.fillStyle = '#fc9';
-                ctx.fillRect(Math.round(u.x), Math.round(u.y - 9), 3, 3);
+                ctx.fillRect(Math.round(u.x), Math.round(u.y-9), 3, 3);
             });
             requestAnimationFrame(render);
         }
@@ -546,7 +599,7 @@ function getCleanHTML() {
 </html>`;
 }
 
-// ASYNC SIMULATION TICK - Non-blocking version
+// ASYNC SIMULATION TICK
 function runSimulationTick() {
     worldState.day += 1;
 
@@ -610,6 +663,11 @@ function runSimulationTick() {
         worldState.economicPower = "Emerging Market";
     }
 
+    // Clean expired events
+    if (worldState.activeEvents) {
+        worldState.activeEvents = worldState.activeEvents.filter(e => e.endDay > worldState.day);
+    }
+
     if (worldState.day % 150 === 0) {
         generateAIEvents().catch(err => console.error("AI Event error:", err));
     }
@@ -638,9 +696,9 @@ SERVER.listen(PORT, () => {
     console.log("🤖 Using Groq API (OpenAI GPT-OSS 120B)");
     console.log("📅 AI Events: every 150 days | Code Improvements: every 250 days");
     console.log("⏳ Rate limiter: 7 seconds minimum between calls");
-    console.log("🎮 Pixel Art style: Age of Empires inspired");
-    console.log("🔄 REPLACE mode: AI replaces code, never appends duplicates");
-    console.log("📏 Max HTML size: 100KB (auto-reset if exceeded)");
+    console.log("🎮 Pixel Art: Age of Empires style with event visuals");
+    console.log("📊 Event system: blood moon, fire, storm, plague, prosperity");
+    console.log("🔄 REPLACE mode: no duplicates, max 100KB HTML");
     
     queryAI("Say 'OK'")
         .then(response => {
