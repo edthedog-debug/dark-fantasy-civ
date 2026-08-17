@@ -305,14 +305,28 @@
 
     <script>
 // ==== Optimized Pixel‑Art Engine ====
-// Assumes a <canvas id="gameCanvas"></canvas> exists and a global `worldState` object:
-// {
-//   day: Number, pop: Number, tech: Number,
-//   buildings: [{x,y,type}], units: [{x,y,dir}], activeEvents: ['blood_moon',...]
-// }
+// Fallback state definition added locally to prevent GitHub dependency & 503 HTTP errors:
 
 (() => {
+    // Provide an offline fallback for worldState to prevent missing external asset crashes
+    window.worldState = window.worldState || {
+        day: 1,
+        pop: 1250,
+        tech: 3.5,
+        buildings: [
+            { x: 100, y: 220, type: 0 },
+            { x: 260, y: 240, type: 1 },
+            { x: 420, y: 210, type: 2 }
+        ],
+        units: [
+            { x: 130, y: 220, dir: 'right' },
+            { x: 280, y: 240, dir: 'left' }
+        ],
+        activeEvents: ['prosperity']
+    };
+
     const canvas = document.getElementById('gameCanvas');
+    const container = document.getElementById('map-container');
     const ctx = canvas.getContext('2d');
     const PIXEL = 2;                     // size of a "pixel" block
     const BUILD_W = 16, BUILD_H = 24;    // building base size in pixels
@@ -455,34 +469,40 @@
         }
         lastTime = time;
 
-        // Resize handling (debounced)
+        // Resize handling (debounced based on map container bounds)
         if (resizePending) {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            canvas.width = container ? container.clientWidth : window.innerWidth;
+            canvas.height = container ? container.clientHeight : window.innerHeight;
             resizePending = false;
         }
 
         const { width, height } = canvas;
         ctx.clearRect(0, 0, width, height);
 
+        const state = window.worldState || { buildings: [], units: [], activeEvents: [] };
+
         // Draw buildings
-        worldState.buildings.forEach(b => {
-            const bx = clamp(b.x, 0, width - BUILD_W * PIXEL);
-            const by = clamp(b.y, BUILD_H * PIXEL, height);
-            drawBuilding(bx, by, b.type || 0);
-        });
+        if (Array.isArray(state.buildings)) {
+            state.buildings.forEach(b => {
+                const bx = clamp(b.x, 0, width - BUILD_W * PIXEL);
+                const by = clamp(b.y, BUILD_H * PIXEL, height);
+                drawBuilding(bx, by, b.type || 0);
+            });
+        }
 
         // Draw units (simple walk animation based on time)
-        worldState.units.forEach((u, idx) => {
-            const frame = Math.floor(time / 200 + idx) % 2;
-            const ux = clamp(u.x, 0, width - UNIT_W * PIXEL);
-            const uy = clamp(u.y, UNIT_H * PIXEL, height);
-            drawUnit(ux, uy, u.dir || 'right', frame);
-        });
+        if (Array.isArray(state.units)) {
+            state.units.forEach((u, idx) => {
+                const frame = Math.floor(time / 200 + idx) % 2;
+                const ux = clamp(u.x, 0, width - UNIT_W * PIXEL);
+                const uy = clamp(u.y, UNIT_H * PIXEL, height);
+                drawUnit(ux, uy, u.dir || 'right', frame);
+            });
+        }
 
         // Draw active events
-        if (Array.isArray(worldState.activeEvents)) {
-            worldState.activeEvents.forEach(ev => drawEventOverlay(ev, width, height, time));
+        if (Array.isArray(state.activeEvents)) {
+            state.activeEvents.forEach(ev => drawEventOverlay(ev, width, height, time));
         }
 
         requestAnimationFrame(render);
