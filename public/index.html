@@ -2947,5 +2947,37 @@ function initTouchSupport() {
 createMagicEffect();
 initTouchSupport();
 </script>
+
+<!-- === AI JS IMPROVEMENT (Day 28751) === -->
+<script>
+
+// AI Functionality - Responsive - Day 28751
+function createMagicEffect() {
+    const effect = document.createElement('div');
+    effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
+    document.body.appendChild(effect);
+    
+    const style = document.createElement('style');
+    style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
+    document.head.appendChild(style);
+}
+
+// Touch-friendly for mobile
+function initTouchSupport() {
+    if ('ontouchstart' in window) {
+        document.querySelectorAll('.stats-panel').forEach(panel => {
+            panel.addEventListener('touchstart', () => {
+                panel.style.transform = 'scale(0.98)';
+            });
+            panel.addEventListener('touchend', () => {
+                panel.style.transform = 'scale(1)';
+            });
+        });
+    }
+}
+
+createMagicEffect();
+initTouchSupport();
+</script>
 </body>
 </html>
