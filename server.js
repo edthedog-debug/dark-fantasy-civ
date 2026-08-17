@@ -20,11 +20,11 @@ APP.use(express.static(path.join(__dirname, 'public')));
 const SERVER = http.createServer(APP);
 const WSS = new WebSocket.Server({ 
     server: SERVER,
-    perMessageDeflate: false // Fix for some WebSocket issues
+    perMessageDeflate: false
 });
 const STATE_FILE = path.join(__dirname, 'worldState.json');
 
-// Rate limiter for Groq API - INCREASED to 20 seconds
+// Rate limiter for Groq API
 const rateLimiter = {
     lastCallTime: 0,
     minInterval: 20000,
@@ -35,7 +35,7 @@ const rateLimiter = {
         
         if (timeSinceLastCall < this.minInterval) {
             const waitTime = this.minInterval - timeSinceLastCall;
-            console.log(`⏳ Rate limiter: waiting ${waitTime}ms before next call...`);
+            console.log(`⏳ Rate limiter: waiting ${waitTime}ms...`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
         }
         
@@ -70,7 +70,7 @@ if (fs.existsSync(STATE_FILE)) {
         const rawData = fs.readFileSync(STATE_FILE, 'utf8');
         const savedState = JSON.parse(rawData);
         worldState = { ...worldState, ...savedState };
-        console.log("✅ State loaded - Day:", worldState.day, "AI Improvements:", worldState.aiImprovements);
+        console.log("✅ State loaded - Day:", worldState.day);
     } catch (e) {
         console.error("Error loading state file:", e);
     }
@@ -86,11 +86,14 @@ function saveWorldState() {
 
 function broadcastState() {
     const payload = JSON.stringify({ type: 'WORLD_UPDATE', data: worldState });
+    let sentCount = 0;
     WSS.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(payload);
+            sentCount++;
         }
     });
+    console.log(`📤 Broadcast sent to ${sentCount} clients - Day ${worldState.day}, Logs: ${worldState.logs.length}`);
 }
 
 function addLog(msg) {
@@ -100,7 +103,7 @@ function addLog(msg) {
 }
 
 /**
- * GROQ API - Uses Qwen 3.6 27B with 20s rate limiter
+ * GROQ API
  */
 async function queryAI(prompt) {
     if (!GROQ_API_KEY) {
@@ -128,12 +131,7 @@ async function queryAI(prompt) {
             },
             body: JSON.stringify({
                 model: 'qwen/qwen3.6-27b',
-                messages: [
-                    {
-                        role: 'user',
-                        content: prompt
-                    }
-                ],
+                messages: [{ role: 'user', content: prompt }],
                 temperature: 0.8,
                 max_tokens: 4096
             }),
@@ -146,37 +144,14 @@ async function queryAI(prompt) {
         
         if (response.ok) {
             const data = await response.json();
-            console.log('📦 Groq response received');
-            
             const text = data.choices?.[0]?.message?.content;
-            
             if (text && text.length > 0) {
                 console.log('✅ Success with Groq!');
                 return text;
             }
         } else if (response.status === 429) {
-            console.log('⏳ Rate limit (429). Waiting 60 seconds...');
+            console.log('⏳ Rate limit, waiting 60s...');
             await new Promise(resolve => setTimeout(resolve, 60000));
-            
-            const retryResponse = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${GROQ_API_KEY}`
-                },
-                body: JSON.stringify({
-                    model: 'qwen/qwen3.6-27b',
-                    messages: [{ role: 'user', content: prompt }],
-                    temperature: 0.8,
-                    max_tokens: 4096
-                })
-            });
-            
-            if (retryResponse.ok) {
-                const retryData = await retryResponse.json();
-                const retryText = retryData.choices?.[0]?.message?.content;
-                if (retryText && retryText.length > 0) return retryText;
-            }
         } else {
             console.error('❌ Groq Error:', response.status);
         }
@@ -188,23 +163,19 @@ async function queryAI(prompt) {
 }
 
 /**
- * Execute git command with retry
+ * Execute git command
  */
 function executeGitCommand(command, retries = 3) {
     return new Promise((resolve, reject) => {
         const attemptCommand = (attempt) => {
-            console.log(`🔧 Git (${attempt}/${retries}): ${command.substring(0, 80)}`);
-            
             exec(command, { maxBuffer: 1024 * 1024 * 10, timeout: 30000 }, (error, stdout, stderr) => {
                 if (error) {
-                    console.error(`❌ Git failed (${attempt})`);
                     if (attempt < retries) {
                         setTimeout(() => attemptCommand(attempt + 1), 5000 * attempt);
                     } else {
                         reject(error);
                     }
                 } else {
-                    console.log(`✅ Git success`);
                     resolve(stdout);
                 }
             });
@@ -255,24 +226,12 @@ async function pushToGitHub(htmlPath, improvementTypeName, day) {
 }
 
 /**
- * 1. AI GENERATIVE EVENTS
+ * AI GENERATIVE EVENTS
  */
 async function generateAIEvents() {
     const prompt = `Generate a dark fantasy civilization event with VISUAL EFFECT data.
     Current stats: Day ${worldState.day}, Population: ${worldState.population}, Treasury: ${worldState.treasury}, Tech: ${worldState.techPower}.
-    
-    Return ONLY JSON:
-    {
-        "event": "description",
-        "newPhilosophy": "name",
-        "goldImpact": number,
-        "happinessImpact": number,
-        "techImpact": number,
-        "visualEffect": "blood_moon" | "fire" | "storm" | "plague" | "prosperity" | "none",
-        "duration": number
-    }
-    
-    IMPORTANT: Treasury is ${worldState.treasury} - create events with LARGE negative goldImpact`;
+    Return ONLY JSON with event, newPhilosophy, goldImpact, happinessImpact, techImpact, visualEffect, duration`;
     
     let parsed = null;
     try {
@@ -317,7 +276,7 @@ async function generateAIEvents() {
 }
 
 /**
- * 2. AI CODE IMPROVEMENT
+ * AI CODE IMPROVEMENT
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT...");
@@ -382,7 +341,7 @@ async function autoImproveGameCode() {
 }
 
 /**
- * Returns clean HTML with WebSocket FIX
+ * Clean HTML
  */
 function getCleanHTML() {
     return `<!DOCTYPE html>
@@ -409,31 +368,30 @@ function getCleanHTML() {
 <body>
     <div class="dashboard">
         <div class="stats-grid">
-            <div class="stat-card"><div class="stat-label">DAY</div><div class="stat-value" id="stat-day">1</div></div>
-            <div class="stat-card"><div class="stat-label">ERA</div><div class="stat-value" id="stat-era">Era 1</div></div>
-            <div class="stat-card"><div class="stat-label">POP</div><div class="stat-value" id="stat-pop">0</div></div>
-            <div class="stat-card"><div class="stat-label">GOLD</div><div class="stat-value" id="stat-gold">0</div></div>
-            <div class="stat-card"><div class="stat-label">TECH</div><div class="stat-value" id="stat-tech">0.0</div></div>
-            <div class="stat-card"><div class="stat-label">DEF</div><div class="stat-value" id="stat-tanks">0</div></div>
-            <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value" id="stat-status">PEACE</div></div>
-            <div class="stat-card"><div class="stat-label">BUILD</div><div class="stat-value" id="stat-build">v2.0</div></div>
+            <div class="stat-card"><div class="stat-label">DAY</div><div class="stat-value" id="stat-day">-</div></div>
+            <div class="stat-card"><div class="stat-label">ERA</div><div class="stat-value" id="stat-era">-</div></div>
+            <div class="stat-card"><div class="stat-label">POP</div><div class="stat-value" id="stat-pop">-</div></div>
+            <div class="stat-card"><div class="stat-label">GOLD</div><div class="stat-value" id="stat-gold">-</div></div>
+            <div class="stat-card"><div class="stat-label">TECH</div><div class="stat-value" id="stat-tech">-</div></div>
+            <div class="stat-card"><div class="stat-label">DEF</div><div class="stat-value" id="stat-tanks">-</div></div>
+            <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value" id="stat-status">-</div></div>
+            <div class="stat-card"><div class="stat-label">BUILD</div><div class="stat-value" id="stat-build">-</div></div>
         </div>
     </div>
     <div id="map-container"><canvas id="gameCanvas"></canvas></div>
     <div class="event-panel" id="event-panel">No active events</div>
     <div class="log-container"><div id="log-stream">Connecting...</div></div>
     <script>
-        // WebSocket with auto-reconnect
         let ws;
-        let worldState = { day: 1, era: "Era 1", population: 10, treasury: 500, techPower: 1, tanks: 0, logs: [], inWar: false, activeEvents: [] };
+        let worldState = null;
         
         function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             ws = new WebSocket(protocol + '//' + window.location.host);
             
             ws.onopen = () => {
-                console.log('✅ WebSocket connected');
-                document.getElementById('log-stream').innerHTML = '<div style="color:#00ff88;">✅ Connected to AI Engine</div>';
+                console.log('WebSocket connected');
+                document.getElementById('log-stream').innerHTML = '<span style="color:#00ff88;">Connected - waiting for data...</span>';
             };
             
             ws.onmessage = (event) => {
@@ -442,23 +400,25 @@ function getCleanHTML() {
                     if (msg.type === 'WORLD_UPDATE') {
                         worldState = msg.data;
                         updateUI();
+                        generateObjects();
                     }
                 } catch (e) {
                     console.error('Parse error:', e);
                 }
             };
             
-            ws.onerror = (error) => {
-                console.error('❌ WebSocket error:', error);
+            ws.onerror = () => {
+                document.getElementById('log-stream').innerHTML = '<span style="color:#ff4444;">Connection error</span>';
             };
             
             ws.onclose = () => {
-                console.log('🔄 WebSocket closed - reconnecting in 3s...');
-                setTimeout(connectWebSocket, 3000);
+                document.getElementById('log-stream').innerHTML = '<span style="color:#ffcc00;">Reconnecting...</span>';
+                setTimeout(connectWebSocket, 2000);
             };
         }
         
         function updateUI() {
+            if (!worldState) return;
             document.getElementById('stat-day').innerText = worldState.day;
             document.getElementById('stat-era').innerText = worldState.era;
             document.getElementById('stat-pop').innerText = worldState.population;
@@ -466,96 +426,168 @@ function getCleanHTML() {
             document.getElementById('stat-tech').innerText = Number(worldState.techPower).toFixed(1);
             document.getElementById('stat-tanks').innerText = worldState.tanks;
             document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
+            document.getElementById('stat-status').style.color = worldState.inWar ? '#e74c3c' : '#2ecc71';
             document.getElementById('stat-build').innerText = worldState.engineBuild || 'v2.0';
+            
             const ep = document.getElementById('event-panel');
             if (worldState.activeEvents && worldState.activeEvents.length > 0) {
-                ep.innerHTML = worldState.activeEvents.map(e => '⚡ ' + e.description).join('<br>');
+                ep.innerHTML = worldState.activeEvents.map(e => '⚡ ' + e.description).join(' | ');
                 ep.style.borderColor = '#ff4444';
+                ep.style.color = '#ff6666';
             } else {
                 ep.innerHTML = 'No active events';
                 ep.style.borderColor = '#00ff88';
+                ep.style.color = '#00ff88';
             }
+            
             const logBox = document.getElementById('log-stream');
             if (worldState.logs && worldState.logs.length > 0) {
-                logBox.innerHTML = worldState.logs.map(l => '<div>' + l + '</div>').join('');
+                logBox.innerHTML = worldState.logs.map(l => '<div class="log-entry">' + l + '</div>').join('');
                 logBox.scrollTop = logBox.scrollHeight;
             }
         }
         
-        // Start WebSocket connection
-        connectWebSocket();
-        
-        // Pixel Art Engine
+        // Canvas
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = false;
         let frameCount = 0;
         let buildings = [];
         let units = [];
+        
         function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
-        function resizeCanvas() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; generateObjects(); }
-        window.addEventListener('resize', () => setTimeout(resizeCanvas, 150));
-        resizeCanvas();
+        function px(p, d) { return (p / 100) * d; }
+        
         function generateObjects() {
+            if (!worldState) return;
             buildings = []; units = [];
             const bCount = clamp(Math.floor(worldState.population / 5) + 2, 5, 80);
             const uCount = clamp(Math.floor(worldState.population / 10) + 2, 3, 50);
-            const m = 30;
             for (let i = 0; i < bCount; i++) {
-                buildings.push({ x: clamp(m + (i*47) % (canvas.width-2*m), m, canvas.width-m), y: clamp(m + (i*31) % (canvas.height-2*m), m, canvas.height-m), type: i%4, h: clamp(20 + (i%5)*8, 15, 60) });
+                buildings.push({ xPercent: 5 + ((i * 7) % 90), yPercent: 10 + ((i * 5) % 80), type: i % 4, heightPercent: 8 + (i % 5) * 3 });
             }
             for (let u = 0; u < uCount; u++) {
-                units.push({ x: m + Math.random()*(canvas.width-2*m), y: m + Math.random()*(canvas.height-2*m), tx: m + Math.random()*(canvas.width-2*m), ty: m + Math.random()*(canvas.height-2*m), speed: 0.5+Math.random(), color: ['#f66','#66f','#6f6','#ff6','#f6f'][u%5] });
+                units.push({ xPercent: 5 + Math.random() * 90, yPercent: 10 + Math.random() * 80, color: ['#f66','#66f','#6f6','#ff6','#f6f'][u%5] });
             }
         }
+        
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', () => setTimeout(resizeCanvas, 150));
+        resizeCanvas();
+        
         function render() {
             frameCount++;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for (let x = 0; x < canvas.width; x += 12) {
-                for (let y = 0; y < canvas.height; y += 12) {
-                    ctx.fillStyle = ((x+y)%24===0) ? '#2a3a1a' : '#1a2a1a';
-                    ctx.fillRect(x, y, 12, 12);
+            
+            // Terrain
+            for (let x = 0; x < canvas.width; x += 16) {
+                for (let y = 0; y < canvas.height; y += 16) {
+                    ctx.fillStyle = ((x + y) % 32 === 0) ? '#1a3a1a' : '#1a2a1a';
+                    ctx.fillRect(x, y, 16, 16);
                 }
             }
-            if (worldState.activeEvents) {
+            
+            // River
+            for (let y = 0; y < canvas.height; y += 4) {
+                const wave = Math.sin((y * 0.04) + frameCount * 0.03) * 8;
+                ctx.fillStyle = '#1a4a6a';
+                ctx.fillRect(canvas.width * 0.4 + wave, y, 16, 4);
+            }
+            
+            // Buildings
+            buildings.forEach(b => {
+                const bx = px(b.xPercent, canvas.width);
+                const by = px(b.yPercent, canvas.height);
+                const bh = px(b.heightPercent, canvas.height);
+                ctx.fillStyle = ['#8a8a8a','#c4a060','#6a6a6a','#7a7a7a'][b.type];
+                ctx.fillRect(Math.round(bx - 6), Math.round(by - bh), 12, bh);
+                ctx.fillStyle = '#ffff88';
+                ctx.fillRect(Math.round(bx - 2), Math.round(by - bh + 5), 4, 4);
+            });
+            
+            // Units
+            units.forEach(u => {
+                const ux = px(u.xPercent, canvas.width);
+                const uy = px(u.yPercent, canvas.height);
+                const legOffset = Math.sin(frameCount * 0.1 + ux) > 0 ? 0 : 3;
+                ctx.fillStyle = u.color;
+                ctx.fillRect(Math.round(ux), Math.round(uy - 6), 3, 6);
+                ctx.fillStyle = '#fc9';
+                ctx.fillRect(Math.round(ux), Math.round(uy - 9), 3, 3);
+            });
+            
+            // Event overlays
+            if (worldState && worldState.activeEvents) {
                 worldState.activeEvents.forEach(evt => {
                     if (evt.type === 'blood_moon') { ctx.fillStyle = 'rgba(150,0,0,0.3)'; ctx.fillRect(0,0,canvas.width,canvas.height); }
                     if (evt.type === 'fire') { ctx.fillStyle = 'rgba(255,100,0,0.2)'; ctx.fillRect(0,0,canvas.width,canvas.height); }
-                    if (evt.type === 'storm') { ctx.fillStyle = 'rgba(50,50,80,0.4)'; ctx.fillRect(0,0,canvas.width,canvas.height); }
+                    if (evt.type === 'storm') { ctx.fillStyle = 'rgba(30,30,60,0.5)'; ctx.fillRect(0,0,canvas.width,canvas.height); }
                     if (evt.type === 'plague') { ctx.fillStyle = 'rgba(0,150,0,0.2)'; ctx.fillRect(0,0,canvas.width,canvas.height); }
                     if (evt.type === 'prosperity') { ctx.fillStyle = 'rgba(255,215,0,0.15)'; ctx.fillRect(0,0,canvas.width,canvas.height); }
                 });
             }
-            buildings.forEach(b => {
-                ctx.fillStyle = ['#8a8a8a','#c4a060','#6a6a6a','#7a7a7a'][b.type];
-                ctx.fillRect(Math.round(b.x-6), Math.round(b.y-b.h), 12, b.h);
-                ctx.fillStyle = '#ffff88';
-                ctx.fillRect(Math.round(b.x-2), Math.round(b.y-b.h+4), 4, 4);
-            });
-            units.forEach(u => {
-                const dx = u.tx-u.x, dy = u.ty-u.y;
-                const dist = Math.hypot(dx,dy);
-                if (dist < 5) { u.tx = Math.random()*canvas.width; u.ty = Math.random()*canvas.height; }
-                else { u.x += dx/dist*u.speed; u.y += dy/dist*u.speed; }
-                u.x = clamp(u.x, 10, canvas.width-10);
-                u.y = clamp(u.y, 10, canvas.height-10);
-                ctx.fillStyle = u.color;
-                ctx.fillRect(Math.round(u.x), Math.round(u.y-6), 3, 6);
-                ctx.fillStyle = '#fc9';
-                ctx.fillRect(Math.round(u.x), Math.round(u.y-9), 3, 3);
-            });
+            
             requestAnimationFrame(render);
         }
-        render();
+        
+        connectWebSocket();
+        requestAnimationFrame(render);
     </script>
 </body>
 </html>`;
 }
 
-// ASYNC SIMULATION TICK
+// SIMULATION TICK
 function runSimulationTick() {
     worldState.day += 1;
-    // ... (rest of simulation tick identical to original)
+
+    if (worldState.treasury <= 0 && worldState.happiness < 50) {
+        worldState.treasury += 300;
+        worldState.happiness = Math.min(100, worldState.happiness + 25);
+        addLog("[RECOVERY] Sovereign Reserve injected 300 Gold!");
+    }
+
+    let moraleProductivity = 1.0;
+    if (worldState.happiness >= 80) moraleProductivity = 1.5;
+    else if (worldState.happiness >= 50) moraleProductivity = 1.0;
+    else if (worldState.happiness >= 30) moraleProductivity = 0.6;
+    else moraleProductivity = 0.35;
+
+    const baseTaxPerCitizen = 12;
+    const techMultiplier = 1 + (worldState.techPower * 0.4);
+    const grossIncome = Math.floor(worldState.population * baseTaxPerCitizen * moraleProductivity * techMultiplier);
+    const totalExpenses = Math.floor(worldState.population * 3) + worldState.tanks * 15;
+    const netProfit = grossIncome - totalExpenses;
+    worldState.treasury = Math.max(0, worldState.treasury + netProfit);
+
+    if (netProfit < 0 && worldState.day % 6 === 0) {
+        addLog("[ECONOMY ALERT] Daily net loss: " + netProfit + " Gold.");
+    }
+
+    worldState.techPower += 0.01;
+
+    if (worldState.happiness > 75 && worldState.treasury > 100 && worldState.day % 4 === 0) {
+        worldState.population += 1;
+        addLog("[DEMOGRAPHICS] +1 immigrant. Pop: " + worldState.population);
+    } else if (worldState.happiness < 35 && worldState.population > 1 && worldState.day % 4 === 0) {
+        worldState.population -= 1;
+        addLog("[DEMOGRAPHICS] -1 emigrated. Pop: " + worldState.population);
+    }
+
+    if (worldState.activeEvents) {
+        worldState.activeEvents = worldState.activeEvents.filter(e => e.endDay > worldState.day);
+    }
+
+    if (worldState.day % 150 === 0) {
+        generateAIEvents().catch(err => console.error("AI Event error:", err));
+    }
+
+    if (worldState.day % 250 === 0) {
+        autoImproveGameCode().catch(err => console.error("AI Improvement error:", err));
+    }
 
     saveWorldState();
     broadcastState();
@@ -566,6 +598,7 @@ setInterval(runSimulationTick, 4000);
 WSS.on('connection', (ws) => {
     console.log('🔗 Client connected');
     ws.send(JSON.stringify({ type: 'WORLD_UPDATE', data: worldState }));
+    console.log('📤 Initial state sent - Day:', worldState.day, 'Logs:', worldState.logs.length);
     
     ws.on('error', (error) => {
         console.error('❌ WebSocket error:', error.message);
@@ -576,13 +609,14 @@ SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Day:", worldState.day, "| AI Improvements:", worldState.aiImprovements);
     console.log("🤖 Groq API (Qwen 3.6 27B)");
-    console.log("🔌 WebSocket: auto-reconnect enabled");
+    console.log("🔌 WebSocket: ready");
     
     queryAI("Say 'OK'")
         .then(response => {
             if (response) {
                 console.log("✅ Groq ready");
                 addLog("[SYSTEM] AI System ready.");
+                broadcastState();
             }
         });
 });
