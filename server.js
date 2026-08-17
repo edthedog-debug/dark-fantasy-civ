@@ -264,7 +264,7 @@ async function generateAIEvents() {
 }
 
 /**
- * 2. AI CODE IMPROVEMENT - IMPROVES EXISTING MAP WITH REAL STATS
+ * 2. AI CODE IMPROVEMENT - REPLACES ENTIRE FILE TO AVOID DUPLICATES
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT...");
@@ -280,7 +280,15 @@ async function autoImproveGameCode() {
         }
         
         const currentHtml = fs.readFileSync(htmlPath, 'utf8');
-        console.log("📄 Current HTML:", currentHtml.length, "chars");
+        console.log("📄 Current HTML size:", currentHtml.length, "chars");
+        
+        // If HTML is too large (>100KB), reset it to clean version first
+        if (currentHtml.length > 100000) {
+            console.log("⚠️ HTML too large, resetting to clean version...");
+            currentHtml = getCleanHTML();
+            fs.writeFileSync(htmlPath, currentHtml);
+            addLog("[SYSTEM] HTML reset to clean version (was too large)");
+        }
         
         const improvementType = worldState.aiImprovements % 3;
         
@@ -288,356 +296,99 @@ async function autoImproveGameCode() {
         let codeToAdd;
         
         switch(improvementType) {
-            case 0: // IMPROVE EXISTING MAP CSS
-                prompt = `IMPROVE the EXISTING map CSS for this pixel art civilization game.
+            case 0: // REPLACE ENTIRE CSS
+                prompt = `REPLACE the ENTIRE CSS of this pixel art civilization game with OPTIMIZED code.
                 Current stats: Day ${worldState.day}, Population: ${worldState.population}, Tech: ${worldState.techPower}.
                 Era: ${worldState.era}
-                Treasury: ${worldState.treasury}
                 
-                CRITICAL INSTRUCTIONS:
-                - MODIFY the existing map styles, do NOT create a new map
-                - The map must show buildings proportional to population: ${worldState.population} people = MANY buildings
-                - Show ${Math.floor(worldState.population / 5)} buildings on the map
-                - Show ${Math.floor(worldState.population / 10)} pixel people walking
-                - Buildings should be DENSE and DETAILED like a real city
-                - Use pixel art style with sharp edges
-                - Terrain colors must match the civilization era: ${worldState.era}
-                - Add more detail to existing buildings (windows, doors, roofs)
+                CRITICAL RULES:
+                - Return the COMPLETE replacement CSS (not additions)
+                - Do NOT duplicate existing styles
+                - Do NOT create new class names that conflict
+                - KEEP existing class names: .dashboard, .stat-card, #map-container, .log-container
+                - IMPROVE: pixel art style, sharp edges, dark fantasy colors
+                - MUST work on desktop AND mobile (@media queries)
+                - Use image-rendering: pixelated
+                - Maximum 200 lines of CSS
                 
-                Return ONLY valid CSS improvements. No explanations.`;
+                Return ONLY the complete valid CSS. No HTML, no explanations.`;
                 break;
                 
-            case 1: // IMPROVE EXISTING MAP CANVAS JAVASCRIPT
-                prompt = `IMPROVE the EXISTING canvas map rendering for this pixel art game.
+            case 1: // REPLACE ENTIRE CANVAS JS
+                prompt = `REPLACE the ENTIRE canvas rendering JavaScript with OPTIMIZED pixel art code.
                 Current stats: Day ${worldState.day}, Population: ${worldState.population}, Tech: ${worldState.techPower}.
-                Era: ${worldState.era}
-                Buildings: ${Math.floor(worldState.population / 5)}
-                Units: ${Math.floor(worldState.population / 10)}
+                Buildings to draw: ${Math.floor(worldState.population / 5)}
+                Units to draw: ${Math.floor(worldState.population / 10)}
                 
-                CRITICAL INSTRUCTIONS:
-                - MODIFY the existing draw functions, do NOT create new map
-                - Draw ${Math.floor(worldState.population / 5)} buildings on the map (castles, houses, barracks)
-                - Draw ${Math.floor(worldState.population / 10)} pixel people walking around
-                - Buildings must be DETAILED: windows, doors, roofs, crenellations
-                - Show population density - more buildings = bigger city
-                - Tech power ${worldState.techPower} = more advanced buildings
+                CRITICAL RULES:
+                - Return the COMPLETE replacement JavaScript (not additions)
+                - Do NOT create duplicate functions
+                - Do NOT create a second canvas
+                - USE the existing canvas #gameCanvas
+                - REPLACE all draw functions with improved versions
                 - Use ctx.imageSmoothingEnabled = false
                 - Use fillRect for EVERYTHING (pixel art)
-                - Animate units walking between buildings
-                - Add smoke from chimneys, flags on castles
+                - Draw buildings with windows, doors, roofs
+                - Draw units with walking animation
+                - Clamp all positions within canvas bounds
+                - Maximum 300 lines of JavaScript
                 
-                Return ONLY valid JavaScript code that IMPROVES existing functions.`;
+                Return ONLY the complete valid JavaScript. No HTML, no explanations.`;
                 break;
                 
-            case 2: // IMPROVE EXISTING MAP HTML
-                prompt = `IMPROVE the EXISTING map HTML structure for this pixel art game.
+            case 2: // REPLACE ENTIRE HTML STRUCTURE
+                prompt = `REPLACE the ENTIRE HTML body structure with OPTIMIZED pixel art layout.
                 Current stats: Day ${worldState.day}, Population: ${worldState.population}, Era: ${worldState.era}.
-                Treasury: ${worldState.treasury}
                 
-                CRITICAL INSTRUCTIONS:
-                - MODIFY existing map containers, do NOT create new structure
+                CRITICAL RULES:
+                - Return the COMPLETE replacement HTML body (not additions)
+                - Do NOT duplicate existing elements
+                - KEEP: #dashboard, #map-container, #gameCanvas, .log-container
                 - Show building count: ${Math.floor(worldState.population / 5)}
-                - Show population counter overlay on map
-                - Show era name on map
-                - Add building list panel showing what exists
+                - Show population: ${worldState.population}
+                - Use pixel art style
+                - Maximum 100 lines of HTML
                 
-                Return ONLY valid HTML that IMPROVES existing structure.`;
+                Return ONLY the complete valid HTML body. No CSS, no JS, no explanations.`;
                 break;
         }
         
-        console.log("🔍 Asking Groq to IMPROVE EXISTING map for", improvementType === 0 ? "CSS" : improvementType === 1 ? "Canvas JS" : "HTML", "...");
+        console.log("🔍 Asking Groq to REPLACE", improvementType === 0 ? "CSS" : improvementType === 1 ? "Canvas JS" : "HTML", "...");
         const aiResponse = await queryAI(prompt);
         
-        if (aiResponse && !aiResponse.startsWith("//") && aiResponse.length > 20) {
+        if (aiResponse && !aiResponse.startsWith("//") && aiResponse.length > 50) {
             console.log("✅ Got valid AI response! Length:", aiResponse.length);
             codeToAdd = aiResponse.replace(/```css/gi, '').replace(/```javascript/gi, '').replace(/```html/gi, '').replace(/```js/gi, '').replace(/```/g, '').trim();
         } else {
-            console.log("⚠️ AI failed, using elaborate fallback");
+            console.log("⚠️ AI failed, using fallback");
             codeToAdd = null;
         }
         
-        if (!codeToAdd || codeToAdd.length < 10) {
-            if (improvementType === 0) {
-                codeToAdd = `
-/* IMPROVED PIXEL ART MAP CSS - Day ${worldState.day} - Pop ${worldState.population} */
-.game-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 4px;
-    padding: 10px;
-    max-width: 1400px;
-    margin: 0 auto;
-}
-
-.map-container {
-    border: 3px solid #8b6914;
-    box-shadow: 4px 4px 0 #000;
-    overflow: hidden;
-    background: #0a0505;
-    position: relative;
-    min-height: 400px;
-    image-rendering: pixelated;
-}
-
-#gameCanvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-    image-rendering: pixelated;
-}
-
-.map-overlay {
-    position: absolute;
-    top: 5px;
-    left: 5px;
-    background: rgba(0,0,0,0.8);
-    padding: 4px 8px;
-    border: 2px solid #8b6914;
-    font-size: 10px;
-    color: #ffd700;
-    z-index: 10;
-}`;
-            } else if (improvementType === 1) {
-                codeToAdd = `
-// IMPROVED PIXEL ART MAP ENGINE - Day ${worldState.day}
-// Population: ${worldState.population} | Buildings: ${Math.floor(worldState.population / 5)} | Units: ${Math.floor(worldState.population / 10)}
-
-function createPixelArtMap() {
-    const canvas = document.getElementById('gameCanvas') || document.createElement('canvas');
-    canvas.id = 'gameCanvas';
-    
-    if (!canvas.parentElement) {
-        const mapContainer = document.createElement('div');
-        mapContainer.className = 'map-container';
-        mapContainer.appendChild(canvas);
-        document.body.appendChild(mapContainer);
-    }
-    
-    const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
-    
-    function resizeCanvas() {
-        canvas.width = canvas.parentElement.clientWidth;
-        canvas.height = canvas.parentElement.clientHeight || 400;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-    
-    const PIXEL = 3;
-    let frameCount = 0;
-    const buildings = [];
-    const units = [];
-    
-    // Generate buildings based on population
-    const buildingCount = Math.min(80, Math.floor(${worldState.population} / 5) + 2);
-    for (let i = 0; i < buildingCount; i++) {
-        buildings.push({
-            x: (i * 47 + 20) % (canvas.width - 30),
-            y: (i * 31 + 15) % (canvas.height - 40),
-            type: i % 4,
-            height: 20 + (i % 5) * 8 + Math.min(30, ${Math.floor(worldState.techPower)} * 0.5)
-        });
-    }
-    
-    // Generate units based on population
-    const unitCount = Math.min(50, Math.floor(${worldState.population} / 10) + 2);
-    for (let u = 0; u < unitCount; u++) {
-        units.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            targetX: Math.random() * canvas.width,
-            targetY: Math.random() * canvas.height,
-            speed: 0.5 + Math.random() * 1.5,
-            color: ['#ff6666', '#6666ff', '#66ff66', '#ffff66', '#ff66ff'][u % 5]
-        });
-    }
-    
-    function drawPixelCastle(x, y, h) {
-        // Main tower
-        ctx.fillStyle = '#8a8a8a';
-        ctx.fillRect(x - 6, y - h, 12, h);
-        // Crenellations
-        for (let i = -6; i < 6; i += 3) {
-            ctx.fillRect(x + i, y - h - 4, 3, 4);
-        }
-        // Windows
-        ctx.fillStyle = '#ffff88';
-        for (let w = 0; w < h / 10; w++) {
-            ctx.fillRect(x - 2, y - h + 4 + w * 10, 4, 4);
-        }
-        // Door
-        ctx.fillStyle = '#3a1a0a';
-        ctx.fillRect(x - 3, y - 6, 6, 6);
-        // Flag
-        ctx.fillStyle = '#ff0000';
-        ctx.fillRect(x + 6, y - h - 8, 5, 3);
-    }
-    
-    function drawPixelHouse(x, y, h) {
-        // Body
-        ctx.fillStyle = '#c4a060';
-        ctx.fillRect(x - 8, y - h, 16, h);
-        // Roof
-        ctx.fillStyle = '#8a3a1a';
-        ctx.fillRect(x - 10, y - h - 3, 20, 3);
-        ctx.fillRect(x - 6, y - h - 6, 12, 3);
-        // Windows
-        ctx.fillStyle = '#ffff88';
-        ctx.fillRect(x - 4, y - h + 4, 3, 3);
-        ctx.fillRect(x + 1, y - h + 4, 3, 3);
-        // Door
-        ctx.fillStyle = '#3a1a0a';
-        ctx.fillRect(x - 2, y - 4, 4, 4);
-    }
-    
-    function drawPixelBarracks(x, y, h) {
-        // Body
-        ctx.fillStyle = '#6a6a6a';
-        ctx.fillRect(x - 10, y - h, 20, h);
-        // Roof
-        ctx.fillStyle = '#4a4a4a';
-        ctx.fillRect(x - 12, y - h - 2, 24, 2);
-        // Sword icon (pixel)
-        ctx.fillStyle = '#c0c0c0';
-        ctx.fillRect(x - 1, y - h + 2, 2, h - 4);
-        ctx.fillRect(x - 3, y - h + 2, 6, 2);
-    }
-    
-    function drawPixelTower(x, y, h) {
-        // Tall tower
-        ctx.fillStyle = '#7a7a7a';
-        ctx.fillRect(x - 4, y - h, 8, h);
-        // Top
-        ctx.fillStyle = '#5a5a5a';
-        ctx.fillRect(x - 6, y - h - 2, 12, 2);
-    }
-    
-    function drawPixelUnit(unit) {
-        const legOffset = Math.sin(frameCount * 0.1 + unit.x) > 0 ? 0 : PIXEL;
-        // Body
-        ctx.fillStyle = unit.color;
-        ctx.fillRect(unit.x, unit.y - PIXEL * 2, PIXEL, PIXEL * 2);
-        // Head
-        ctx.fillStyle = '#ffcc99';
-        ctx.fillRect(unit.x, unit.y - PIXEL * 3, PIXEL, PIXEL);
-        // Legs
-        ctx.fillStyle = '#333';
-        ctx.fillRect(unit.x, unit.y, PIXEL / 2, PIXEL + legOffset);
-        ctx.fillRect(unit.x + PIXEL / 2, unit.y, PIXEL / 2, PIXEL - legOffset);
-    }
-    
-    function updateUnits() {
-        units.forEach(unit => {
-            const dx = unit.targetX - unit.x;
-            const dy = unit.targetY - unit.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
+        if (codeToAdd && codeToAdd.length > 50) {
+            // REPLACE the entire relevant section instead of appending
+            let improvedHtml = currentHtml;
             
-            if (dist < 5) {
-                unit.targetX = Math.random() * canvas.width;
-                unit.targetY = Math.random() * canvas.height;
+            if (improvementType === 0) {
+                // Replace entire <style> block
+                improvedHtml = improvedHtml.replace(/<style>[\s\S]*?<\/style>/g, `<style>\n${codeToAdd}\n</style>`);
+            } else if (improvementType === 1) {
+                // Replace entire <script> block (the main game engine)
+                improvedHtml = improvedHtml.replace(/<script>[\s\S]*?<\/script>/g, `<script>\n${codeToAdd}\n</script>`);
             } else {
-                unit.x += (dx / dist) * unit.speed;
-                unit.y += (dy / dist) * unit.speed;
+                // Replace entire <body> content
+                improvedHtml = improvedHtml.replace(/<body>[\s\S]*?<\/body>/g, `<body>\n${codeToAdd}\n</body>`);
             }
-        });
-    }
-    
-    function render() {
-        frameCount++;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Terrain
-        for (let x = 0; x < canvas.width; x += PIXEL * 6) {
-            for (let y = 0; y < canvas.height; y += PIXEL * 6) {
-                ctx.fillStyle = ((x + y) % 12 === 0) ? '#2a3a1a' : '#1a2a1a';
-                ctx.fillRect(x, y, PIXEL * 6, PIXEL * 6);
-            }
-        }
-        
-        // Water river
-        for (let y = 0; y < canvas.height; y += PIXEL) {
-            const waveOffset = Math.sin((y * 0.05) + (frameCount * 0.03)) * PIXEL * 2;
-            ctx.fillStyle = '#1a3a5a';
-            ctx.fillRect(canvas.width * 0.35 + waveOffset, y, PIXEL * 4, PIXEL);
-        }
-        
-        // Draw ALL buildings
-        buildings.forEach(building => {
-            switch(building.type) {
-                case 0: drawPixelCastle(building.x, building.y, building.height); break;
-                case 1: drawPixelHouse(building.x, building.y, building.height * 0.6); break;
-                case 2: drawPixelBarracks(building.x, building.y, building.height * 0.7); break;
-                case 3: drawPixelTower(building.x, building.y, building.height * 1.2); break;
-            }
-        });
-        
-        // Draw ALL units walking
-        updateUnits();
-        units.forEach(unit => drawPixelUnit(unit));
-        
-        // Gold mines
-        const goldCount = 3 + Math.floor(${Math.floor(worldState.techPower)} / 5);
-        for (let g = 0; g < Math.min(goldCount, 10); g++) {
-            const gx = (g * 89 + 10) % (canvas.width - 15);
-            const gy = (g * 67 + 10) % (canvas.height - 15);
-            ctx.fillStyle = '#ffd700';
-            ctx.fillRect(gx, gy, PIXEL * 2, PIXEL * 2);
-            ctx.fillRect(gx + PIXEL, gy - PIXEL, PIXEL, PIXEL * 3);
-            ctx.fillRect(gx - PIXEL, gy + PIXEL, PIXEL * 2, PIXEL);
-        }
-        
-        requestAnimationFrame(render);
-    }
-    
-    render();
-}
-
-createPixelArtMap();`;
-            } else {
-                codeToAdd = `
-<div class="map-container" style="grid-column:1/-1;border:3px solid #8b6914;box-shadow:4px 4px 0 #000;overflow:hidden;background:#0a0505;position:relative;min-height:400px;">
-    <canvas id="gameCanvas" style="width:100%;height:100%;display:block;image-rendering:pixelated;"></canvas>
-    <div class="map-overlay" style="position:absolute;top:5px;left:5px;background:rgba(0,0,0,0.8);padding:4px 8px;border:2px solid #8b6914;font-size:10px;color:#ffd700;">
-        DAY ${worldState.day} | POP ${worldState.population} | BUILDINGS ${Math.floor(worldState.population / 5)}
-    </div>
-    <div class="map-overlay" style="position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.8);padding:4px 8px;border:2px solid #8b6914;font-size:10px;color:#ffd700;">
-        ERA: ${worldState.era}
-    </div>
-</div>`;
-            }
-        }
-        
-        let improvedHtml = currentHtml;
-        
-        if (improvementType === 0) {
-            const cssBlock = `\n<!-- === AI IMPROVED MAP CSS (Day ${worldState.day}) === -->\n<style>\n${codeToAdd}\n</style>\n`;
-            if (improvedHtml.includes('</head>')) {
-                improvedHtml = improvedHtml.replace('</head>', cssBlock + '</head>');
-            } else {
-                improvedHtml = cssBlock + improvedHtml;
-            }
-        } else if (improvementType === 1) {
-            const jsBlock = `\n<!-- === AI IMPROVED MAP JS (Day ${worldState.day}) === -->\n<script>\n${codeToAdd}\n</script>\n`;
-            if (improvedHtml.includes('</body>')) {
-                improvedHtml = improvedHtml.replace('</body>', jsBlock + '</body>');
-            } else {
-                improvedHtml += jsBlock;
-            }
+            
+            fs.writeFileSync(htmlPath, improvedHtml);
+            console.log("✅ HTML REPLACED! New size:", improvedHtml.length);
         } else {
-            const htmlBlock = `\n<!-- === AI IMPROVED MAP HTML (Day ${worldState.day}) === -->\n${codeToAdd}\n`;
-            if (improvedHtml.includes('</body>')) {
-                improvedHtml = improvedHtml.replace('</body>', htmlBlock + '</body>');
-            } else {
-                improvedHtml += htmlBlock;
-            }
+            console.log("⚠️ Using clean HTML reset");
+            fs.writeFileSync(htmlPath, getCleanHTML());
         }
-        
-        fs.writeFileSync(htmlPath, improvedHtml);
-        console.log("✅ HTML improved! New size:", improvedHtml.length);
         
         worldState.aiImprovements += 1;
-        const improvementTypeName = improvementType === 0 ? "Improved Map CSS" : improvementType === 1 ? "Improved Map Canvas JS" : "Improved Map HTML";
-        addLog(`[AI COMMIT SUCCESS] ${improvementTypeName} improved! Total: ${worldState.aiImprovements}`);
+        const improvementTypeName = improvementType === 0 ? "Replaced CSS" : improvementType === 1 ? "Replaced Canvas JS" : "Replaced HTML";
+        addLog(`[AI COMMIT SUCCESS] ${improvementTypeName}! Total: ${worldState.aiImprovements}`);
         
         if (GITHUB_TOKEN) {
             try {
@@ -676,6 +427,123 @@ createPixelArtMap();`;
         console.error("Error:", err.message);
         addLog(`[AI COMMIT ERROR] ${err.message}`);
     }
+}
+
+/**
+ * Returns clean HTML template to avoid hyper-extended files
+ */
+function getCleanHTML() {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Sovereign AI Engine - World Map</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: #070913; color: #e0e6ed; min-height: 100vh; display: flex; flex-direction: column; padding: 12px; gap: 10px; overflow: hidden; }
+        .dashboard { background: rgba(16,22,36,0.9); border: 1px solid rgba(0,210,255,0.25); border-radius: 12px; padding: 12px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .stat-card { background: rgba(25,33,52,0.6); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 8px; }
+        .stat-label { font-size: 10px; color: #6b7c93; text-transform: uppercase; }
+        .stat-value { font-size: 14px; font-weight: bold; color: #fff; }
+        #map-container { flex: 1; background: #04060d; border: 1px solid rgba(0,210,255,0.25); border-radius: 12px; position: relative; overflow: hidden; min-height: 300px; }
+        canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+        .log-container { height: 100px; background: rgba(12,17,29,0.95); border: 1px solid rgba(0,210,255,0.2); border-radius: 12px; padding: 10px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 11px; }
+        @media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="dash-header"><span>SOVEREIGN AI ENGINE</span><div class="status-badge">24/7 AUTONOMOUS</div></div>
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-label">DAY</div><div class="stat-value" id="stat-day">1</div></div>
+            <div class="stat-card"><div class="stat-label">ERA</div><div class="stat-value" id="stat-era">Era 1</div></div>
+            <div class="stat-card"><div class="stat-label">POPULATION</div><div class="stat-value" id="stat-pop">0</div></div>
+            <div class="stat-card"><div class="stat-label">TREASURY</div><div class="stat-value" id="stat-gold">0 G</div></div>
+            <div class="stat-card"><div class="stat-label">TECH</div><div class="stat-value" id="stat-tech">0.0</div></div>
+            <div class="stat-card"><div class="stat-label">DEFENSES</div><div class="stat-value" id="stat-tanks">0</div></div>
+            <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value" id="stat-status">PEACE</div></div>
+            <div class="stat-card"><div class="stat-label">BUILD</div><div class="stat-value" id="stat-build">v2.0</div></div>
+        </div>
+    </div>
+    <div id="map-container"><canvas id="gameCanvas"></canvas></div>
+    <div class="log-container"><div id="log-stream">Connecting...</div></div>
+    <script>
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(protocol + '//' + window.location.host);
+        let worldState = { day: 1, era: "Era 1", population: 10, treasury: 500, techPower: 1, tanks: 0, logs: [], inWar: false };
+        ws.onmessage = (event) => { const msg = JSON.parse(event.data); if (msg.type === 'WORLD_UPDATE') { worldState = msg.data; updateUI(); } };
+        function updateUI() {
+            document.getElementById('stat-day').innerText = worldState.day;
+            document.getElementById('stat-era').innerText = worldState.era;
+            document.getElementById('stat-pop').innerText = worldState.population;
+            document.getElementById('stat-gold').innerText = worldState.treasury.toLocaleString() + ' G';
+            document.getElementById('stat-tech').innerText = Number(worldState.techPower).toFixed(2);
+            document.getElementById('stat-tanks').innerText = worldState.tanks;
+            document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
+            document.getElementById('stat-build').innerText = worldState.engineBuild || 'v2.0';
+            const logBox = document.getElementById('log-stream');
+            if (worldState.logs && worldState.logs.length > 0) {
+                logBox.innerHTML = worldState.logs.map(l => '<div>' + l + '</div>').join('');
+            }
+        }
+        // Pixel Art Map Engine
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        let frameCount = 0;
+        let buildings = [];
+        let units = [];
+        function resizeCanvas() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        function generateObjects() {
+            buildings = []; units = [];
+            const bCount = Math.min(80, Math.floor(worldState.population / 5) + 2);
+            const uCount = Math.min(50, Math.floor(worldState.population / 10) + 2);
+            for (let i = 0; i < bCount; i++) {
+                buildings.push({ x: 20 + (i * 47) % (canvas.width - 40), y: 20 + (i * 31) % (canvas.height - 40), type: i % 4, height: 20 + (i % 5) * 8 });
+            }
+            for (let u = 0; u < uCount; u++) {
+                units.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, tx: Math.random() * canvas.width, ty: Math.random() * canvas.height, speed: 0.5 + Math.random(), color: ['#f66','#66f','#6f6','#ff6','#f6f'][u%5] });
+            }
+        }
+        generateObjects();
+        function render() {
+            frameCount++;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Terrain
+            for (let x = 0; x < canvas.width; x += 12) {
+                for (let y = 0; y < canvas.height; y += 12) {
+                    ctx.fillStyle = ((x + y) % 24 === 0) ? '#2a3a1a' : '#1a2a1a';
+                    ctx.fillRect(x, y, 12, 12);
+                }
+            }
+            // Buildings
+            buildings.forEach(b => {
+                ctx.fillStyle = ['#8a8a8a', '#c4a060', '#6a6a6a', '#7a7a7a'][b.type];
+                ctx.fillRect(b.x - 6, b.y - b.height, 12, b.height);
+                ctx.fillStyle = '#ffff88';
+                ctx.fillRect(b.x - 2, b.y - b.height + 4, 4, 4);
+            });
+            // Units
+            units.forEach(u => {
+                const dx = u.tx - u.x, dy = u.ty - u.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist < 5) { u.tx = Math.random() * canvas.width; u.ty = Math.random() * canvas.height; }
+                else { u.x += dx / dist * u.speed; u.y += dy / dist * u.speed; }
+                ctx.fillStyle = u.color;
+                ctx.fillRect(Math.round(u.x), Math.round(u.y - 6), 3, 6);
+                ctx.fillStyle = '#fc9';
+                ctx.fillRect(Math.round(u.x), Math.round(u.y - 9), 3, 3);
+            });
+            requestAnimationFrame(render);
+        }
+        render();
+    </script>
+</body>
+</html>`;
 }
 
 // ASYNC SIMULATION TICK - Non-blocking version
@@ -771,8 +639,8 @@ SERVER.listen(PORT, () => {
     console.log("📅 AI Events: every 150 days | Code Improvements: every 250 days");
     console.log("⏳ Rate limiter: 7 seconds minimum between calls");
     console.log("🎮 Pixel Art style: Age of Empires inspired");
-    console.log("🏗️ Map shows buildings proportional to population");
-    console.log("🚶 Units walk between buildings");
+    console.log("🔄 REPLACE mode: AI replaces code, never appends duplicates");
+    console.log("📏 Max HTML size: 100KB (auto-reset if exceeded)");
     
     queryAI("Say 'OK'")
         .then(response => {
