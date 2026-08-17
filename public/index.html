@@ -38,7 +38,10 @@
             gap: 10px;
             overflow: hidden;
             position: fixed;
-            inset: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             width: 100%;
             height: 100%;
         }
@@ -48,7 +51,7 @@
             border: 1px solid var(--border-glow);
             border-radius: 12px;
             padding: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(0, 210, 255, 0.05);
             flex-shrink: 0;
         }
 
@@ -100,6 +103,12 @@
             cursor: default;
         }
 
+        .stat-card:hover {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
         .stat-label {
             font-size: 10px;
             color: #6b7c93;
@@ -114,10 +123,10 @@
             color: #ffffff;
         }
 
-        .val-gold { color: var(--accent-gold); }
-        .val-pop { color: var(--accent-green); }
-        .val-tech { color: var(--accent-blue); }
-        .val-era { color: var(--accent-purple); }
+        .val-gold { color: var(--accent-gold); text-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
+        .val-pop { color: var(--accent-green); text-shadow: 0 0 8px rgba(46, 204, 113, 0.4); }
+        .val-tech { color: var(--accent-blue); text-shadow: 0 0 8px rgba(52, 152, 219, 0.4); }
+        .val-era { color: var(--accent-purple); text-shadow: 0 0 8px rgba(155, 89, 182, 0.4); }
 
         #map-container {
             flex: 1;
@@ -126,7 +135,7 @@
             border-radius: 12px;
             position: relative;
             overflow: hidden;
-            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8);
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 210, 255, 0.1);
             min-height: 0;
         }
 
@@ -135,11 +144,6 @@
             width: 100%;
             height: 100%;
             touch-action: none;
-            cursor: grab;
-        }
-
-        canvas:active {
-            cursor: grabbing;
         }
 
         .map-overlay-info {
@@ -154,7 +158,7 @@
             pointer-events: none;
             color: var(--accent-cyan);
             z-index: 10;
-            box-shadow: 0 0 10px rgba(0, 210, 255, 0.1);
+            backdrop-filter: blur(4px);
         }
 
         .log-container {
@@ -199,7 +203,7 @@
 
         .log-entry:last-child {
             color: var(--accent-cyan);
-            text-shadow: 0 0 5px rgba(0, 210, 255, 0.5);
+            text-shadow: 0 0 8px rgba(0, 210, 255, 0.3);
         }
 
         @media (max-width: 768px) {
@@ -216,6 +220,10 @@
             .log-container {
                 height: 70px;
             }
+            .map-overlay-info {
+                font-size: 9px;
+                padding: 4px 8px;
+            }
         }
 
         @media (max-width: 400px) {
@@ -225,522 +233,271 @@
             .stat-label {
                 font-size: 8px;
             }
+            .dash-header {
+                font-size: 11px;
+            }
+            .stats-grid {
+                gap: 4px;
+            }
+            .stat-card {
+                padding: 5px;
+            }
+            .log-container {
+                height: 60px;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- TOP DASHBOARD -->
     <div class="dashboard">
         <div class="dash-header">
             <span>SOVEREIGN AI ENGINE</span>
             <div class="status-badge"><div class="status-dot"></div> 24/7 AUTONOMOUS</div>
         </div>
         <div class="stats-grid">
-            <div class="stat-card"><div class="stat-label">DAY</div><div class="stat-value" id="stat-day">1</div></div>
-            <div class="stat-card"><div class="stat-label">ERA</div><div class="stat-value val-era" id="stat-era">Era 1</div></div>
-            <div class="stat-card"><div class="stat-label">POPULATION</div><div class="stat-value val-pop" id="stat-pop">0</div></div>
-            <div class="stat-card"><div class="stat-label">TREASURY</div><div class="stat-value val-gold" id="stat-gold">0 G</div></div>
-            <div class="stat-card"><div class="stat-label">TECH</div><div class="stat-value val-tech" id="stat-tech">0.0</div></div>
-            <div class="stat-card"><div class="stat-label">DEFENSES</div><div class="stat-value" id="stat-tanks">0</div></div>
-            <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value" id="stat-status">PEACE</div></div>
-            <div class="stat-card"><div class="stat-label">BUILDINGS</div><div class="stat-value" id="stat-building-count">0</div></div>
+            <div class="stat-card">
+                <div class="stat-label">DAY</div>
+                <div class="stat-value" id="stat-day">1</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">ERA</div>
+                <div class="stat-value val-era" id="stat-era">Era 1</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">POPULATION</div>
+                <div class="stat-value val-pop" id="stat-pop">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">TREASURY</div>
+                <div class="stat-value val-gold" id="stat-gold">0 G</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">TECH POWER</div>
+                <div class="stat-value val-tech" id="stat-tech">0.0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">DEFENSES</div>
+                <div class="stat-value" id="stat-tanks">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">STATUS</div>
+                <div class="stat-value" style="color: #2ecc71;" id="stat-status">PEACE</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">BUILD</div>
+                <div class="stat-value" id="stat-build" style="font-size: 10px;">v2.0</div>
+            </div>
         </div>
     </div>
 
+    <!-- MAP CONTAINER -->
     <div id="map-container">
         <div class="map-overlay-info">Drag to Pan | Scroll or Pinch to Zoom</div>
         <canvas id="gameCanvas"></canvas>
     </div>
 
+    <!-- SYSTEM EVENT LOGS STREAM -->
     <div class="log-container">
         <div class="log-title">SYSTEM EVENT STREAM</div>
-        <div id="log-stream">Connecting...</div>
+        <div id="log-stream">Connecting to AI Sovereign Neural Link...</div>
     </div>
 
     <script>
+// ==== Optimized Pixel‑Art Engine ====
+// Assumes a <canvas id="gameCanvas"></canvas> exists and a global `worldState` object:
+// {
+//   day: Number, pop: Number, tech: Number,
+//   buildings: [{x,y,type}], units: [{x,y,dir}], activeEvents: ['blood_moon',...]
+// }
+
 (() => {
-    // ============================================
-    // FIXED WORLD MAP - VIRTUAL RESOLUTION
-    // Same layout on ALL devices, stable on zoom
-    // ============================================
-    
     const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d', { alpha: false });
-    ctx.imageSmoothingEnabled = false;
+    const ctx = canvas.getContext('2d');
+    const PIXEL = 2;                     // size of a "pixel" block
+    const BUILD_W = 16, BUILD_H = 24;    // building base size in pixels
+    const UNIT_W = 8, UNIT_H = 12;       // unit size in pixels
+    const FPS = 60;
+    let lastTime = 0;
+    let resizePending = false;
 
-    // Defines the universal fixed size of the game world.
-    const WORLD_WIDTH = 2000;
-    const WORLD_HEIGHT = 2000;
+    // ---------- Helpers ----------
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    const toScreen = (x, y) => ({ x: Math.round(x), y: Math.round(y) });
 
-    // World state
-    let worldState = {
-        day: 1, era: "Era 1", population: 10, treasury: 500,
-        techPower: 1, tanks: 0, logs: [], inWar: false,
-        activeEvents: [], buildings: []
+    // ---------- Drawing Primitives ----------
+    const fillRect = (x, y, w, h, col) => {
+        ctx.fillStyle = col;
+        ctx.fillRect(x, y, w, h);
     };
 
-    // WebSocket (Optional / Placeholder functionality matches original)
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    try {
-        const ws = new WebSocket(protocol + '//' + window.location.host);
-        ws.onmessage = (event) => {
-            const msg = JSON.parse(event.data);
-            if (msg.type === 'WORLD_UPDATE') {
-                worldState = msg.data;
-                updateUI();
-                generateObjects();
-            }
-        };
-    } catch(e) {
-        console.log("Running in offline/preview mode.");
-    }
-
-    function updateUI() {
-        document.getElementById('stat-day').innerText = worldState.day;
-        document.getElementById('stat-era').innerText = worldState.era;
-        document.getElementById('stat-pop').innerText = worldState.population;
-        document.getElementById('stat-gold').innerText = Math.floor(worldState.treasury).toLocaleString() + ' G';
-        document.getElementById('stat-tech').innerText = Number(worldState.techPower).toFixed(1);
-        document.getElementById('stat-tanks').innerText = worldState.tanks;
-        document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
-        document.getElementById('stat-status').style.color = worldState.inWar ? '#e74c3c' : '#2ecc71';
-        
-        const buildingCount = Math.floor(worldState.population / 5) + 2;
-        document.getElementById('stat-building-count').innerText = buildingCount;
-
-        const logBox = document.getElementById('log-stream');
-        if (worldState.logs && worldState.logs.length > 0) {
-            logBox.innerHTML = worldState.logs.map(l => '<div class="log-entry">' + l + '</div>').join('');
-            logBox.scrollTop = logBox.scrollHeight;
+    // Pixel‑art building (simple roof, windows, door)
+    const drawBuilding = (bx, by, type = 0) => {
+        // base
+        fillRect(bx, by - BUILD_H * PIXEL, BUILD_W * PIXEL, BUILD_H * PIXEL, '#7b5e57');
+        // roof
+        for (let i = 0; i < BUILD_W; i++) {
+            const hue = (type * 30 + i * 5) % 360;
+            fillRect(bx + i * PIXEL, by - (BUILD_H + 2) * PIXEL, PIXEL, PIXEL * 2,
+                `hsl(${hue},40%,50%)`);
         }
-    }
-
-    // Camera setup - Centered initially
-    let camera = { x: 0, y: 0, zoom: 0.8 };
-    let isDragging = false;
-    let startX, startY;
-
-    // Object arrays - positions stored as PERCENTAGES (0-100)
-    let buildings = [];
-    let units = [];
-    let frameCount = 0;
-
-    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-
-    // Generate objects with PERCENTAGE positions mapped to VIRTUAL WORLD
-    function generateObjects() {
-        buildings = [];
-        units = [];
-        
-        const buildingCount = clamp(Math.floor(worldState.population / 5) + 2, 5, 80);
-        const unitCount = clamp(Math.floor(worldState.population / 10) + 2, 3, 50);
-        
-        // Fixed percentage positions - same layout everywhere
-        for (let i = 0; i < buildingCount; i++) {
-            buildings.push({
-                xPercent: 15 + ((i * 7) % 70),   // Clustered towards middle 
-                yPercent: 15 + ((i * 5) % 70),  
-                type: i % 4,
-                heightPercent: 2 + (i % 5) * 1.5 // Height relative to world height
-            });
-        }
-        
-        for (let u = 0; u < unitCount; u++) {
-            units.push({
-                xPercent: 10 + Math.random() * 80,
-                yPercent: 10 + Math.random() * 80,
-                targetXPercent: 10 + Math.random() * 80,
-                targetYPercent: 10 + Math.random() * 80,
-                speed: 0.3 + Math.random() * 0.7,
-                color: ['#ff4757', '#3742fa', '#2ed573', '#eccc68', '#ff7f50'][u % 5]
-            });
-        }
-    }
-
-    // Convert percentage to pixel relative to the FIXED VIRTUAL WORLD
-    function px(percent, dimension) {
-        return (percent / 100) * dimension;
-    }
-
-    // Canvas resize
-    function resizeCanvas() {
-        const container = document.getElementById('map-container');
-        const w = Math.floor(container.clientWidth);
-        const h = Math.floor(container.clientHeight);
-        if (w > 50 && h > 50) {
-            canvas.width = w;
-            canvas.height = h;
-            // Center camera on initial load
-            if (buildings.length === 0) {
-                camera.x = (canvas.width - WORLD_WIDTH * camera.zoom) / 2;
-                camera.y = (canvas.height - WORLD_HEIGHT * camera.zoom) / 2;
+        // windows
+        for (let row = 2; row < BUILD_H - 2; row += 3) {
+            for (let col = 2; col < BUILD_W - 2; col += 4) {
+                fillRect(bx + col * PIXEL, by - row * PIXEL - PIXEL, PIXEL * 2, PIXEL * 2,
+                    '#a9d6e5');
             }
         }
-    }
+        // door
+        fillRect(bx + (BUILD_W / 2 - 1) * PIXEL,
+                 by - PIXEL * 2,
+                 PIXEL * 2,
+                 PIXEL * 2,
+                 '#5c3d2e');
+    };
 
-    // Initialize
-    function initMap() {
-        resizeCanvas();
-        generateObjects();
-        updateUI(); // Initial UI update
-        console.log('Map initialized with virtual bounds:', WORLD_WIDTH + 'x' + WORLD_HEIGHT);
-    }
+    // Animated walking unit (simple two‑frame walk cycle)
+    const drawUnit = (ux, uy, dir, frame) => {
+        const baseY = uy - UNIT_H * PIXEL;
+        // body
+        fillRect(ux, baseY, UNIT_W * PIXEL, UNIT_H * PIXEL, '#ffb347');
+        // head
+        fillRect(ux + 2 * PIXEL, baseY - 4 * PIXEL, 4 * PIXEL, 4 * PIXEL, '#ffe0bd');
+        // legs (simple animation)
+        const offset = frame % 2 ? 1 : -1;
+        const legY = baseY + UNIT_H * PIXEL - 2 * PIXEL;
+        fillRect(ux + (dir === 'right' ? 2 : 6) * PIXEL,
+                 legY + offset,
+                 2 * PIXEL,
+                 2 * PIXEL,
+                 '#2c3e50');
+        fillRect(ux + (dir === 'right' ? 6 : 2) * PIXEL,
+                 legY - offset,
+                 2 * PIXEL,
+                 2 * PIXEL,
+                 '#2c3e50');
+    };
 
-    if (document.readyState === 'complete') {
-        setTimeout(initMap, 100);
-    } else {
-        window.addEventListener('load', () => setTimeout(initMap, 100));
-    }
-    setTimeout(() => { if (buildings.length === 0) initMap(); }, 500);
-
-    // Debounced resize
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(resizeCanvas, 150);
-    });
-
-    // MOUSE CONTROLS (With precision Zoom-To-Cursor)
-    canvas.addEventListener('mousedown', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        isDragging = true;
-        startX = (e.clientX - rect.left) - camera.x;
-        startY = (e.clientY - rect.top) - camera.y;
-    });
-    
-    window.addEventListener('mouseup', () => isDragging = false);
-    
-    canvas.addEventListener('mousemove', (e) => {
-        if (isDragging) {
-            const rect = canvas.getBoundingClientRect();
-            camera.x = (e.clientX - rect.left) - startX;
-            camera.y = (e.clientY - rect.top) - startY;
-        }
-    });
-
-    canvas.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
-        const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
-        const newZoom = clamp(camera.zoom * zoomFactor, 0.2, 3.5);
-
-        // Adjust camera position to zoom directly towards the mouse cursor
-        camera.x = mouseX - (mouseX - camera.x) * (newZoom / camera.zoom);
-        camera.y = mouseY - (mouseY - camera.y) * (newZoom / camera.zoom);
-        camera.zoom = newZoom;
-    }, { passive: false });
-
-    // TOUCH CONTROLS (With precision Pinch-To-Zoom)
-    let lastTouchDistance = 0;
-    canvas.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
-        if (e.touches.length === 1) {
-            isDragging = true;
-            startX = (e.touches[0].clientX - rect.left) - camera.x;
-            startY = (e.touches[0].clientY - rect.top) - camera.y;
-        } else if (e.touches.length === 2) {
-            isDragging = false;
-            lastTouchDistance = Math.hypot(
-                e.touches[0].clientX - e.touches[1].clientX,
-                e.touches[0].clientY - e.touches[1].clientY
-            );
-        }
-    });
-    
-    canvas.addEventListener('touchend', () => isDragging = false);
-    
-    canvas.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
-        
-        if (e.touches.length === 1 && isDragging) {
-            camera.x = (e.touches[0].clientX - rect.left) - startX;
-            camera.y = (e.touches[0].clientY - rect.top) - startY;
-        } else if (e.touches.length === 2) {
-            const touch1 = { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
-            const touch2 = { x: e.touches[1].clientX - rect.left, y: e.touches[1].clientY - rect.top };
-            
-            const dist = Math.hypot(touch1.x - touch2.x, touch1.y - touch2.y);
-            const centerX = (touch1.x + touch2.x) / 2;
-            const centerY = (touch1.y + touch2.y) / 2;
-
-            const zoomFactor = dist / lastTouchDistance;
-            const newZoom = clamp(camera.zoom * zoomFactor, 0.2, 3.5);
-
-            camera.x = centerX - (centerX - camera.x) * (newZoom / camera.zoom);
-            camera.y = centerY - (centerY - camera.y) * (newZoom / camera.zoom);
-            
-            camera.zoom = newZoom;
-            lastTouchDistance = dist;
-        }
-    }, { passive: false });
-
-
-    // ==========================================
-    // GRAPHICAL IMPROVEMENTS & DRAWING LOGIC
-    // ==========================================
-    function drawPixelCastle(x, y, h) {
-        ctx.fillStyle = '#636e72';
-        ctx.fillRect(Math.round(x - h*0.3), Math.round(y - h), Math.round(h*0.6), h);
-        ctx.fillStyle = '#2d3436'; // Shading
-        ctx.fillRect(Math.round(x + h*0.1), Math.round(y - h), Math.round(h*0.2), h);
-        
-        // Crenellations
-        for (let i = -3; i < 3; i++) {
-            ctx.fillRect(Math.round(x + i * h*0.1), Math.round(y - h - 3), 3, 3);
-        }
-        
-        // Windows (Glow effect)
-        ctx.fillStyle = '#ffeaa7';
-        ctx.shadowColor = '#fdcb6e';
-        ctx.shadowBlur = 5;
-        for (let w = 0; w < 3; w++) {
-            ctx.fillRect(Math.round(x - 2), Math.round(y - h + 5 + w * 12), 4, 4);
-        }
-        ctx.shadowBlur = 0; // Reset
-        
-        // Door
-        ctx.fillStyle = '#2d3436';
-        ctx.fillRect(Math.round(x - 4), Math.round(y - 8), 8, 8);
-    }
-
-    function drawPixelHouse(x, y, h) {
-        ctx.fillStyle = '#d2b48c';
-        ctx.fillRect(Math.round(x - h*0.4), Math.round(y - h), Math.round(h*0.8), h);
-        ctx.fillStyle = '#b89970'; // Shading
-        ctx.fillRect(Math.round(x), Math.round(y - h), Math.round(h*0.4), h);
-        
-        // Roof
-        ctx.fillStyle = '#c0392b';
-        ctx.beginPath();
-        ctx.moveTo(x - h*0.5, y - h);
-        ctx.lineTo(x + h*0.5, y - h);
-        ctx.lineTo(x, y - h - h*0.4);
-        ctx.fill();
-        
-        // Window
-        ctx.fillStyle = '#ffeaa7';
-        ctx.fillRect(Math.round(x - 3), Math.round(y - h + 6), 6, 6);
-        
-        // Door
-        ctx.fillStyle = '#4a2311';
-        ctx.fillRect(Math.round(x - 3), Math.round(y - 6), 6, 6);
-    }
-
-    function drawPixelBarracks(x, y, h) {
-        ctx.fillStyle = '#7f8c8d';
-        ctx.fillRect(Math.round(x - h*0.5), Math.round(y - h), Math.round(h), h);
-        
-        // Roof
-        ctx.fillStyle = '#2c3e50';
-        ctx.fillRect(Math.round(x - h*0.6), Math.round(y - h - 4), Math.round(h*1.2), 4);
-        
-        // Target practice board
-        ctx.fillStyle = '#e74c3c';
-        ctx.beginPath();
-        ctx.arc(x, y - h/2, 4, 0, Math.PI*2);
-        ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(x, y - h/2, 2, 0, Math.PI*2);
-        ctx.fill();
-    }
-
-    function drawPixelTower(x, y, h) {
-        ctx.fillStyle = '#bdc3c7';
-        ctx.fillRect(Math.round(x - h*0.2), Math.round(y - h), Math.round(h*0.4), h);
-        ctx.fillStyle = '#95a5a6'; // Shadow
-        ctx.fillRect(Math.round(x), Math.round(y - h), Math.round(h*0.2), h);
-        
-        // Top section
-        ctx.fillStyle = '#34495e';
-        ctx.fillRect(Math.round(x - h*0.3), Math.round(y - h - 6), Math.round(h*0.6), 6);
-        
-        // Flag
-        ctx.fillStyle = '#e74c3c';
-        ctx.fillRect(Math.round(x + h*0.1), Math.round(y - h - 14), 10, 6);
-        ctx.fillStyle = '#7f8c8d';
-        ctx.fillRect(Math.round(x), Math.round(y - h - 16), 2, 12);
-    }
-
-    function drawPixelUnit(unit, unitX, unitY) {
-        const legOffset = Math.sin(frameCount * 0.15 + unitX) > 0 ? 0 : 3;
-        
-        // Unit Body Glow
-        ctx.shadowColor = unit.color;
-        ctx.shadowBlur = 4;
-        ctx.fillStyle = unit.color;
-        ctx.fillRect(Math.round(unitX), Math.round(unitY - 6), 4, 6);
-        ctx.shadowBlur = 0;
-        
-        // Head
-        ctx.fillStyle = '#ffcc99';
-        ctx.fillRect(Math.round(unitX + 0.5), Math.round(unitY - 9), 3, 3);
-        
-        // Legs
-        ctx.fillStyle = '#111';
-        ctx.fillRect(Math.round(unitX), Math.round(unitY), 1.5, 3 + legOffset);
-        ctx.fillRect(Math.round(unitX + 2.5), Math.round(unitY), 1.5, 3 - legOffset);
-    }
-
-    function updateUnits() {
-        units.forEach(unit => {
-            const dx = unit.targetXPercent - unit.xPercent;
-            const dy = unit.targetYPercent - unit.yPercent;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            
-            if (dist < 1) {
-                unit.targetXPercent = 10 + Math.random() * 80;
-                unit.targetYPercent = 10 + Math.random() * 80;
-            } else {
-                unit.xPercent += (dx / dist) * unit.speed * 0.05;
-                unit.yPercent += (dy / dist) * unit.speed * 0.05;
-            }
-            
-            unit.xPercent = clamp(unit.xPercent, 5, 95);
-            unit.yPercent = clamp(unit.yPercent, 5, 95);
-        });
-    }
-
-    // Main render loop
-    function render() {
-        frameCount++;
-        
-        // Base dark background (Outer void)
-        ctx.fillStyle = '#04060d';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.save();
-        ctx.translate(camera.x, camera.y);
-        ctx.scale(camera.zoom, camera.zoom);
-
-        // Render Visible Terrain Grid (Zoom & Pan Aware)
-        const tileSize = 25; // Slightly larger for better aesthetics
-        
-        // Calculate viewport boundaries inside the virtual world
-        const startX = Math.max(0, Math.floor(-camera.x / (tileSize * camera.zoom)));
-        const endX = Math.min(WORLD_WIDTH / tileSize, Math.ceil((canvas.width - camera.x) / (tileSize * camera.zoom)));
-        const startY = Math.max(0, Math.floor(-camera.y / (tileSize * camera.zoom)));
-        const endY = Math.min(WORLD_HEIGHT / tileSize, Math.ceil((canvas.height - camera.y) / (tileSize * camera.zoom)));
-        
-        // Base world bounds map background
-        ctx.fillStyle = '#1a2215';
-        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-
-        // Draw Checkerboard Grass
-        for (let x = startX; x < endX; x++) {
-            for (let y = startY; y < endY; y++) {
-                if ((x + y) % 2 === 0) {
-                    ctx.fillStyle = '#22301b';
-                    ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+    // ---------- Event Overlays ----------
+    const drawEventOverlay = (event, width, height, time) => {
+        switch (event) {
+            case 'blood_moon':
+                ctx.globalAlpha = 0.2;
+                ctx.fillStyle = 'rgba(150,0,0,0.5)';
+                ctx.fillRect(0, 0, width, height);
+                ctx.globalAlpha = 0.8;
+                ctx.beginPath();
+                ctx.arc(width * 0.8, height * 0.2, 30, 0, Math.PI * 2);
+                ctx.fillStyle = 'red';
+                ctx.fill();
+                break;
+            case 'fire':
+                ctx.globalAlpha = 0.3;
+                ctx.fillStyle = 'rgba(255,69,0,0.4)';
+                ctx.fillRect(0, 0, width, height);
+                // simple flame particles
+                for (let i = 0; i < 15; i++) {
+                    const px = Math.random() * width;
+                    const py = Math.random() * height;
+                    const r = Math.random() * 4 + 2;
+                    ctx.beginPath();
+                    ctx.arc(px, py, r, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255,${50 + Math.random() * 100},0,0.6)`;
+                    ctx.fill();
                 }
-            }
+                break;
+            case 'storm':
+                ctx.globalAlpha = 0.25;
+                ctx.fillStyle = 'rgba(0,0,50,0.5)';
+                ctx.fillRect(0, 0, width, height);
+                // lightning flash
+                if (Math.floor(time / 500) % 2 === 0) {
+                    ctx.globalAlpha = 0.6;
+                    ctx.strokeStyle = 'white';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.moveTo(Math.random() * width, 0);
+                    ctx.lineTo(Math.random() * width, height);
+                    ctx.stroke();
+                }
+                break;
+            case 'plague':
+                ctx.globalAlpha = 0.2;
+                ctx.fillStyle = 'rgba(0,150,0,0.4)';
+                ctx.fillRect(0, 0, width, height);
+                // floating green particles
+                for (let i = 0; i < 12; i++) {
+                    const px = Math.random() * width;
+                    const py = Math.random() * height;
+                    ctx.fillStyle = `rgba(0,200,0,${0.3 + Math.random() * 0.3})`;
+                    ctx.fillRect(px, py, 3, 3);
+                }
+                break;
+            case 'prosperity':
+                ctx.globalAlpha = 0.3;
+                for (let i = 0; i < 20; i++) {
+                    const px = Math.random() * width;
+                    const py = Math.random() * height;
+                    ctx.fillStyle = `rgba(255,215,0,${0.5 + Math.random() * 0.5})`;
+                    ctx.fillRect(px, py, 2, 2);
+                }
+                break;
+        }
+        ctx.globalAlpha = 1;
+    };
+
+    // ---------- Main Render ----------
+    const render = (time) => {
+        const dt = time - lastTime;
+        if (dt < 1000 / FPS) {
+            requestAnimationFrame(render);
+            return;
+        }
+        lastTime = time;
+
+        // Resize handling (debounced)
+        if (resizePending) {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            resizePending = false;
         }
 
-        // River Improvement - Curve and Glow
-        ctx.shadowColor = 'rgba(0, 210, 255, 0.5)';
-        ctx.shadowBlur = 15;
-        ctx.fillStyle = '#0984e3';
-        ctx.beginPath();
-        for (let y = 0; y < WORLD_HEIGHT; y += 10) {
-            const waveOffset = Math.sin((y * 0.005) + (frameCount * 0.02)) * 30;
-            ctx.rect(Math.round(WORLD_WIDTH * 0.45 + waveOffset), y, 35, 12);
+        const { width, height } = canvas;
+        ctx.clearRect(0, 0, width, height);
+
+        // Draw buildings
+        worldState.buildings.forEach(b => {
+            const bx = clamp(b.x, 0, width - BUILD_W * PIXEL);
+            const by = clamp(b.y, BUILD_H * PIXEL, height);
+            drawBuilding(bx, by, b.type || 0);
+        });
+
+        // Draw units (simple walk animation based on time)
+        worldState.units.forEach((u, idx) => {
+            const frame = Math.floor(time / 200 + idx) % 2;
+            const ux = clamp(u.x, 0, width - UNIT_W * PIXEL);
+            const uy = clamp(u.y, UNIT_H * PIXEL, height);
+            drawUnit(ux, uy, u.dir || 'right', frame);
+        });
+
+        // Draw active events
+        if (Array.isArray(worldState.activeEvents)) {
+            worldState.activeEvents.forEach(ev => drawEventOverlay(ev, width, height, time));
         }
-        ctx.fill();
-        ctx.shadowBlur = 0; // Reset Shadow
 
-        // Trees - mapped to WORLD_WIDTH / HEIGHT
-        const treePositions = [
-            {x: 8, y: 15}, {x: 22, y: 25}, {x: 45, y: 12},
-            {x: 60, y: 30}, {x: 75, y: 18}, {x: 15, y: 50},
-            {x: 38, y: 45}, {x: 65, y: 55}, {x: 85, y: 40},
-            {x: 10, y: 80}, {x: 30, y: 85}, {x: 80, y: 80}
-        ];
-        
-        treePositions.forEach(t => {
-            const tx = px(t.x, WORLD_WIDTH);
-            const ty = px(t.y, WORLD_HEIGHT);
-            
-            // Trunk
-            ctx.fillStyle = '#5a3a1a';
-            ctx.fillRect(Math.round(tx), Math.round(ty), 4, 12);
-            
-            // Leaves with simple shading
-            ctx.fillStyle = '#218c35';
-            ctx.beginPath();
-            ctx.arc(tx + 2, ty - 6, 12, 0, Math.PI*2);
-            ctx.fill();
-            ctx.fillStyle = '#1e752d';
-            ctx.beginPath();
-            ctx.arc(tx + 4, ty - 4, 8, 0, Math.PI*2);
-            ctx.fill();
-        });
-
-        // Gold mines - mapped to WORLD
-        const goldPositions = [
-            {x: 25, y: 65}, {x: 55, y: 20}, {x: 75, y: 65}
-        ];
-        
-        goldPositions.forEach(g => {
-            const gx = px(g.x, WORLD_WIDTH);
-            const gy = px(g.y, WORLD_HEIGHT);
-            
-            ctx.fillStyle = '#2d3436';
-            ctx.beginPath();
-            ctx.ellipse(gx, gy, 18, 10, 0, 0, Math.PI*2);
-            ctx.fill();
-            
-            // Gold sparkles
-            ctx.fillStyle = '#f1c40f';
-            ctx.shadowColor = '#f39c12';
-            ctx.shadowBlur = 8;
-            ctx.fillRect(Math.round(gx - 8), Math.round(gy - 4), 4, 4);
-            ctx.fillRect(Math.round(gx + 2), Math.round(gy - 6), 5, 5);
-            ctx.fillRect(Math.round(gx + 6), Math.round(gy + 2), 3, 3);
-            ctx.shadowBlur = 0;
-        });
-
-        // Buildings - percentage to pixel conversion (MAPPED TO FIXED WORLD)
-        buildings.forEach(building => {
-            const bx = px(building.xPercent, WORLD_WIDTH);
-            const by = px(building.yPercent, WORLD_HEIGHT);
-            const bh = px(building.heightPercent, WORLD_HEIGHT); // Scale heights relatively
-            
-            // Sort shadow
-            ctx.shadowColor = 'rgba(0,0,0,0.6)';
-            ctx.shadowBlur = 10;
-            ctx.shadowOffsetY = 5;
-            
-            switch(building.type) {
-                case 0: drawPixelCastle(bx, by, bh); break;
-                case 1: drawPixelHouse(bx, by, bh * 0.7); break;
-                case 2: drawPixelBarracks(bx, by, bh * 0.8); break;
-                case 3: drawPixelTower(bx, by, bh * 1.3); break;
-            }
-            
-            // Reset shadow to prevent bleeding into next elements
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-        });
-
-        // Units - Update and Map to WORLD
-        updateUnits();
-        units.forEach(unit => {
-            const ux = px(unit.xPercent, WORLD_WIDTH);
-            const uy = px(unit.yPercent, WORLD_HEIGHT);
-            drawPixelUnit(unit, ux, uy);
-        });
-
-        ctx.restore();
         requestAnimationFrame(render);
-    }
+    };
 
+    // ---------- Resize ----------
+    const onResize = () => {
+        resizePending = true;
+    };
+    window.addEventListener('resize', onResize);
+    onResize(); // initial size
+
+    // ---------- Start ----------
     requestAnimationFrame(render);
 })();
-    </script>
+</script>
 </body>
 </html>
