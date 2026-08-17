@@ -500,5 +500,225 @@
 
         requestAnimationFrame(render);
     </script>
+
+<!-- === AI PIXEL ART MAP JS (Day 29001) === -->
+<script>
+(() => {
+  // ----- CONFIG -----
+  const MAP_W = 12;
+  const MAP_H = 12;
+  const TILE_W = 8; // logical pixels (isometric width)
+  const TILE_H = 4; // logical pixels (isometric height)
+  const PIXEL_SCALE = 4; // actual canvas pixel size per logical pixel
+  const CANVAS_W = (MAP_W + MAP_H) * TILE_W * PIXEL_SCALE;
+  const CANVAS_H = (MAP_W + MAP_H) * TILE_H * PIXEL_SCALE + 64;
+  const WATER_ANIM_SPEED = 0.1;
+  const TREE_SWAY_SPEED = 0.05;
+  const UNIT_SPEED = 0.02;
+  // -------------------
+
+  // create canvas
+  const canvas = document.createElement('canvas');
+  canvas.width = CANVAS_W;
+  canvas.height = CANVAS_H;
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+
+  // helpers
+  const isoToScreen = (x, y) => {
+    const sx = (x - y) * (TILE_W / 2);
+    const sy = (x + y) * (TILE_H / 2);
+    return { sx, sy };
+  };
+  const drawPixel = (x, y, color) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(x * PIXEL_SCALE, y * PIXEL_SCALE, PIXEL_SCALE, PIXEL_SCALE);
+  };
+  const drawRect = (x, y, w, h, color) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(
+      x * PIXEL_SCALE,
+      y * PIXEL_SCALE,
+      w * PIXEL_SCALE,
+      h * PIXEL_SCALE
+    );
+  };
+
+  // map generation
+  const terrain = [];
+  for (let y = 0; y < MAP_H; y++) {
+    terrain[y] = [];
+    for (let x = 0; x < MAP_W; x++) {
+      // simple pattern: water strip in middle, rest grass/dirt
+      if (x === 5 && y > 2 && y < 9) terrain[y][x] = 'water';
+      else if ((x + y) % 5 === 0) terrain[y][x] = 'dirt';
+      else terrain[y][x] = 'grass';
+    }
+  }
+
+  // objects
+  const buildings = [
+    { x: 2, y: 2, type: 'castle' },
+    { x: 9, y: 3, type: 'barracks' },
+    { x: 3, y: 8, type: 'house' }
+  ];
+  const trees = [
+    { x: 4, y: 1, phase: 0 },
+    { x: 7, y: 6, phase: 0 },
+    { x: 1, y: 9, phase: 0 }
+  ];
+  const goldMines = [
+    { x: 10, y: 10 }
+  ];
+  const units = [
+    { x: 0.5, y: 0.5, dx: 11.5, dy: 11.5, t: 0 }
+  ];
+
+  // draw functions
+  const drawTerrainTile = (tx, ty, frame) => {
+    const { sx, sy } = isoToScreen(tx, ty);
+    const baseX = Math.round(sx) + CANVAS_W / 2 / PIXEL_SCALE - TILE_W / 2;
+    const baseY = Math.round(sy);
+    const type = terrain[ty][tx];
+    const colorMap = {
+      grass: '#3a9b37',
+      dirt: '#a47149',
+      stone: '#777777',
+      water: '#4a90e2'
+    };
+    // base diamond
+    for (let py = 0; py < TILE_H; py++) {
+      const rowWidth = TILE_W - (py * 2);
+      const offsetX = baseX + py;
+      for (let px = 0; px < rowWidth; px++) {
+        const col = (type === 'water')
+          ? ((frame + px + py) % 2 === 0 ? '#4a90e2' : '#5ab0ff')
+          : colorMap[type];
+        drawPixel(offsetX + px, baseY + py, col);
+      }
+    }
+  };
+
+  const drawCastle = (tx, ty) => {
+    const { sx, sy } = isoToScreen(tx, ty);
+    const bx = Math.round(sx) + CANVAS_W / 2 / PIXEL_SCALE - 4;
+    const by = Math.round(sy) - 2;
+    // walls
+    drawRect(bx + 2, by + 2, 4, 4, '#7c7c7c');
+    // crenellations
+    drawRect(bx + 2, by + 1, 1, 1, '#7c7c7c');
+    drawRect(bx + 4, by + 1, 1, 1, '#7c7c7c');
+    drawRect(bx + 6, by + 1, 1, 1, '#7c7c7c');
+    // roof
+    drawRect(bx + 1, by, 6, 1, '#5b5b5b');
+  };
+
+  const drawBarracks = (tx, ty) => {
+    const { sx, sy } = isoToScreen(tx, ty);
+    const bx = Math.round(sx) + CANVAS_W / 2 / PIXEL_SCALE - 3;
+    const by = Math.round(sy) - 1;
+    drawRect(bx + 1, by + 1, 4, 3, '#8b5a2b');
+    drawRect(bx + 2, by, 2, 1, '#5b3a1b');
+  };
+
+  const drawHouse = (tx, ty) => {
+    const { sx, sy } = isoToScreen(tx, ty);
+    const bx = Math.round(sx) + CANVAS_W / 2 / PIXEL_SCALE - 2;
+    const by = Math.round(sy);
+    drawRect(bx + 1, by + 2, 2, 2, '#b5651d');
+    // roof
+    drawPixel(bx + 0, by + 1, '#a03030');
+    drawPixel(bx + 3, by + 1, '#a03030');
+    drawRect(bx + 1, by + 1, 2, 1, '#a03030');
+  };
+
+  const drawTree = (tx, ty, phase) => {
+    const { sx, sy } = isoToScreen(tx, ty);
+    const baseX = Math.round(sx) + CANVAS_W / 2 / PIXEL_SCALE - 2;
+    const baseY = Math.round(sy) - 1;
+    const sway = Math.round(Math.sin(phase) * 0.5);
+    // trunk
+    drawRect(baseX + 2 + sway, baseY + 2, 1, 2, '#8b4513');
+    // foliage (simple triangle)
+    drawPixel(baseX + 1 + sway, baseY + 1, '#2e8b57');
+    drawPixel(baseX + 2 + sway, baseY, '#2e8b57');
+    drawPixel(baseX + 3 + sway, baseY + 1, '#2e8b57');
+  };
+
+  const drawGoldMine = (tx, ty) => {
+    const { sx, sy } = isoToScreen(tx, ty);
+    const bx = Math.round(sx) + CANVAS_W / 2 / PIXEL_SCALE - 2;
+    const by = Math.round(sy) - 1;
+    drawRect(bx + 1, by + 1, 2, 2, '#555555');
+    // gold pixels
+    drawPixel(bx + 1, by, '#ffd700');
+    drawPixel(bx + 2, by, '#ffd700');
+    drawPixel(bx + 1, by + 2, '#ffd700');
+    drawPixel(bx + 2, by + 2, '#ffd700');
+  };
+
+  const drawUnit = (ux, uy) => {
+    const { sx, sy } = isoToScreen(ux, uy);
+    const bx = Math.round(sx) + CANVAS_W / 2 / PIXEL_SCALE - 1;
+    const by = Math.round(sy);
+    // simple 2x3 person (head, body, legs)
+    drawPixel(bx, by, '#ffe0bd'); // head
+    drawPixel(bx, by + 1, '#0000ff'); // body
+    drawPixel(bx, by + 2, '#0000ff'); // legs
+    drawPixel(bx + 1, by + 2, '#0000ff');
+  };
+
+  // main render loop
+  let waterFrame = 0;
+  let treePhase = 0;
+  function loop(timestamp) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // draw terrain
+    for (let y = 0; y < MAP_H; y++) {
+      for (let x = 0; x < MAP_W; x++) {
+        drawTerrainTile(x, y, Math.floor(waterFrame));
+      }
+    }
+
+    // draw resources
+    goldMines.forEach(m => drawGoldMine(m.x, m.y));
+
+    // draw buildings
+    buildings.forEach(b => {
+      if (b.type === 'castle') drawCastle(b.x, b.y);
+      else if (b.type === 'barracks') drawBarracks(b.x, b.y);
+      else if (b.type === 'house') drawHouse(b.x, b.y);
+    });
+
+    // draw trees (sway)
+    trees.forEach(t => drawTree(t.x, t.y, treePhase));
+
+    // draw units (move)
+    units.forEach(u => {
+      const progress = Math.min(u.t, 1);
+      const cx = u.x + (u.dx - u.x) * progress;
+      const cy = u.y + (u.dy - u.y) * progress;
+      drawUnit(cx, cy);
+      u.t += UNIT_SPEED;
+      if (u.t > 1) {
+        // swap start/end to loop
+        const tmpx = u.x, tmpy = u.y;
+        u.x = u.dx; u.y = u.dy;
+        u.dx = tmpx; u.dy = tmpy;
+        u.t = 0;
+      }
+    });
+
+    // animate water and trees
+    waterFrame += WATER_ANIM_SPEED;
+    treePhase += TREE_SWAY_SPEED;
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
 </body>
 </html>
