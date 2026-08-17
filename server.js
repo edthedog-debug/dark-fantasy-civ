@@ -21,6 +21,25 @@ const SERVER = http.createServer(APP);
 const WSS = new WebSocket.Server({ server: SERVER });
 const STATE_FILE = path.join(__dirname, 'worldState.json');
 
+// Rate limiter for Gemini API
+const rateLimiter = {
+    lastCallTime: 0,
+    minInterval: 7000, // 7 seconds between calls (safe for 10 RPM)
+    
+    async waitForSlot() {
+        const now = Date.now();
+        const timeSinceLastCall = now - this.lastCallTime;
+        
+        if (timeSinceLastCall < this.minInterval) {
+            const waitTime = this.minInterval - timeSinceLastCall;
+            console.log(`⏳ Rate limiter: waiting ${waitTime}ms before next call...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+        
+        this.lastCallTime = Date.now();
+    }
+};
+
 let worldState = {
     day: 1,
     era: "Aetheric Civilization Era 1",
@@ -77,8 +96,7 @@ function addLog(msg) {
 }
 
 /**
- * GEMINI API - FIXED - Tries 3.7 Flash, then 3.5 Flash, then 3.6 Flash
- * Includes delays between models to avoid rate limiting (RPM)
+ * GEMINI API - FIXED - Single model with rate limiting
  */
 async function queryGemini(prompt) {
     if (!AI_API_KEY) {
@@ -88,26 +106,57 @@ async function queryGemini(prompt) {
 
     console.log("🔑 Key:", AI_API_KEY.substring(0, 10) + "...");
     
-    // Try models in order: 3.7 Flash, 3.5 Flash, 3.6 Flash
-    const models = [
-        { name: 'gemini-3.7-flash', label: 'Gemini 3.7 Flash' },
-        { name: 'gemini-3.5-flash', label: 'Gemini 3.5 Flash' },
-        { name: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash' }
-    ];
+    // Only use ONE model to avoid RPM issues
+    const model = { name: 'gemini-3.7-flash', label: 'Gemini 3.7 Flash' };
     
-    for (let i = 0; i < models.length; i++) {
-        const model = models[i];
+    try {
+        // Wait for rate limiter slot
+        await rateLimiter.waitForSlot();
         
-        try {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model.name}:generateContent?key=${AI_API_KEY}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model.name}:generateContent?key=${AI_API_KEY}`;
+        
+        console.log(`🔄 Trying ${model.label}...`);
+        
+        // Add timeout to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    temperature: 0.8,
+                    maxOutputTokens: 4096
+                }
+            }),
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        console.log(`📊 Status for ${model.label}:`, response.status);
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log(`📦 Full response from ${model.label}:`, JSON.stringify(data).substring(0, 500));
             
-            console.log(`🔄 Trying ${model.label}...`);
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
             
-            // Add timeout to prevent hanging
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            if (text && text.length > 0) {
+                console.log(`✅ Success with ${model.label}!`);
+                console.log("📝 Text:", text.substring(0, 200));
+                return text;
+            }
+        } else if (response.status === 429) {
+            // Rate limited - wait 60 seconds
+            console.log(`⏳ Rate limit (429). Waiting 60 seconds before retry...`);
+            await new Promise(resolve => setTimeout(resolve, 60000));
             
-            const response = await fetch(url, {
+            // Retry once after waiting
+            console.log(`🔄 Retrying ${model.label}...`);
+            const retryResponse = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -116,46 +165,28 @@ async function queryGemini(prompt) {
                         temperature: 0.8,
                         maxOutputTokens: 4096
                     }
-                }),
-                signal: controller.signal
+                })
             });
             
-            clearTimeout(timeoutId);
-            
-            console.log(`📊 Status for ${model.label}:`, response.status);
-            
-            if (response.ok) {
-                const data = await response.json();
-                console.log(`📦 Full response from ${model.label}:`, JSON.stringify(data).substring(0, 500));
+            if (retryResponse.ok) {
+                const retryData = await retryResponse.json();
+                const retryText = retryData.candidates?.[0]?.content?.parts?.[0]?.text;
                 
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                
-                if (text && text.length > 0) {
-                    console.log(`✅ Success with ${model.label}!`);
-                    console.log("📝 Text:", text.substring(0, 200));
-                    return text;
+                if (retryText && retryText.length > 0) {
+                    console.log(`✅ Success with ${model.label} on retry!`);
+                    return retryText;
                 }
-            } else if (response.status === 429) {
-                // Rate limited - wait 60 seconds before trying next model
-                console.log(`⏳ Rate limit (429) with ${model.label}. Waiting 60 seconds...`);
-                await new Promise(resolve => setTimeout(resolve, 60000));
-            } else {
-                const errorText = await response.text();
-                console.error(`❌ Error with ${model.label}:`, response.status, errorText.substring(0, 300));
             }
-        } catch (e) {
-            console.error(`❌ Fetch error with ${model.label}:`, e.message);
+        } else {
+            const errorText = await response.text();
+            console.error(`❌ Error with ${model.label}:`, response.status, errorText.substring(0, 300));
         }
-        
-        // Wait 5 seconds between models to avoid RPM limit
-        if (i < models.length - 1) {
-            console.log("⏳ Waiting 5 seconds before next model...");
-            await new Promise(resolve => setTimeout(resolve, 5000));
-        }
+    } catch (e) {
+        console.error(`❌ Fetch error with ${model.label}:`, e.message);
     }
     
-    // All models failed
-    console.error("❌ All Gemini models failed");
+    // Model failed
+    console.error("❌ Gemini model failed");
     return null;
 }
 
@@ -509,15 +540,15 @@ WSS.on('connection', (ws) => {
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Current state - Day:", worldState.day, "AI Improvements:", worldState.aiImprovements);
-    console.log("🤖 Using Gemini 3.7 Flash with 3.5 Flash and 3.6 Flash fallback");
-    console.log("📅 AI Events: every 150 days | Code Improvements: every 250 days (Free quota optimized)");
-    console.log("⏳ Rate limit protection: 60s wait on 429, 5s between models");
+    console.log("🤖 Using Gemini 3.7 Flash (single model to avoid RPM)");
+    console.log("📅 AI Events: every 150 days | Code Improvements: every 250 days");
+    console.log("⏳ Rate limiter: 7 seconds minimum between calls");
     
     queryGemini("Say 'OK'")
         .then(response => {
             if (response) {
                 console.log("✅ Gemini response:", response.substring(0, 100));
-                addLog("[SYSTEM] AI System ready (Gemini 3.7/3.5/3.6 Flash).");
+                addLog("[SYSTEM] AI System ready (Gemini 3.7 Flash).");
             } else {
                 console.log("⚠️ Gemini not responding, using fallbacks");
                 addLog("[SYSTEM] AI System in fallback mode.");
