@@ -198,18 +198,121 @@ async function queryAI(prompt) {
 }
 
 /**
- * Execute git command
+ * Execute git command with retry and timeout
  */
-function executeGitCommand(command) {
+function executeGitCommand(command, retries = 3) {
     return new Promise((resolve, reject) => {
-        exec(command, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
-            if (error) {
-                reject(error);
-            } else {
-                resolve(stdout);
-            }
-        });
+        const attemptCommand = (attempt) => {
+            console.log(`🔧 Git command (attempt ${attempt}/${retries}): ${command}`);
+            
+            exec(command, { maxBuffer: 1024 * 1024 * 10, timeout: 30000 }, (error, stdout, stderr) => {
+                if (error) {
+                    console.error(`❌ Git command failed (attempt ${attempt}): ${command}`);
+                    console.error(`Error: ${error.message}`);
+                    console.error(`Stderr: ${stderr ? stderr.substring(0, 500) : 'none'}`);
+                    
+                    if (attempt < retries) {
+                        const waitTime = 5000 * attempt;
+                        console.log(`⏳ Retrying in ${waitTime}ms...`);
+                        setTimeout(() => attemptCommand(attempt + 1), waitTime);
+                    } else {
+                        reject(error);
+                    }
+                } else {
+                    console.log(`✅ Git command success: ${command.substring(0, 80)}`);
+                    if (stdout) console.log(`Output: ${stdout.substring(0, 200)}`);
+                    resolve(stdout);
+                }
+            });
+        };
+        
+        attemptCommand(1);
     });
+}
+
+/**
+ * Push to GitHub with robust retry mechanism
+ */
+async function pushToGitHub(htmlPath, improvementTypeName, day) {
+    if (!GITHUB_TOKEN) {
+        console.log("⚠️ No GITHUB_TOKEN, skipping GitHub push");
+        return false;
+    }
+    
+    console.log("🔄 Starting GitHub push...");
+    
+    try {
+        const cleanToken = GITHUB_TOKEN.trim();
+        
+        // Configure git
+        await executeGitCommand('git config --global user.email "ai@example.com"');
+        await executeGitCommand('git config --global user.name "AI Auto-Improver"');
+        await executeGitCommand('git config --global http.postBuffer 524288000');
+        
+        const repoUrl = `https://${cleanToken}@github.com/edthedog-debug/dark-fantasy-civ.git`;
+        
+        // Check if in git repo
+        let inRepo = false;
+        try {
+            const result = await executeGitCommand('git rev-parse --is-inside-work-tree');
+            inRepo = result.trim() === 'true';
+        } catch (e) {
+            inRepo = false;
+        }
+        
+        if (!inRepo) {
+            console.log("📁 Cloning repository...");
+            try {
+                await executeGitCommand(`rm -rf /tmp/repo`);
+                await executeGitCommand(`git clone --depth 1 ${repoUrl} /tmp/repo`, 2);
+                process.chdir('/tmp/repo');
+                console.log("✅ Cloned to /tmp/repo");
+            } catch (cloneError) {
+                console.error("❌ Clone failed:", cloneError.message);
+                return false;
+            }
+        } else {
+            // Pull latest changes first
+            try {
+                console.log("🔄 Pulling latest changes...");
+                await executeGitCommand('git pull origin main --rebase', 2);
+            } catch (pullError) {
+                console.log("⚠️ Pull failed, continuing anyway");
+            }
+        }
+        
+        // Copy files
+        const targetDir = path.join(process.cwd(), 'public');
+        if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true });
+        }
+        
+        const targetHtmlPath = path.join(targetDir, 'index.html');
+        fs.copyFileSync(htmlPath, targetHtmlPath);
+        console.log("✅ HTML copied");
+        
+        const targetStatePath = path.join(process.cwd(), 'worldState.json');
+        fs.copyFileSync(STATE_FILE, targetStatePath);
+        console.log("✅ State copied");
+        
+        // Git operations with retries
+        await executeGitCommand('git add public/index.html worldState.json');
+        
+        const commitMessage = `🤖 [AI] ${improvementTypeName} - Day ${day}`;
+        await executeGitCommand(`git commit -m "${commitMessage}" --allow-empty`);
+        
+        // Push with force-with-lease to avoid conflicts
+        await executeGitCommand('git push origin main --force-with-lease', 2);
+        
+        console.log("✅ Successfully pushed to GitHub!");
+        addLog(`[GITHUB] Committed: ${improvementTypeName} - Day ${day}`);
+        return true;
+        
+    } catch (gitError) {
+        console.error("❌ GitHub push failed after all retries:", gitError.message);
+        addLog(`[GITHUB ERROR] ${gitError.message.substring(0, 100)}`);
+        return false;
+    }
 }
 
 /**
@@ -271,7 +374,6 @@ async function generateAIEvents() {
     if (typeof parsed.happinessImpact === 'number') worldState.happiness = Math.min(100, Math.max(10, worldState.happiness + parsed.happinessImpact));
     if (typeof parsed.techImpact === 'number') worldState.techPower += Math.max(0, parsed.techImpact);
     
-    // Store active event for visual rendering
     if (parsed.visualEffect && parsed.visualEffect !== 'none') {
         worldState.activeEvents = worldState.activeEvents || [];
         worldState.activeEvents.push({
@@ -281,7 +383,6 @@ async function generateAIEvents() {
         });
     }
     
-    // Clean expired events
     if (worldState.activeEvents) {
         worldState.activeEvents = worldState.activeEvents.filter(e => e.endDay > worldState.day);
     }
@@ -298,7 +399,7 @@ async function generateAIEvents() {
 }
 
 /**
- * 2. AI CODE IMPROVEMENT - STRICTLY PRESERVES FUNCTIONALITY & ENHANCES GRAPHICS/STYLING ONLY
+ * 2. AI CODE IMPROVEMENT
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT...");
@@ -329,7 +430,7 @@ async function autoImproveGameCode() {
         let codeToAdd;
         
         switch(improvementType) {
-            case 0: // STYLING & GRAPHICS CSS
+            case 0:
                 prompt = `You are a Senior Frontend UI/UX Developer.
                 Enhance the CSS styles in index.html for a Dark Fantasy AI Civilization.
                 Current State: Day ${worldState.day}, Pop ${worldState.population}, Tech ${worldState.techPower}, Era: ${worldState.era}.
@@ -342,7 +443,7 @@ async function autoImproveGameCode() {
                 - Return ONLY the complete, fully valid CSS code to be placed inside the <style> tags (no explanation, maximum 250 lines).`;
                 break;
                 
-            case 1: // CANVAS ENGINE & VISUAL EFFECTS JS
+            case 1:
                 prompt = `You are a HTML5 Canvas Graphics Specialist.
                 Improve the Canvas rendering script for index.html.
                 Current State: Day ${worldState.day}, Pop ${worldState.population}, Tech ${worldState.techPower}.
@@ -354,7 +455,7 @@ async function autoImproveGameCode() {
                 - Return ONLY valid, complete JavaScript code to be placed inside the <script> tags (no explanation, maximum 400 lines).`;
                 break;
                 
-            case 2: // HTML UI STRUCTURE & LAYOUT POLISH
+            case 2:
                 prompt = `You are a UI Architect polishing the HTML layout in index.html.
                 Current State: Day ${worldState.day}, Pop ${worldState.population}, Era: ${worldState.era}.
                 
@@ -399,38 +500,8 @@ async function autoImproveGameCode() {
         const improvementTypeName = improvementType === 0 ? "Graphics CSS" : improvementType === 1 ? "Event Canvas JS" : "Civilization HTML";
         addLog(`[AI COMMIT SUCCESS] ${improvementTypeName}! Total: ${worldState.aiImprovements}`);
         
-        if (GITHUB_TOKEN) {
-            try {
-                const cleanToken = GITHUB_TOKEN.trim();
-                
-                await executeGitCommand('git config --global user.email "ai@example.com"');
-                await executeGitCommand('git config --global user.name "AI Auto-Improver"');
-                
-                const repoUrl = `https://${cleanToken}@[github.com/edthedog-debug/dark-fantasy-civ.git](https://github.com/edthedog-debug/dark-fantasy-civ.git)`;
-                
-                try {
-                    await executeGitCommand('git rev-parse --is-inside-work-tree');
-                    await executeGitCommand(`git remote set-url origin ${repoUrl}`);
-                } catch (gitError) {
-                    await executeGitCommand(`git clone ${repoUrl} /tmp/repo`);
-                    process.chdir('/tmp/repo');
-                }
-                
-                const targetPath = path.join(process.cwd(), 'public', 'index.html');
-                fs.copyFileSync(htmlPath, targetPath);
-                
-                const stateTargetPath = path.join(process.cwd(), 'worldState.json');
-                fs.copyFileSync(STATE_FILE, stateTargetPath);
-                
-                await executeGitCommand('git add public/index.html worldState.json');
-                await executeGitCommand(`git commit -m "🤖 [AI] ${improvementTypeName} - Day ${worldState.day}"`);
-                await executeGitCommand('git push origin main');
-                
-                console.log("✅ Pushed to GitHub!");
-            } catch (gitError) {
-                console.error("❌ Git push failed:", gitError.message);
-            }
-        }
+        // Push to GitHub with robust retry
+        await pushToGitHub(htmlPath, improvementTypeName, worldState.day);
         
     } catch (err) {
         console.error("Error:", err.message);
@@ -493,7 +564,6 @@ function getCleanHTML() {
             document.getElementById('stat-tanks').innerText = worldState.tanks;
             document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
             document.getElementById('stat-build').innerText = worldState.engineBuild || 'v2.0';
-            // Event panel
             const ep = document.getElementById('event-panel');
             if (worldState.activeEvents && worldState.activeEvents.length > 0) {
                 ep.innerHTML = worldState.activeEvents.map(e => '⚡ ' + e.description).join('<br>');
@@ -508,7 +578,6 @@ function getCleanHTML() {
                 logBox.scrollTop = logBox.scrollHeight;
             }
         }
-        // Pixel Art Engine with event rendering
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = false;
@@ -534,14 +603,12 @@ function getCleanHTML() {
         function render() {
             frameCount++;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // Terrain
             for (let x = 0; x < canvas.width; x += 12) {
                 for (let y = 0; y < canvas.height; y += 12) {
                     ctx.fillStyle = ((x+y)%24===0) ? '#2a3a1a' : '#1a2a1a';
                     ctx.fillRect(x, y, 12, 12);
                 }
             }
-            // Event visual effects
             if (worldState.activeEvents) {
                 worldState.activeEvents.forEach(evt => {
                     if (evt.type === 'blood_moon') { ctx.fillStyle = 'rgba(150,0,0,0.3)'; ctx.fillRect(0,0,canvas.width,canvas.height); }
@@ -551,14 +618,12 @@ function getCleanHTML() {
                     if (evt.type === 'prosperity') { ctx.fillStyle = 'rgba(255,215,0,0.15)'; ctx.fillRect(0,0,canvas.width,canvas.height); }
                 });
             }
-            // Buildings
             buildings.forEach(b => {
                 ctx.fillStyle = ['#8a8a8a','#c4a060','#6a6a6a','#7a7a7a'][b.type];
                 ctx.fillRect(Math.round(b.x-6), Math.round(b.y-b.h), 12, b.h);
                 ctx.fillStyle = '#ffff88';
                 ctx.fillRect(Math.round(b.x-2), Math.round(b.y-b.h+4), 4, 4);
             });
-            // Units
             units.forEach(u => {
                 const dx = u.tx-u.x, dy = u.ty-u.y;
                 const dist = Math.hypot(dx,dy);
@@ -643,7 +708,6 @@ function runSimulationTick() {
         worldState.economicPower = "Emerging Market";
     }
 
-    // Clean expired events
     if (worldState.activeEvents) {
         worldState.activeEvents = worldState.activeEvents.filter(e => e.endDay > worldState.day);
     }
@@ -679,6 +743,7 @@ SERVER.listen(PORT, () => {
     console.log("🎮 Pixel Art: Age of Empires style with event visuals");
     console.log("📊 Event system: blood moon, fire, storm, plague, prosperity");
     console.log("🔄 REPLACE mode: no duplicates, max 100KB HTML");
+    console.log("🔧 Git: retry mechanism with 3 attempts, force-with-lease");
     
     queryAI("Say 'OK'")
         .then(response => {
