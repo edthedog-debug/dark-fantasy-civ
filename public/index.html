@@ -227,128 +227,6 @@
             }
         }
     </style>
-
-<!-- === AI IMPROVED MAP CSS (Day 29500) === -->
-<style>
-/* ==== Terrain – Transcendent AI Era 305 palette ==== */
-.map {
-    background: linear-gradient(135deg,
-        #0a0f2c 0%,   /* deep midnight */
-        #0c1235 30%,  /* synthetic twilight */
-        #0e1740 60%,  /* neon‑steel */
-        #11224c 100%  /* cyber‑horizon */
-    );
-    image-rendering: pixelated;
-    overflow: hidden;
-}
-
-/* ==== Dense city grid – 1166 buildings ==== */
-.city-grid {
-    display: grid;
-    grid-template-columns: repeat(34, 16px);   /* 34 × 34 = 1156 cells, plus 10 extra for streets */
-    grid-auto-rows: 16px;
-    gap: 0;                                     /* no gaps – true density */
-    position: relative;
-}
-
-/* Base building block */
-.city-grid .building {
-    width: 16px;
-    height: 16px;
-    background: #2b2b2b;               /* dark steel base */
-    border: 1px solid #1a1a1a;         /* sharp pixel edge */
-    position: relative;
-    image-rendering: pixelated;
-}
-
-/* Add windows – random pattern for realism */
-.city-grid .building::before,
-.city-grid .building::after {
-    content: "";
-    position: absolute;
-    width: 2px;
-    height: 2px;
-    background: #00e5ff;               /* neon‑blue window glow */
-}
-.city-grid .building:nth-child(4n)::before  { top: 4px; left: 4px; }
-.city-grid .building:nth-child(4n)::after   { top: 8px; left: 8px; }
-.city-grid .building:nth-child(7n)::before  { top: 4px; left: 8px; }
-.city-grid .building:nth-child(7n)::after   { top: 8px; left: 4px; }
-
-/* Doors – occasional */
-.city-grid .building:nth-child(23n)::after {
-    width: 4px;
-    height: 6px;
-    background: #ffcc00;               /* AI‑gold door */
-    top: 10px;
-    left: 6px;
-}
-
-/* Roof details – tiny antennae */
-.city-grid .building::after {
-    box-shadow:
-        0 -2px 0 0 #ff00ff,
-        2px -2px 0 0 #ff00ff,
-        -2px -2px 0 0 #ff00ff;
-}
-
-/* ==== People – 583 pixel walkers ==== */
-.people-layer {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    image-rendering: pixelated;
-}
-
-/* Base person sprite */
-.people-layer .person {
-    width: 8px;
-    height: 12px;
-    background: #f0f0f0;               /* light synthetic skin */
-    border: 1px solid #aaa;
-    position: absolute;
-    animation: walk 4s linear infinite;
-}
-
-/* Walk animation – simple step cycle */
-@keyframes walk {
-    0%   { transform: translateY(0) translateX(0); }
-    25%  { transform: translateY(-1px) translateX(2px); }
-    50%  { transform: translateY(0) translateX(4px); }
-    75%  { transform: translateY(1px) translateX(6px); }
-    100% { transform: translateY(0) translateX(8px); }
-}
-
-/* Randomize start positions and delays for 583 people */
-.people-layer .person:nth-child(odd)  { animation-duration: 3.8s; }
-.people-layer .person:nth-child(even) { animation-duration: 4.2s; }
-
-.people-layer .person:nth-child(1)  { top: 12px;  left: 20px;  animation-delay: 0s; }
-.people-layer .person:nth-child(2)  { top: 28px;  left: 44px;  animation-delay: -0.2s; }
-.people-layer .person:nth-child(3)  { top: 44px;  left: 68px;  animation-delay: -0.4s; }
-/* ... (continue pattern up to 583) ... */
-.people-layer .person:nth-child(583){ top: 256px; left: 512px; animation-delay: -2.5s; }
-
-/* ==== Detail – pixel‑perfect sharpness ==== */
-*,
-*::before,
-*::after {
-    box-sizing: border-box;
-    image-rendering: pixelated;
-}
-
-/* ==== Optional: subtle AI‑era lighting overlay ==== */
-.map::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 70% 30%, rgba(0,255,255,.07), transparent 70%);
-    pointer-events: none;
-}
-</style>
 </head>
 <body>
     <!-- TOP DASHBOARD -->
@@ -408,6 +286,7 @@
     <script>
         // ============================================
         // UNIFIED GAME ENGINE - SINGLE RENDER LOOP
+        // NO DUPLICATES, NO CONFLICTS
         // ============================================
         
         // WebSocket setup
@@ -450,7 +329,7 @@
         }
 
         // ============================================
-        // PIXEL ART MAP ENGINE - AGE OF EMPIRES STYLE
+        // PIXEL ART MAP ENGINE - SINGLE CANVAS
         // ============================================
         
         const canvas = document.getElementById('gameCanvas');
@@ -461,8 +340,6 @@
         let isDragging = false;
         let startX, startY;
         let frameCount = 0;
-
-        // Building and unit arrays generated from worldState
         let buildings = [];
         let units = [];
 
@@ -473,10 +350,14 @@
             const buildingCount = Math.min(80, Math.floor(worldState.population / 5) + 2);
             const unitCount = Math.min(50, Math.floor(worldState.population / 10) + 2);
             
+            const margin = 20;
+            const maxW = Math.max(canvas.width - margin * 2, 100);
+            const maxH = Math.max(canvas.height - margin * 2, 100);
+            
             for (let i = 0; i < buildingCount; i++) {
                 buildings.push({
-                    x: (i * 47 + 20) % 800,
-                    y: (i * 31 + 15) % 500,
+                    x: margin + ((i * 47 + 20) % maxW),
+                    y: margin + ((i * 31 + 15) % maxH),
                     type: i % 4,
                     height: 20 + (i % 5) * 8 + Math.min(30, worldState.techPower * 0.5)
                 });
@@ -484,10 +365,10 @@
             
             for (let u = 0; u < unitCount; u++) {
                 units.push({
-                    x: Math.random() * 800,
-                    y: Math.random() * 500,
-                    targetX: Math.random() * 800,
-                    targetY: Math.random() * 500,
+                    x: margin + Math.random() * maxW,
+                    y: margin + Math.random() * maxH,
+                    targetX: margin + Math.random() * maxW,
+                    targetY: margin + Math.random() * maxH,
                     speed: 0.5 + Math.random() * 1.5,
                     color: ['#ff6666', '#6666ff', '#66ff66', '#ffff66', '#ff66ff'][u % 5]
                 });
@@ -498,13 +379,11 @@
             const container = document.getElementById('map-container');
             canvas.width = container.clientWidth;
             canvas.height = container.clientHeight;
-        }
-        window.addEventListener('resize', () => {
-            resizeCanvas();
             generateBuildingsAndUnits();
-        });
+        }
+
+        window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
-        generateBuildingsAndUnits();
 
         // Mouse controls
         canvas.addEventListener('mousedown', (e) => {
@@ -616,12 +495,12 @@
         function drawPixelUnit(unit) {
             const legOffset = Math.sin(frameCount * 0.1 + unit.x) > 0 ? 0 : 3;
             ctx.fillStyle = unit.color;
-            ctx.fillRect(unit.x, unit.y - 6, 3, 6);
+            ctx.fillRect(Math.round(unit.x), Math.round(unit.y - 6), 3, 6);
             ctx.fillStyle = '#ffcc99';
-            ctx.fillRect(unit.x, unit.y - 9, 3, 3);
+            ctx.fillRect(Math.round(unit.x), Math.round(unit.y - 9), 3, 3);
             ctx.fillStyle = '#333';
-            ctx.fillRect(unit.x, unit.y, 1.5, 3 + legOffset);
-            ctx.fillRect(unit.x + 1.5, unit.y, 1.5, 3 - legOffset);
+            ctx.fillRect(Math.round(unit.x), Math.round(unit.y), 1, 3 + legOffset);
+            ctx.fillRect(Math.round(unit.x + 2), Math.round(unit.y), 1, 3 - legOffset);
         }
 
         function drawPixelGoldMine(x, y) {
@@ -634,22 +513,30 @@
         }
 
         function updateUnits() {
+            const margin = 10;
+            const maxW = canvas.width - margin;
+            const maxH = canvas.height - margin;
+            
             units.forEach(unit => {
                 const dx = unit.targetX - unit.x;
                 const dy = unit.targetY - unit.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 
                 if (dist < 5) {
-                    unit.targetX = Math.random() * canvas.width;
-                    unit.targetY = Math.random() * canvas.height;
+                    unit.targetX = margin + Math.random() * maxW;
+                    unit.targetY = margin + Math.random() * maxH;
                 } else {
                     unit.x += (dx / dist) * unit.speed;
                     unit.y += (dy / dist) * unit.speed;
                 }
+                
+                // Clamp to canvas bounds
+                unit.x = Math.max(margin, Math.min(maxW, unit.x));
+                unit.y = Math.max(margin, Math.min(maxH, unit.y));
             });
         }
 
-        // Main render loop
+        // Main render loop - SINGLE LOOP ONLY
         function render() {
             frameCount++;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -709,479 +596,5 @@
 
         requestAnimationFrame(render);
     </script>
-
-<!-- === AI IMPROVED MAP HTML (Day 29252) === -->
-<!-- Improved map container – keep the original #map element, just enrich it -->
-<div id="map" class="map-container" style="position:relative; width:100%; height:100%; overflow:hidden;">
-
-    <!-- ORIGINAL MAP CONTENT (e.g., canvas, SVG, tiles) -->
-    <canvas id="mapCanvas" width="1024" height="768" style="display:block; width:100%; height:100%;"></canvas>
-
-    <!-- -----------------------------------------------------------------
-         OVERLAYS – added inside the existing #map container (no new root)
-         ----------------------------------------------------------------- -->
-
-    <!-- Stats overlay (building count, population, era, day, treasury) -->
-    <div class="map-overlay stats"
-         style="
-            position:absolute;
-            top:10px; left:10px;
-            background:rgba(0,0,0,0.6);
-            color:#fff;
-            padding:8px 12px;
-            border-radius:6px;
-            font-family:Arial,Helvetica,sans-serif;
-            font-size:13px;
-            line-height:1.4;
-            z-index:10;
-         ">
-        <div><strong>Buildings:</strong> 1,178</div>
-        <div><strong>Population:</strong> 5,891</div>
-        <div><strong>Era:</strong> Transcendent AI Era 303</div>
-        <div><strong>Day:</strong> 29,250</div>
-        <div><strong>Treasury:</strong> 1,037,767,807,827</div>
-    </div>
-
-    <!-- Building‑list panel – collapsible if desired, but kept visible here -->
-    <div class="map-overlay building-list"
-         style="
-            position:absolute;
-            top:10px; right:10px;
-            width:260px;
-            max-height:80vh;
-            overflow-y:auto;
-            background:rgba(0,0,0,0.7);
-            color:#fff;
-            padding:10px 12px;
-            border-radius:6px;
-            font-family:Arial,Helvetica,sans-serif;
-            font-size:13px;
-            line-height:1.5;
-            z-index:10;
-         ">
-        <h3 style="margin:0 0 8px 0; font-size:14px; border-bottom:1px solid #555; padding-bottom:4px;">
-            Buildings (1,178)
-        </h3>
-        <ul style="margin:0; padding-left:18px; list-style:disc;">
-            <li>Factory × 12</li>
-            <li>Research Lab × 8</li>
-            <li>Power Plant × 5</li>
-            <li>Housing Complex × 30</li>
-            <li>Data Center × 3</li>
-            <li>Quantum Reactor × 2</li>
-            <!-- Add more items dynamically via JS if needed -->
-        </ul>
-    </div>
-
-</div>
-
-<!-- === AI IMPROVED MAP JS (Day 29751) === -->
-<script>
-/*===  Canvas Enhancer – replace existing draw functions  ======================*/
-/*  Assumes the original script already defines:                                 */
-/*    const canvas = document.getElementById('gameCanvas');                      */
-/*    const ctx    = canvas.getContext('2d');                                    */
-/*    const MAP_W  = canvas.width;   // map pixel width                        */
-/*    const MAP_H  = canvas.height;  // map pixel height                       */
-/*    let   buildings = [];   // will be filled with building objects        */
-/*    let   units     = [];   // will be filled with unit objects            */
-/*==========================================================================*/
-
-(() => {
-    /*-------------------------- GLOBAL SETTINGS ---------------------------*/
-    const TOTAL_BUILDINGS = 1155;          // as required
-    const TOTAL_UNITS     = 577;           // as required
-    const TECH_LEVEL      = 3074.2900000011973; // influences building detail
-    const PIXEL_SIZE      = 1;            // each fillRect draws a single pixel
-    const SMOKE_LIFETIME  = 120;          // frames
-    const FLAG_WAVE_SPEED = 0.2;          // rad per frame
-
-    ctx.imageSmoothingEnabled = false;    // keep pixel‑art crisp
-
-    /*--------------------------- UTILITIES --------------------------------*/
-    const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-
-    /*--------------------------- BUILDING CLASS ---------------------------*/
-    class Building {
-        constructor(x, y, type) {
-            this.x = x; this.y = y; this.type = type; // type: 'castle','house','barrack'
-            this.width  = (type === 'castle') ? 12 : (type === 'barrack') ? 10 : 8;
-            this.height = (type === 'castle') ? 12 : (type === 'barrack') ? 8 : 6;
-            this.smoke = []; // {x,y,age}
-        }
-        draw() {
-            const {x, y, width, height, type} = this;
-            // base block
-            ctx.fillStyle = (type === 'castle') ? '#7A7A7A' : (type === 'barrack') ? '#5A7A5A' : '#8B4513';
-            ctx.fillRect(x, y, width, height);
-            // roof
-            ctx.fillStyle = (type === 'castle') ? '#555555' : (type === 'barrack') ? '#3A5F3A' : '#A0522D';
-            for (let i = 0; i < width; i++) {
-                ctx.fillRect(x + i, y - 1, 1, 1);
-            }
-            // windows & doors
-            ctx.fillStyle = '#FFFFFF';
-            const winW = 2, winH = 2;
-            const winCountX = Math.max(1, Math.floor(width / 4));
-            const winCountY = Math.max(1, Math.floor(height / 4));
-            for (let ix = 0; ix < winCountX; ix++) {
-                for (let iy = 0; iy < winCountY; iy++) {
-                    const wx = x + 1 + ix * Math.floor(width / winCountX);
-                    const wy = y + 1 + iy * Math.floor(height / winCountY);
-                    ctx.fillRect(wx, wy, winW, winH);
-                }
-            }
-            // door
-            ctx.fillStyle = '#3B240B';
-            ctx.fillRect(x + Math.floor(width / 2) - 1, y + height - 2, 2, 2);
-            // special features per type
-            if (type === 'castle') this._drawCrenellations();
-            if (type === 'castle') this._drawFlag();
-            if (type === 'house'  ) this._emitSmoke();
-            this._drawSmoke();
-        }
-        _drawCrenellations() {
-            ctx.fillStyle = '#333333';
-            const step = 3;
-            for (let i = 0; i < this.width; i += step) {
-                ctx.fillRect(this.x + i, this.y - 2, 1, 2);
-            }
-        }
-        _drawFlag() {
-            const flagX = this.x + this.width - 2;
-            const flagY = this.y - 6;
-            const wave = Math.sin(performance.now() * FLAG_WAVE_SPEED + flagX) * 1;
-            ctx.fillStyle = '#FF0000';
-            ctx.fillRect(flagX, flagY, 1, 5);                // pole
-            ctx.fillRect(flagX + 1, flagY + Math.round(wave), 3, 2); // waving flag
-        }
-        _emitSmoke() {
-            if (Math.random() < 0.02) { // occasional puff
-                this.smoke.push({x: this.x + this.width - 2, y: this.y - 2, age: 0});
-            }
-        }
-        _drawSmoke() {
-            ctx.fillStyle = '#AAAAAA';
-            this.smoke.forEach(p => {
-                const alpha = 1 - p.age / SMOKE_LIFETIME;
-                ctx.globalAlpha = Math.max(0, alpha);
-                ctx.fillRect(p.x, p.y - p.age, 2, 2);
-                ctx.globalAlpha = 1;
-            });
-            // age & purge
-            this.smoke = this.smoke.filter(p => {
-                p.age++;
-                return p.age < SMOKE_LIFETIME;
-            });
-        }
-    }
-
-    /*--------------------------- UNIT CLASS -------------------------------*/
-    class Unit {
-        constructor(x, y) {
-            this.x = x; this.y = y;
-            this.dest = this._randomDestination();
-            this.speed = 0.5 + Math.random() * 0.5;
-        }
-        _randomDestination() {
-            const b = buildings[rand(0, buildings.length - 1)];
-            return {x: b.x + b.width / 2, y: b.y + b.height / 2};
-        }
-        update() {
-            const dx = this.dest.x - this.x;
-            const dy = this.dest.y - this.y;
-            const dist = Math.hypot(dx, dy);
-            if (dist < 1) this.dest = this._randomDestination();
-            else {
-                this.x += (dx / dist) * this.speed;
-                this.y += (dy / dist) * this.speed;
-            }
-        }
-        draw() {
-            ctx.fillStyle = '#0000FF';
-            ctx.fillRect(Math.round(this.x), Math.round(this.y), 2, 2);
-        }
-    }
-
-    /*--------------------------- MAP DENSITY -----------------------------*/
-    function generateBuildings() {
-        const densityFactor = Math.sqrt(TOTAL_BUILDINGS / (MAP_W * MAP_H)) * 2000; // arbitrary scaling
-        const cols = Math.max(5, Math.floor(Math.sqrt(TOTAL_BUILDINGS) * densityFactor / 100));
-        const rows = Math.ceil(TOTAL_BUILDINGS / cols);
-        const cellW = Math.floor(MAP_W / cols);
-        const cellH = Math.floor(MAP_H / rows);
-        const types = ['castle', 'house', 'barrack'];
-        for (let i = 0; i < TOTAL_BUILDINGS; i++) {
-            const col = i % cols;
-            const row = Math.floor(i / cols);
-            const x = col * cellW + rand(0, Math.max(0, cellW - 12));
-            const y = row * cellH + rand(0, Math.max(0, cellH - 12));
-            const type = types[rand(0, types.length - 1)];
-            buildings.push(new Building(x, y, type));
-        }
-    }
-
-    function generateUnits() {
-        for (let i = 0; i < TOTAL_UNITS; i++) {
-            const b = buildings[rand(0, buildings.length - 1)];
-            const ux = b.x + b.width / 2 + rand(-2, 2);
-            const uy = b.y + b.height / 2 + rand(-2, 2);
-            units.push(new Unit(ux, uy));
-        }
-    }
-
-    /*--------------------------- MAIN RENDER LOOP ------------------------*/
-    function drawAll() {
-        // clear background
-        ctx.fillStyle = '#1E1E1E';
-        ctx.fillRect(0, 0, MAP_W, MAP_H);
-
-        // draw buildings (lower layer)
-        buildings.forEach(b => b.draw());
-
-        // update & draw units (upper layer)
-        units.forEach(u => {
-            u.update();
-            u.draw();
-        });
-
-        requestAnimationFrame(drawAll);
-    }
-
-    /*--------------------------- INITIALISATION --------------------------*/
-    // If the original script already called a init, just run our augmentors:
-    if (typeof buildings === 'undefined') window.buildings = [];
-    if (typeof units     === 'undefined') window.units     = [];
-
-    // Populate only once
-    if (buildings.length === 0) generateBuildings();
-    if (units.length    === 0) generateUnits();
-
-    // Replace any existing draw loop with our enhanced version
-    requestAnimationFrame(drawAll);
-})();
-</script>
-
-<!-- === AI IMPROVED MAP JS (Day 30003) === -->
-<script>
-/* -------------------------------------------------------------
-   Improved Canvas Rendering – Pixel‑Art City & Units
-   -------------------------------------------------------------
-   This patch replaces the original draw functions – it does NOT
-   create a new map, it only enhances the existing rendering.
-   All drawing is done with ctx.fillRect (pixel‑art style) and
-   ctx.imageSmoothingEnabled is forced off.
-   ------------------------------------------------------------- */
-
-(() => {
-    // -----------------------------------------------------------------
-    // 1. Global configuration (use the existing globals if they exist)
-    // -----------------------------------------------------------------
-    const DAY            = typeof DAY === "number" ? DAY : 30000;
-    const POPULATION     = typeof POPULATION === "number" ? POPULATION : 5722;
-    const TECH_LEVEL      = typeof TECH_LEVEL === "number" ? TECH_LEVEL : 3099.3900000012495;
-    const BUILDING_COUNT = typeof BUILDING_COUNT === "number" ? BUILDING_COUNT : 1144;
-    const UNIT_COUNT     = typeof UNIT_COUNT === "number" ? UNIT_COUNT : 572;
-
-    const canvas = document.getElementById('gameCanvas');
-    const ctx    = canvas.getContext('2d');
-
-    // Force pixel‑art rendering
-    ctx.imageSmoothingEnabled = false;
-
-    // -----------------------------------------------------------------
-    // 2. Helper – random integer in range
-    // -----------------------------------------------------------------
-    const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-
-    // -----------------------------------------------------------------
-    // 3. Building definition (simple pixel‑art)
-    // -----------------------------------------------------------------
-    function drawBuilding(x, y, type) {
-        // base size (depends on tech – higher tech => taller / more complex)
-        const baseW = 12;
-        const baseH = 12 + Math.floor(TECH_LEVEL / 1000); // up to +3 px height
-
-        // Building body
-        ctx.fillStyle = type === 'castle' ? '#7a7a7a' : (type === 'barracks' ? '#5a7d5a' : '#a07b5a');
-        ctx.fillRect(x, y - baseH, baseW, baseH);
-
-        // Roof / Crenellation
-        if (type === 'castle') {
-            // crenellations (3‑pixel wide)
-            ctx.fillStyle = '#555555';
-            for (let i = 0; i < baseW; i += 4) {
-                ctx.fillRect(x + i, y - baseH - 2, 3, 2);
-            }
-            // flag pole + flag
-            ctx.fillStyle = '#222222';
-            ctx.fillRect(x + baseW - 2, y - baseH - 12, 2, 12);               // pole
-            ctx.fillStyle = '#ff0000';
-            ctx.fillRect(x + baseW, y - baseH - 12, 4, 4);                    // flag
-        } else if (type === 'barracks') {
-            // simple sloped roof
-            ctx.fillStyle = '#444444';
-            for (let i = 0; i < baseW; i++) {
-                ctx.fillRect(x + i, y - baseH - Math.floor(i / 2) - 1, 1, 1);
-            }
-        } else {
-            // house roof
-            ctx.fillStyle = '#b03030';
-            for (let i = 0; i < baseW; i++) {
-                ctx.fillRect(x + i, y - baseH - Math.floor(i / 3) - 1, 1, 1);
-            }
-        }
-
-        // Door
-        ctx.fillStyle = '#332200';
-        ctx.fillRect(x + baseW / 2 - 2, y - 2, 4, 2);
-
-        // Windows (2 rows, 3 columns)
-        ctx.fillStyle = '#cceeff';
-        for (let wx = 0; wx < 3; wx++) {
-            for (let wy = 0; wy < 2; wy++) {
-                ctx.fillRect(x + 2 + wx * 3, y - baseH + 2 + wy * 4, 2, 2);
-            }
-        }
-
-        // Advanced tech – antenna or solar panel
-        if (TECH_LEVEL > 2000) {
-            ctx.fillStyle = '#ffd700';
-            ctx.fillRect(x + baseW - 3, y - baseH - 8, 2, 8); // antenna
-        }
-    }
-
-    // -----------------------------------------------------------------
-    // 4. Pre‑compute building positions (dense city layout)
-    // -----------------------------------------------------------------
-    const buildingPositions = [];
-    const cols = Math.ceil(Math.sqrt(BUILDING_COUNT));
-    const cellSize = Math.max(16, Math.floor(canvas.width / cols));
-
-    for (let i = 0; i < BUILDING_COUNT; i++) {
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        const x = col * cellSize + randInt(1, cellSize - 14);
-        const y = row * cellSize + cellSize - 2; // ground line
-        // Randomly decide type based on tech & density
-        const type = (TECH_LEVEL > 2500 && Math.random() < 0.15) ? 'castle' :
-                     (TECH_LEVEL > 1500 && Math.random() < 0.25) ? 'barracks' : 'house';
-        buildingPositions.push({x, y, type});
-    }
-
-    // -----------------------------------------------------------------
-    // 5. Unit definition – walking pixel people
-    // -----------------------------------------------------------------
-    const unitSprites = []; // each unit: {x, y, pathIdx, dir}
-    const pathPoints = [];  // simple grid of way‑points
-
-    // generate way‑points (centers of random buildings)
-    for (let i = 0; i < Math.min(30, BUILDING_COUNT); i++) {
-        const b = buildingPositions[randInt(0, BUILDING_COUNT - 1)];
-        pathPoints.push({x: b.x + 6, y: b.y - 6});
-    }
-
-    // initialise units on random start points
-    for (let i = 0; i < UNIT_COUNT; i++) {
-        const start = pathPoints[randInt(0, pathPoints.length - 1)];
-        unitSprites.push({
-            x: start.x,
-            y: start.y,
-            targetIdx: randInt(0, pathPoints.length - 1),
-            step: 0,
-            speed: 0.5 + Math.random() * 0.5
-        });
-    }
-
-    // -----------------------------------------------------------------
-    // 6. Smoke particles (chimney)
-    // -----------------------------------------------------------------
-    const smokeParticles = []; // {x, y, life, maxLife}
-    function spawnSmoke(x, y) {
-        smokeParticles.push({x, y, life: 0, maxLife: 30 + Math.random() * 20});
-    }
-
-    // -----------------------------------------------------------------
-    // 7. Main draw function – replaces existing drawMap()
-    // -----------------------------------------------------------------
-    function drawMapImproved() {
-        // clear background (night‑day gradient could be added later)
-        ctx.fillStyle = '#87ceeb';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // ---- 1️⃣ Draw ground line
-        ctx.fillStyle = '#3b7a57';
-        ctx.fillRect(0, canvas.height - 2, canvas.width, 2);
-
-        // ---- 2️⃣ Draw all buildings
-        buildingPositions.forEach(b => {
-            drawBuilding(b.x, b.y, b.type);
-            // occasional smoke from houses/castles with chimneys
-            if (b.type !== 'barracks' && Math.random() < 0.02) {
-                spawnSmoke(b.x + 8, b.y - 12);
-            }
-        });
-
-        // ---- 3️⃣ Animate and draw units
-        unitSprites.forEach(u => {
-            const target = pathPoints[u.targetIdx];
-            const dx = target.x - u.x;
-            const dy = target.y - u.y;
-            const dist = Math.hypot(dx, dy);
-            if (dist < 1) {
-                // reached target → pick new
-                u.targetIdx = randInt(0, pathPoints.length - 1);
-            } else {
-                u.x += (dx / dist) * u.speed;
-                u.y += (dy / dist) * u.speed;
-            }
-
-            // draw simple person (2×3 pixels body + head)
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(Math.round(u.x) - 1, Math.round(u.y) - 5, 2, 3); // body
-            ctx.fillRect(Math.round(u.x) - 1, Math.round(u.y) - 7, 2, 2); // head
-        });
-
-        // ---- 4️⃣ Draw smoke particles (rising & fading)
-        for (let i = smokeParticles.length - 1; i >= 0; i--) {
-            const p = smokeParticles[i];
-            const alpha = 1 - p.life / p.maxLife;
-            ctx.fillStyle = `rgba(120,120,120,${alpha})`;
-            ctx.fillRect(Math.round(p.x), Math.round(p.y), 3, 3);
-            p.y -= 0.4;          // rise
-            p.x += (Math.random() - 0.5) * 0.2; // drift
-            p.life++;
-            if (p.life > p.maxLife) smokeParticles.splice(i, 1);
-        }
-
-        // ---- 5️⃣ UI overlay (stats)
-        ctx.fillStyle = '#000000';
-        ctx.font = '8px monospace';
-        ctx.fillText(`Day ${DAY} – Pop ${POPULATION} – Tech ${TECH_LEVEL.toFixed(2)}`, 4, 10);
-    }
-
-    // -----------------------------------------------------------------
-    // 8. Hook into the game loop (replace the old drawMap if it exists)
-    // -----------------------------------------------------------------
-    if (typeof window.gameLoop === 'function') {
-        const originalLoop = window.gameLoop;
-        window.gameLoop = function () {
-            originalLoop.apply(this, arguments);
-            drawMapImproved();
-        };
-    } else {
-        // fallback – simple interval
-        setInterval(drawMapImproved, 1000 / 30); // ~30 FPS
-    }
-
-    // expose for debugging
-    window._debug = {
-        buildingPositions,
-        unitSprites,
-        smokeParticles,
-        drawMapImproved
-    };
-})();
-</script>
 </body>
 </html>
