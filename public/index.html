@@ -51,7 +51,7 @@
             border: 1px solid var(--border-glow);
             border-radius: 12px;
             padding: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(0, 210, 255, 0.05);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
             flex-shrink: 0;
         }
 
@@ -100,13 +100,6 @@
             border-radius: 8px;
             padding: 8px;
             transition: all 0.3s ease;
-            cursor: default;
-        }
-
-        .stat-card:hover {
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
-            transform: translateY(-2px);
         }
 
         .stat-label {
@@ -123,10 +116,10 @@
             color: #ffffff;
         }
 
-        .val-gold { color: var(--accent-gold); text-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
-        .val-pop { color: var(--accent-green); text-shadow: 0 0 8px rgba(46, 204, 113, 0.4); }
-        .val-tech { color: var(--accent-blue); text-shadow: 0 0 8px rgba(52, 152, 219, 0.4); }
-        .val-era { color: var(--accent-purple); text-shadow: 0 0 8px rgba(155, 89, 182, 0.4); }
+        .val-gold { color: var(--accent-gold); }
+        .val-pop { color: var(--accent-green); }
+        .val-tech { color: var(--accent-blue); }
+        .val-era { color: var(--accent-purple); }
 
         #map-container {
             flex: 1;
@@ -135,7 +128,6 @@
             border-radius: 12px;
             position: relative;
             overflow: hidden;
-            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 210, 255, 0.1);
             min-height: 0;
         }
 
@@ -158,17 +150,28 @@
             pointer-events: none;
             color: var(--accent-cyan);
             z-index: 10;
-            backdrop-filter: blur(4px);
+        }
+
+        .event-panel {
+            background: rgba(12, 17, 29, 0.95);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 10px;
+            color: #00ff88;
+            max-height: 50px;
+            overflow-y: auto;
+            flex-shrink: 0;
         }
 
         .log-container {
-            height: 100px;
+            height: 80px;
             background: rgba(12, 17, 29, 0.95);
             border: 1px solid var(--border-glow);
             border-radius: 12px;
             padding: 10px;
             overflow-y: auto;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Courier New', monospace;
             font-size: 11px;
             flex-shrink: 0;
         }
@@ -179,12 +182,10 @@
 
         .log-container::-webkit-scrollbar-track {
             background: rgba(0, 0, 0, 0.3);
-            border-radius: 3px;
         }
 
         .log-container::-webkit-scrollbar-thumb {
             background: rgba(0, 210, 255, 0.3);
-            border-radius: 3px;
         }
 
         .log-title {
@@ -192,7 +193,6 @@
             color: #6b7c93;
             margin-bottom: 6px;
             font-weight: bold;
-            letter-spacing: 1px;
         }
 
         .log-entry {
@@ -203,48 +203,18 @@
 
         .log-entry:last-child {
             color: var(--accent-cyan);
-            text-shadow: 0 0 8px rgba(0, 210, 255, 0.3);
         }
 
         @media (max-width: 768px) {
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .stat-value {
-                font-size: 12px;
-            }
-            body {
-                padding: 8px;
-                gap: 8px;
-            }
-            .log-container {
-                height: 70px;
-            }
-            .map-overlay-info {
-                font-size: 9px;
-                padding: 4px 8px;
-            }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .stat-value { font-size: 12px; }
+            body { padding: 8px; gap: 8px; }
+            .log-container { height: 60px; }
         }
 
         @media (max-width: 400px) {
-            .stat-value {
-                font-size: 10px;
-            }
-            .stat-label {
-                font-size: 8px;
-            }
-            .dash-header {
-                font-size: 11px;
-            }
-            .stats-grid {
-                gap: 4px;
-            }
-            .stat-card {
-                padding: 5px;
-            }
-            .log-container {
-                height: 60px;
-            }
+            .stat-value { font-size: 10px; }
+            .stat-label { font-size: 8px; }
         }
     </style>
 </head>
@@ -256,38 +226,14 @@
             <div class="status-badge"><div class="status-dot"></div> 24/7 AUTONOMOUS</div>
         </div>
         <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">DAY</div>
-                <div class="stat-value" id="stat-day">1</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">ERA</div>
-                <div class="stat-value val-era" id="stat-era">Era 1</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">POPULATION</div>
-                <div class="stat-value val-pop" id="stat-pop">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">TREASURY</div>
-                <div class="stat-value val-gold" id="stat-gold">0 G</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">TECH POWER</div>
-                <div class="stat-value val-tech" id="stat-tech">0.0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">DEFENSES</div>
-                <div class="stat-value" id="stat-tanks">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">STATUS</div>
-                <div class="stat-value" style="color: #2ecc71;" id="stat-status">PEACE</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">BUILD</div>
-                <div class="stat-value" id="stat-build" style="font-size: 10px;">v2.0</div>
-            </div>
+            <div class="stat-card"><div class="stat-label">DAY</div><div class="stat-value" id="stat-day">1</div></div>
+            <div class="stat-card"><div class="stat-label">ERA</div><div class="stat-value val-era" id="stat-era">Era 1</div></div>
+            <div class="stat-card"><div class="stat-label">POPULATION</div><div class="stat-value val-pop" id="stat-pop">0</div></div>
+            <div class="stat-card"><div class="stat-label">TREASURY</div><div class="stat-value val-gold" id="stat-gold">0 G</div></div>
+            <div class="stat-card"><div class="stat-label">TECH</div><div class="stat-value val-tech" id="stat-tech">0.0</div></div>
+            <div class="stat-card"><div class="stat-label">DEFENSES</div><div class="stat-value" id="stat-tanks">0</div></div>
+            <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value" id="stat-status">PEACE</div></div>
+            <div class="stat-card"><div class="stat-label">BUILDINGS</div><div class="stat-value" id="stat-building-count">0</div></div>
         </div>
     </div>
 
@@ -297,225 +243,376 @@
         <canvas id="gameCanvas"></canvas>
     </div>
 
-    <!-- SYSTEM EVENT LOGS STREAM -->
+    <!-- EVENT PANEL -->
+    <div class="event-panel" id="event-panel">No active events</div>
+
+    <!-- LOGS -->
     <div class="log-container">
         <div class="log-title">SYSTEM EVENT STREAM</div>
-        <div id="log-stream">Connecting to AI Sovereign Neural Link...</div>
+        <div id="log-stream">Connecting...</div>
     </div>
 
     <script>
-// ==== Optimized Pixel‑Art Engine ====
-// Fallback state definition added locally to prevent GitHub dependency & 503 HTTP errors:
-
 (() => {
-    // Provide an offline fallback for worldState to prevent missing external asset crashes
-    window.worldState = window.worldState || {
-        day: 1,
-        pop: 1250,
-        tech: 3.5,
-        buildings: [
-            { x: 100, y: 220, type: 0 },
-            { x: 260, y: 240, type: 1 },
-            { x: 420, y: 210, type: 2 }
-        ],
-        units: [
-            { x: 130, y: 220, dir: 'right' },
-            { x: 280, y: 240, dir: 'left' }
-        ],
-        activeEvents: ['prosperity']
-    };
-
+    // ============================================
+    // FIXED WORLD MAP - PERCENTAGE POSITIONS
+    // Same layout on ALL devices, stable on zoom
+    // ============================================
+    
     const canvas = document.getElementById('gameCanvas');
-    const container = document.getElementById('map-container');
     const ctx = canvas.getContext('2d');
-    const PIXEL = 2;                     // size of a "pixel" block
-    const BUILD_W = 16, BUILD_H = 24;    // building base size in pixels
-    const UNIT_W = 8, UNIT_H = 12;       // unit size in pixels
-    const FPS = 60;
-    let lastTime = 0;
-    let resizePending = false;
+    ctx.imageSmoothingEnabled = false;
 
-    // ---------- Helpers ----------
+    let worldState = {
+        day: 1, era: "Era 1", population: 10, treasury: 500,
+        techPower: 1, tanks: 0, logs: [], inWar: false,
+        activeEvents: [], buildings: []
+    };
+
+    // WebSocket
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(protocol + '//' + window.location.host);
+    
+    ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'WORLD_UPDATE') {
+            worldState = msg.data;
+            updateUI();
+            generateObjects();
+        }
+    };
+
+    ws.onerror = () => {
+        document.getElementById('log-stream').innerHTML = '<div class="log-entry" style="color:#e74c3c;">Connection lost</div>';
+    };
+
+    function updateUI() {
+        document.getElementById('stat-day').innerText = worldState.day;
+        document.getElementById('stat-era').innerText = worldState.era;
+        document.getElementById('stat-pop').innerText = worldState.population;
+        document.getElementById('stat-gold').innerText = Math.floor(worldState.treasury).toLocaleString() + ' G';
+        document.getElementById('stat-tech').innerText = Number(worldState.techPower).toFixed(1);
+        document.getElementById('stat-tanks').innerText = worldState.tanks;
+        document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
+        document.getElementById('stat-status').style.color = worldState.inWar ? '#e74c3c' : '#2ecc71';
+        
+        const buildingCount = Math.floor(worldState.population / 5) + 2;
+        document.getElementById('stat-building-count').innerText = buildingCount;
+
+        // Event panel
+        const ep = document.getElementById('event-panel');
+        if (worldState.activeEvents && worldState.activeEvents.length > 0) {
+            ep.innerHTML = worldState.activeEvents.map(e => '⚡ ' + e.description).join('<br>');
+            ep.style.borderColor = '#ff4444';
+            ep.style.color = '#ff6666';
+        } else {
+            ep.innerHTML = 'No active events';
+            ep.style.borderColor = '#00ff88';
+            ep.style.color = '#00ff88';
+        }
+
+        const logBox = document.getElementById('log-stream');
+        if (worldState.logs && worldState.logs.length > 0) {
+            logBox.innerHTML = worldState.logs.map(l => '<div class="log-entry">' + l + '</div>').join('');
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+    }
+
+    // Camera
+    let camera = { x: 0, y: 0, zoom: 1.0 };
+    let isDragging = false;
+    let startX, startY;
+    let frameCount = 0;
+
+    // Objects with PERCENTAGE positions
+    let buildings = [];
+    let units = [];
+
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-    const toScreen = (x, y) => ({ x: Math.round(x), y: Math.round(y) });
+    const px = (percent, dimension) => (percent / 100) * dimension;
 
-    // ---------- Drawing Primitives ----------
-    const fillRect = (x, y, w, h, col) => {
-        ctx.fillStyle = col;
-        ctx.fillRect(x, y, w, h);
-    };
-
-    // Pixel‑art building (simple roof, windows, door)
-    const drawBuilding = (bx, by, type = 0) => {
-        // base
-        fillRect(bx, by - BUILD_H * PIXEL, BUILD_W * PIXEL, BUILD_H * PIXEL, '#7b5e57');
-        // roof
-        for (let i = 0; i < BUILD_W; i++) {
-            const hue = (type * 30 + i * 5) % 360;
-            fillRect(bx + i * PIXEL, by - (BUILD_H + 2) * PIXEL, PIXEL, PIXEL * 2,
-                `hsl(${hue},40%,50%)`);
+    function generateObjects() {
+        buildings = [];
+        units = [];
+        
+        const buildingCount = clamp(Math.floor(worldState.population / 5) + 2, 5, 80);
+        const unitCount = clamp(Math.floor(worldState.population / 10) + 2, 3, 50);
+        
+        // FIXED percentage positions - same on all devices
+        for (let i = 0; i < buildingCount; i++) {
+            buildings.push({
+                xPercent: 5 + ((i * 7) % 90),
+                yPercent: 10 + ((i * 5) % 80),
+                type: i % 4,
+                heightPercent: 5 + (i % 5) * 2
+            });
         }
-        // windows
-        for (let row = 2; row < BUILD_H - 2; row += 3) {
-            for (let col = 2; col < BUILD_W - 2; col += 4) {
-                fillRect(bx + col * PIXEL, by - row * PIXEL - PIXEL, PIXEL * 2, PIXEL * 2,
-                    '#a9d6e5');
+        
+        for (let u = 0; u < unitCount; u++) {
+            units.push({
+                xPercent: 5 + Math.random() * 90,
+                yPercent: 10 + Math.random() * 80,
+                targetXPercent: 5 + Math.random() * 90,
+                targetYPercent: 10 + Math.random() * 80,
+                speed: 0.3 + Math.random() * 0.7,
+                color: ['#ff6666', '#6666ff', '#66ff66', '#ffff66', '#ff66ff'][u % 5]
+            });
+        }
+    }
+
+    function resizeCanvas() {
+        const container = document.getElementById('map-container');
+        const w = Math.floor(container.clientWidth);
+        const h = Math.floor(container.clientHeight);
+        if (w > 50 && h > 50) {
+            canvas.width = w;
+            canvas.height = h;
+        }
+    }
+
+    function initMap() {
+        resizeCanvas();
+        generateObjects();
+        console.log('Map:', canvas.width + 'x' + canvas.height, '| Buildings:', buildings.length, '| Units:', units.length);
+    }
+
+    if (document.readyState === 'complete') {
+        setTimeout(initMap, 100);
+    } else {
+        window.addEventListener('load', () => setTimeout(initMap, 100));
+    }
+    setTimeout(() => { if (buildings.length === 0) initMap(); }, 500);
+
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(resizeCanvas, 150);
+    });
+
+    // Mouse controls
+    canvas.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startX = e.clientX - camera.x;
+        startY = e.clientY - camera.y;
+    });
+    window.addEventListener('mouseup', () => isDragging = false);
+    canvas.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            camera.x = e.clientX - startX;
+            camera.y = e.clientY - startY;
+        }
+    });
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+        camera.zoom = clamp(camera.zoom * zoomFactor, 0.5, 2.5);
+    }, { passive: false });
+
+    // Touch controls
+    let lastTouchDistance = 0;
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (e.touches.length === 1) {
+            isDragging = true;
+            startX = e.touches[0].clientX - camera.x;
+            startY = e.touches[0].clientY - camera.y;
+        } else if (e.touches.length === 2) {
+            isDragging = false;
+            lastTouchDistance = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+        }
+    });
+    canvas.addEventListener('touchend', () => isDragging = false);
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (e.touches.length === 1 && isDragging) {
+            camera.x = e.touches[0].clientX - startX;
+            camera.y = e.touches[0].clientY - startY;
+        } else if (e.touches.length === 2) {
+            const dist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            camera.zoom = clamp(camera.zoom * (dist / lastTouchDistance), 0.5, 2.5);
+            lastTouchDistance = dist;
+        }
+    }, { passive: false });
+
+    // Pixel drawing
+    function drawPixelCastle(x, y, h) {
+        ctx.fillStyle = '#8a8a8a';
+        ctx.fillRect(Math.round(x - h*0.3), Math.round(y - h), Math.round(h*0.6), h);
+        for (let i = -3; i < 3; i++) {
+            ctx.fillRect(Math.round(x + i * h*0.1), Math.round(y - h - 3), 3, 3);
+        }
+        ctx.fillStyle = '#ffff88';
+        for (let w = 0; w < 3; w++) {
+            ctx.fillRect(Math.round(x - 2), Math.round(y - h + 5 + w * 10), 4, 4);
+        }
+        ctx.fillStyle = '#3a1a0a';
+        ctx.fillRect(Math.round(x - 3), Math.round(y - 6), 6, 6);
+    }
+
+    function drawPixelHouse(x, y, h) {
+        ctx.fillStyle = '#c4a060';
+        ctx.fillRect(Math.round(x - h*0.4), Math.round(y - h), Math.round(h*0.8), h);
+        ctx.fillStyle = '#8a3a1a';
+        ctx.fillRect(Math.round(x - h*0.5), Math.round(y - h - 3), Math.round(h), 3);
+        ctx.fillStyle = '#ffff88';
+        ctx.fillRect(Math.round(x - 2), Math.round(y - h + 4), 4, 4);
+        ctx.fillStyle = '#3a1a0a';
+        ctx.fillRect(Math.round(x - 2), Math.round(y - 4), 4, 4);
+    }
+
+    function drawPixelBarracks(x, y, h) {
+        ctx.fillStyle = '#6a6a6a';
+        ctx.fillRect(Math.round(x - h*0.5), Math.round(y - h), Math.round(h), h);
+        ctx.fillStyle = '#4a4a4a';
+        ctx.fillRect(Math.round(x - h*0.6), Math.round(y - h - 2), Math.round(h*1.2), 2);
+    }
+
+    function drawPixelTower(x, y, h) {
+        ctx.fillStyle = '#7a7a7a';
+        ctx.fillRect(Math.round(x - h*0.2), Math.round(y - h), Math.round(h*0.4), h);
+        ctx.fillStyle = '#5a5a5a';
+        ctx.fillRect(Math.round(x - h*0.3), Math.round(y - h - 2), Math.round(h*0.6), 2);
+    }
+
+    function drawPixelUnit(unit, ux, uy) {
+        const legOffset = Math.sin(frameCount * 0.1 + ux) > 0 ? 0 : 3;
+        ctx.fillStyle = unit.color;
+        ctx.fillRect(Math.round(ux), Math.round(uy - 6), 3, 6);
+        ctx.fillStyle = '#ffcc99';
+        ctx.fillRect(Math.round(ux), Math.round(uy - 9), 3, 3);
+        ctx.fillStyle = '#333';
+        ctx.fillRect(Math.round(ux), Math.round(uy), 1, 3 + legOffset);
+        ctx.fillRect(Math.round(ux + 2), Math.round(uy), 1, 3 - legOffset);
+    }
+
+    function updateUnits() {
+        units.forEach(unit => {
+            const dx = unit.targetXPercent - unit.xPercent;
+            const dy = unit.targetYPercent - unit.yPercent;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist < 2) {
+                unit.targetXPercent = 5 + Math.random() * 90;
+                unit.targetYPercent = 10 + Math.random() * 80;
+            } else {
+                unit.xPercent += (dx / dist) * unit.speed * 0.1;
+                unit.yPercent += (dy / dist) * unit.speed * 0.1;
             }
-        }
-        // door
-        fillRect(bx + (BUILD_W / 2 - 1) * PIXEL,
-                 by - PIXEL * 2,
-                 PIXEL * 2,
-                 PIXEL * 2,
-                 '#5c3d2e');
-    };
+            
+            unit.xPercent = clamp(unit.xPercent, 3, 97);
+            unit.yPercent = clamp(unit.yPercent, 5, 95);
+        });
+    }
 
-    // Animated walking unit (simple two‑frame walk cycle)
-    const drawUnit = (ux, uy, dir, frame) => {
-        const baseY = uy - UNIT_H * PIXEL;
-        // body
-        fillRect(ux, baseY, UNIT_W * PIXEL, UNIT_H * PIXEL, '#ffb347');
-        // head
-        fillRect(ux + 2 * PIXEL, baseY - 4 * PIXEL, 4 * PIXEL, 4 * PIXEL, '#ffe0bd');
-        // legs (simple animation)
-        const offset = frame % 2 ? 1 : -1;
-        const legY = baseY + UNIT_H * PIXEL - 2 * PIXEL;
-        fillRect(ux + (dir === 'right' ? 2 : 6) * PIXEL,
-                 legY + offset,
-                 2 * PIXEL,
-                 2 * PIXEL,
-                 '#2c3e50');
-        fillRect(ux + (dir === 'right' ? 6 : 2) * PIXEL,
-                 legY - offset,
-                 2 * PIXEL,
-                 2 * PIXEL,
-                 '#2c3e50');
-    };
-
-    // ---------- Event Overlays ----------
-    const drawEventOverlay = (event, width, height, time) => {
+    // Event overlays
+    function drawEventOverlay(event, time) {
+        const w = canvas.width, h = canvas.height;
         switch (event) {
             case 'blood_moon':
-                ctx.globalAlpha = 0.2;
-                ctx.fillStyle = 'rgba(150,0,0,0.5)';
-                ctx.fillRect(0, 0, width, height);
-                ctx.globalAlpha = 0.8;
+                ctx.fillStyle = 'rgba(150,0,0,0.3)';
+                ctx.fillRect(0, 0, w, h);
+                ctx.fillStyle = '#ff0000';
                 ctx.beginPath();
-                ctx.arc(width * 0.8, height * 0.2, 30, 0, Math.PI * 2);
-                ctx.fillStyle = 'red';
+                ctx.arc(w * 0.8, h * 0.2, 30, 0, Math.PI * 2);
                 ctx.fill();
                 break;
             case 'fire':
-                ctx.globalAlpha = 0.3;
-                ctx.fillStyle = 'rgba(255,69,0,0.4)';
-                ctx.fillRect(0, 0, width, height);
-                // simple flame particles
-                for (let i = 0; i < 15; i++) {
-                    const px = Math.random() * width;
-                    const py = Math.random() * height;
-                    const r = Math.random() * 4 + 2;
-                    ctx.beginPath();
-                    ctx.arc(px, py, r, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(255,${50 + Math.random() * 100},0,0.6)`;
-                    ctx.fill();
-                }
+                ctx.fillStyle = 'rgba(255,100,0,0.2)';
+                ctx.fillRect(0, 0, w, h);
                 break;
             case 'storm':
-                ctx.globalAlpha = 0.25;
-                ctx.fillStyle = 'rgba(0,0,50,0.5)';
-                ctx.fillRect(0, 0, width, height);
-                // lightning flash
-                if (Math.floor(time / 500) % 2 === 0) {
-                    ctx.globalAlpha = 0.6;
-                    ctx.strokeStyle = 'white';
-                    ctx.lineWidth = 4;
-                    ctx.beginPath();
-                    ctx.moveTo(Math.random() * width, 0);
-                    ctx.lineTo(Math.random() * width, height);
-                    ctx.stroke();
-                }
+                ctx.fillStyle = 'rgba(50,50,80,0.4)';
+                ctx.fillRect(0, 0, w, h);
                 break;
             case 'plague':
-                ctx.globalAlpha = 0.2;
-                ctx.fillStyle = 'rgba(0,150,0,0.4)';
-                ctx.fillRect(0, 0, width, height);
-                // floating green particles
-                for (let i = 0; i < 12; i++) {
-                    const px = Math.random() * width;
-                    const py = Math.random() * height;
-                    ctx.fillStyle = `rgba(0,200,0,${0.3 + Math.random() * 0.3})`;
-                    ctx.fillRect(px, py, 3, 3);
-                }
+                ctx.fillStyle = 'rgba(0,150,0,0.2)';
+                ctx.fillRect(0, 0, w, h);
                 break;
             case 'prosperity':
-                ctx.globalAlpha = 0.3;
-                for (let i = 0; i < 20; i++) {
-                    const px = Math.random() * width;
-                    const py = Math.random() * height;
-                    ctx.fillStyle = `rgba(255,215,0,${0.5 + Math.random() * 0.5})`;
-                    ctx.fillRect(px, py, 2, 2);
-                }
+                ctx.fillStyle = 'rgba(255,215,0,0.15)';
+                ctx.fillRect(0, 0, w, h);
                 break;
         }
-        ctx.globalAlpha = 1;
-    };
+    }
 
-    // ---------- Main Render ----------
-    const render = (time) => {
-        const dt = time - lastTime;
-        if (dt < 1000 / FPS) {
-            requestAnimationFrame(render);
-            return;
+    // Main render loop
+    function render() {
+        frameCount++;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+        ctx.translate(camera.x, camera.y);
+        ctx.scale(camera.zoom, camera.zoom);
+
+        // Terrain
+        const tileSize = 12;
+        for (let x = 0; x < canvas.width + tileSize; x += tileSize) {
+            for (let y = 0; y < canvas.height + tileSize; y += tileSize) {
+                ctx.fillStyle = ((x + y) % 24 === 0) ? '#2a3a1a' : '#1a2a1a';
+                ctx.fillRect(x, y, tileSize, tileSize);
+            }
         }
-        lastTime = time;
 
-        // Resize handling (debounced based on map container bounds)
-        if (resizePending) {
-            canvas.width = container ? container.clientWidth : window.innerWidth;
-            canvas.height = container ? container.clientHeight : window.innerHeight;
-            resizePending = false;
+        // Water river
+        for (let y = 0; y < canvas.height; y += 3) {
+            const waveOffset = Math.sin((y * 0.05) + (frameCount * 0.03)) * 6;
+            ctx.fillStyle = '#1a3a5a';
+            ctx.fillRect(Math.round(canvas.width * 0.35 + waveOffset), y, 12, 3);
         }
 
-        const { width, height } = canvas;
-        ctx.clearRect(0, 0, width, height);
+        // Trees - percentage positions
+        const treePositions = [
+            {x: 8, y: 15}, {x: 22, y: 25}, {x: 45, y: 12},
+            {x: 60, y: 30}, {x: 75, y: 18}, {x: 15, y: 50}
+        ];
+        treePositions.forEach(t => {
+            const tx = px(t.x, canvas.width);
+            const ty = px(t.y, canvas.height);
+            ctx.fillStyle = '#5a3a1a';
+            ctx.fillRect(Math.round(tx), Math.round(ty), 3, 9);
+            ctx.fillStyle = '#1a5a1a';
+            ctx.fillRect(Math.round(tx - 6), Math.round(ty - 9), 15, 9);
+        });
 
-        const state = window.worldState || { buildings: [], units: [], activeEvents: [] };
+        // Buildings
+        buildings.forEach(building => {
+            const bx = px(building.xPercent, canvas.width);
+            const by = px(building.yPercent, canvas.height);
+            const bh = px(building.heightPercent, canvas.height);
+            
+            switch(building.type) {
+                case 0: drawPixelCastle(bx, by, bh); break;
+                case 1: drawPixelHouse(bx, by, bh * 0.6); break;
+                case 2: drawPixelBarracks(bx, by, bh * 0.7); break;
+                case 3: drawPixelTower(bx, by, bh * 1.2); break;
+            }
+        });
 
-        // Draw buildings
-        if (Array.isArray(state.buildings)) {
-            state.buildings.forEach(b => {
-                const bx = clamp(b.x, 0, width - BUILD_W * PIXEL);
-                const by = clamp(b.y, BUILD_H * PIXEL, height);
-                drawBuilding(bx, by, b.type || 0);
+        // Units
+        updateUnits();
+        units.forEach(unit => {
+            const ux = px(unit.xPercent, canvas.width);
+            const uy = px(unit.yPercent, canvas.height);
+            drawPixelUnit(unit, ux, uy);
+        });
+
+        // Event overlays
+        if (worldState.activeEvents) {
+            worldState.activeEvents.forEach(evt => {
+                if (evt.type) drawEventOverlay(evt.type, frameCount);
             });
         }
 
-        // Draw units (simple walk animation based on time)
-        if (Array.isArray(state.units)) {
-            state.units.forEach((u, idx) => {
-                const frame = Math.floor(time / 200 + idx) % 2;
-                const ux = clamp(u.x, 0, width - UNIT_W * PIXEL);
-                const uy = clamp(u.y, UNIT_H * PIXEL, height);
-                drawUnit(ux, uy, u.dir || 'right', frame);
-            });
-        }
-
-        // Draw active events
-        if (Array.isArray(state.activeEvents)) {
-            state.activeEvents.forEach(ev => drawEventOverlay(ev, width, height, time));
-        }
-
+        ctx.restore();
         requestAnimationFrame(render);
-    };
+    }
 
-    // ---------- Resize ----------
-    const onResize = () => {
-        resizePending = true;
-    };
-    window.addEventListener('resize', onResize);
-    onResize(); // initial size
-
-    // ---------- Start ----------
     requestAnimationFrame(render);
 })();
 </script>
