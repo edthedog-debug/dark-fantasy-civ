@@ -774,5 +774,192 @@
     </div>
 
 </div>
+
+<!-- === AI IMPROVED MAP JS (Day 29751) === -->
+<script>
+/*===  Canvas Enhancer – replace existing draw functions  ======================*/
+/*  Assumes the original script already defines:                                 */
+/*    const canvas = document.getElementById('gameCanvas');                      */
+/*    const ctx    = canvas.getContext('2d');                                    */
+/*    const MAP_W  = canvas.width;   // map pixel width                        */
+/*    const MAP_H  = canvas.height;  // map pixel height                       */
+/*    let   buildings = [];   // will be filled with building objects        */
+/*    let   units     = [];   // will be filled with unit objects            */
+/*==========================================================================*/
+
+(() => {
+    /*-------------------------- GLOBAL SETTINGS ---------------------------*/
+    const TOTAL_BUILDINGS = 1155;          // as required
+    const TOTAL_UNITS     = 577;           // as required
+    const TECH_LEVEL      = 3074.2900000011973; // influences building detail
+    const PIXEL_SIZE      = 1;            // each fillRect draws a single pixel
+    const SMOKE_LIFETIME  = 120;          // frames
+    const FLAG_WAVE_SPEED = 0.2;          // rad per frame
+
+    ctx.imageSmoothingEnabled = false;    // keep pixel‑art crisp
+
+    /*--------------------------- UTILITIES --------------------------------*/
+    const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+    /*--------------------------- BUILDING CLASS ---------------------------*/
+    class Building {
+        constructor(x, y, type) {
+            this.x = x; this.y = y; this.type = type; // type: 'castle','house','barrack'
+            this.width  = (type === 'castle') ? 12 : (type === 'barrack') ? 10 : 8;
+            this.height = (type === 'castle') ? 12 : (type === 'barrack') ? 8 : 6;
+            this.smoke = []; // {x,y,age}
+        }
+        draw() {
+            const {x, y, width, height, type} = this;
+            // base block
+            ctx.fillStyle = (type === 'castle') ? '#7A7A7A' : (type === 'barrack') ? '#5A7A5A' : '#8B4513';
+            ctx.fillRect(x, y, width, height);
+            // roof
+            ctx.fillStyle = (type === 'castle') ? '#555555' : (type === 'barrack') ? '#3A5F3A' : '#A0522D';
+            for (let i = 0; i < width; i++) {
+                ctx.fillRect(x + i, y - 1, 1, 1);
+            }
+            // windows & doors
+            ctx.fillStyle = '#FFFFFF';
+            const winW = 2, winH = 2;
+            const winCountX = Math.max(1, Math.floor(width / 4));
+            const winCountY = Math.max(1, Math.floor(height / 4));
+            for (let ix = 0; ix < winCountX; ix++) {
+                for (let iy = 0; iy < winCountY; iy++) {
+                    const wx = x + 1 + ix * Math.floor(width / winCountX);
+                    const wy = y + 1 + iy * Math.floor(height / winCountY);
+                    ctx.fillRect(wx, wy, winW, winH);
+                }
+            }
+            // door
+            ctx.fillStyle = '#3B240B';
+            ctx.fillRect(x + Math.floor(width / 2) - 1, y + height - 2, 2, 2);
+            // special features per type
+            if (type === 'castle') this._drawCrenellations();
+            if (type === 'castle') this._drawFlag();
+            if (type === 'house'  ) this._emitSmoke();
+            this._drawSmoke();
+        }
+        _drawCrenellations() {
+            ctx.fillStyle = '#333333';
+            const step = 3;
+            for (let i = 0; i < this.width; i += step) {
+                ctx.fillRect(this.x + i, this.y - 2, 1, 2);
+            }
+        }
+        _drawFlag() {
+            const flagX = this.x + this.width - 2;
+            const flagY = this.y - 6;
+            const wave = Math.sin(performance.now() * FLAG_WAVE_SPEED + flagX) * 1;
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(flagX, flagY, 1, 5);                // pole
+            ctx.fillRect(flagX + 1, flagY + Math.round(wave), 3, 2); // waving flag
+        }
+        _emitSmoke() {
+            if (Math.random() < 0.02) { // occasional puff
+                this.smoke.push({x: this.x + this.width - 2, y: this.y - 2, age: 0});
+            }
+        }
+        _drawSmoke() {
+            ctx.fillStyle = '#AAAAAA';
+            this.smoke.forEach(p => {
+                const alpha = 1 - p.age / SMOKE_LIFETIME;
+                ctx.globalAlpha = Math.max(0, alpha);
+                ctx.fillRect(p.x, p.y - p.age, 2, 2);
+                ctx.globalAlpha = 1;
+            });
+            // age & purge
+            this.smoke = this.smoke.filter(p => {
+                p.age++;
+                return p.age < SMOKE_LIFETIME;
+            });
+        }
+    }
+
+    /*--------------------------- UNIT CLASS -------------------------------*/
+    class Unit {
+        constructor(x, y) {
+            this.x = x; this.y = y;
+            this.dest = this._randomDestination();
+            this.speed = 0.5 + Math.random() * 0.5;
+        }
+        _randomDestination() {
+            const b = buildings[rand(0, buildings.length - 1)];
+            return {x: b.x + b.width / 2, y: b.y + b.height / 2};
+        }
+        update() {
+            const dx = this.dest.x - this.x;
+            const dy = this.dest.y - this.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist < 1) this.dest = this._randomDestination();
+            else {
+                this.x += (dx / dist) * this.speed;
+                this.y += (dy / dist) * this.speed;
+            }
+        }
+        draw() {
+            ctx.fillStyle = '#0000FF';
+            ctx.fillRect(Math.round(this.x), Math.round(this.y), 2, 2);
+        }
+    }
+
+    /*--------------------------- MAP DENSITY -----------------------------*/
+    function generateBuildings() {
+        const densityFactor = Math.sqrt(TOTAL_BUILDINGS / (MAP_W * MAP_H)) * 2000; // arbitrary scaling
+        const cols = Math.max(5, Math.floor(Math.sqrt(TOTAL_BUILDINGS) * densityFactor / 100));
+        const rows = Math.ceil(TOTAL_BUILDINGS / cols);
+        const cellW = Math.floor(MAP_W / cols);
+        const cellH = Math.floor(MAP_H / rows);
+        const types = ['castle', 'house', 'barrack'];
+        for (let i = 0; i < TOTAL_BUILDINGS; i++) {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const x = col * cellW + rand(0, Math.max(0, cellW - 12));
+            const y = row * cellH + rand(0, Math.max(0, cellH - 12));
+            const type = types[rand(0, types.length - 1)];
+            buildings.push(new Building(x, y, type));
+        }
+    }
+
+    function generateUnits() {
+        for (let i = 0; i < TOTAL_UNITS; i++) {
+            const b = buildings[rand(0, buildings.length - 1)];
+            const ux = b.x + b.width / 2 + rand(-2, 2);
+            const uy = b.y + b.height / 2 + rand(-2, 2);
+            units.push(new Unit(ux, uy));
+        }
+    }
+
+    /*--------------------------- MAIN RENDER LOOP ------------------------*/
+    function drawAll() {
+        // clear background
+        ctx.fillStyle = '#1E1E1E';
+        ctx.fillRect(0, 0, MAP_W, MAP_H);
+
+        // draw buildings (lower layer)
+        buildings.forEach(b => b.draw());
+
+        // update & draw units (upper layer)
+        units.forEach(u => {
+            u.update();
+            u.draw();
+        });
+
+        requestAnimationFrame(drawAll);
+    }
+
+    /*--------------------------- INITIALISATION --------------------------*/
+    // If the original script already called a init, just run our augmentors:
+    if (typeof buildings === 'undefined') window.buildings = [];
+    if (typeof units     === 'undefined') window.units     = [];
+
+    // Populate only once
+    if (buildings.length === 0) generateBuildings();
+    if (units.length    === 0) generateUnits();
+
+    // Replace any existing draw loop with our enhanced version
+    requestAnimationFrame(drawAll);
+})();
+</script>
 </body>
 </html>
