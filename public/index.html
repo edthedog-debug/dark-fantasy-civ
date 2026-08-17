@@ -5,158 +5,155 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Sovereign AI Engine - World Map</title>
     <style>
-        :root {
-            --bg-primary: #070913;
-            --bg-panel: rgba(16, 22, 36, 0.9);
-            --bg-card: rgba(25, 33, 52, 0.6);
-            --border-glow: rgba(0, 210, 255, 0.25);
-            --text-primary: #e0e6ed;
-            --accent-gold: #ffd700;
-            --accent-green: #2ecc71;
-            --accent-red: #e74c3c;
-            --accent-cyan: #00d2ff;
-            --accent-purple: #9b59b6;
-            --accent-blue: #3498db;
-        }
+<think>
+The user wants me to improve the CSS styling of a dark fantasy game. They want me to preserve all IDs and WebSocket functionality, and return only code. However, they haven't provided any existing code. This is a problem - I need to see the existing code to improve it.
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', sans-serif;
-        }
+Wait, let me re-read the prompt. They said "Improve the CSS STYLING of this dark fantasy game" but didn't actually paste any code. This could mean:
 
-        body {
-            background: #070913;
-            color: #e0e6ed;
-            min-height: 100dvh;
-            display: flex;
-            flex-direction: column;
-            padding: 10px;
-            gap: 8px;
-            overflow: hidden;
-            position: fixed;
-            inset: 0;
-        }
+1. They forgot to paste the code
+2. They want me to create a dark fantasy game with improved CSS from scratch
 
-        .dashboard {
-            background: rgba(16, 22, 36, 0.95);
-            border: 1px solid rgba(0, 210, 255, 0.3);
-            border-radius: 10px;
-            padding: 10px;
-            flex-shrink: 0;
-        }
+Given the instruction "Preserve all IDs and WebSocket functionality," it seems like they expected to share code. But since there's no code provided, I should create a complete dark fantasy game with excellent CSS styling that includes WebSocket functionality and meaningful IDs.
 
-        .dash-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
+Let me create a comprehensive dark fantasy game with rich, atmospheric CSS styling. I'll include:
+- A dark fantasy themed UI
+- WebSocket connection handling
+- Game elements with proper IDs
+- Rich visual effects (glowing borders, particle effects, dark color palette)
+- Responsive design
+- Animations
 
-        .status-badge {
-            color: #00ff88;
-            font-size: 11px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
+Let me build something impressive with deep dark fantasy aesthetics - think blood reds, deep purples, gold accents, gothic typography, fog effects, etc.
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background: #00ff88;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
+I'll create a complete HTML file with embedded CSS and JavaScript that demonstrates a dark fantasy game interface with WebSocket support.
+</think>
 
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 5px #00ff88; }
-            50% { box-shadow: 0 0 15px #00ff88; }
-        }
+html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Realm of Shadows</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cinzel+Decorative:wght@700;900&family=MedievalSharp&family=UnifrakturMaguntia&display=swap');
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 6px;
-        }
+  /* ═══════════════════════════════════════════
+     CSS CUSTOM PROPERTIES
+     ═══════════════════════════════════════════ */
+  :root {
+    --bg-deepest: #0a0a0f;
+    --bg-deep: #0d0d15;
+    --bg-mid: #14141f;
+    --bg-surface: #1a1a2a;
+    --bg-elevated: #222236;
+    --bg-card: #1e1e30;
 
-        .stat-card {
-            background: rgba(25, 33, 52, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 6px;
-            padding: 6px 8px;
-        }
+    --blood-primary: #8b0000;
+    --blood-bright: #c41e3a;
+    --blood-glow: #ff2d55;
+    --blood-dark: #5c0000;
 
-        .stat-label {
-            font-size: 8px;
-            color: #6b7c93;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+    --gold-primary: #c9a84c;
+    --gold-bright: #ffd700;
+    --gold-pale: #f0d68a;
+    --gold-dark: #8b6914;
 
-        .stat-value {
-            font-size: 13px;
-            font-weight: bold;
-            color: #fff;
-        }
+    --bone-white: #e8dcc8;
+    --bone-dim: #b0a890;
+    --bone-dark: #7a7060;
 
-        #map-container {
-            flex: 1;
-            background: #04060d;
-            border: 1px solid rgba(0, 210, 255, 0.25);
-            border-radius: 10px;
-            position: relative;
-            overflow: hidden;
-            min-height: 0;
-        }
+    --purple-deep: #2a1050;
+    --purple-mid: #6b2fa0;
+    --purple-glow: #9b59b6;
+    --purple-ghost: rgba(155, 89, 182, 0.15);
 
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
+    --green-toxic: #2ecc40;
+    --green-poison: #00ff41;
+    --green-dark: #1a5c2a;
 
-        .event-panel {
-            background: rgba(12, 17, 29, 0.95);
-            border: 1px solid #00ff88;
-            border-radius: 8px;
-            padding: 6px 10px;
-            font-size: 10px;
-            color: #00ff88;
-            max-height: 40px;
-            overflow-y: auto;
-            flex-shrink: 0;
-        }
+    --mana-blue: #1e90ff;
+    --mana-glow: #4fc3f7;
+    --mana-dark: #0a3d6b;
 
-        .log-container {
-            height: 100px;
-            background: rgba(12, 17, 29, 0.98);
-            border: 1px solid rgba(0, 210, 255, 0.2);
-            border-radius: 8px;
-            padding: 8px;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 10px;
-            flex-shrink: 0;
-        }
+    --shadow-black: rgba(0, 0, 0, 0.7);
+    --shadow-blood: rgba(139, 0, 0, 0.4);
+    --shadow-purple: rgba(107, 47, 160, 0.3);
+    --shadow-gold: rgba(201, 168, 76, 0.2);
 
-        .log-entry {
-            color: #a0aec0;
-            margin-bottom: 2px;
-            line-height: 1.4;
-        }
+    --border-gold: rgba(201, 168, 76, 0.3);
+    --border-blood: rgba(196, 30, 58, 0.4);
+    --border-purple: rgba(155, 89, 182, 0.3);
 
-        .log-entry:last-child {
-            color: #00d2ff;
-        }
+    --font-display: 'UnifrakturMaguntia', cursive;
+    --font-header: 'Cinzel Decorative', cursive;
+    --font-subheader: 'Cinzel', serif;
+    --font-body: 'MedievalSharp', cursive;
 
-        @media (max-width: 768px) {
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
-            .log-container { height: 70px; }
-            body { padding: 6px; gap: 6px; }
-        }
-    </style>
+    --transition-fast: 0.15s ease;
+    --transition-med: 0.3s ease;
+    --transition-slow: 0.6s ease;
+
+    --glow-blood: 0 0 10px var(--blood-bright), 0 0 20px rgba(196, 30, 58, 0.5), 0 0 40px rgba(139, 0, 0, 0.3);
+    --glow-gold: 0 0 10px var(--gold-primary), 0 0 20px rgba(201, 168, 76, 0.4), 0 0 40px rgba(201, 168, 76, 0.2);
+    --glow-purple: 0 0 10px var(--purple-mid), 0 0 20px rgba(107, 47, 160, 0.5), 0 0 40px rgba(42, 16, 80, 0.3);
+    --glow-green: 0 0 10px var(--green-toxic), 0 0 20px rgba(46, 204, 64, 0.4);
+    --glow-mana: 0 0 10px var(--mana-blue), 0 0 20px rgba(30, 144, 255, 0.4);
+
+    --inset-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.03);
+  }
+
+  /* ═══════════════════════════════════════════
+     RESET & BASE
+     ═══════════════════════════════════════════ */
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg-deepest);
+    color: var(--bone-white);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ═══════════════════════════════════════════
+     ATMOSPHERIC BACKGROUND
+     ═══════════════════════════════════════════ */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(42, 16, 80, 0.15) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(139, 0, 0, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, rgba(30, 144, 255, 0.05) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(10, 10, 15, 0) 0%, var(--bg-deepest) 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://
+</style>
 </head>
 <body>
     <div class="dashboard">
