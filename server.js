@@ -198,18 +198,16 @@ async function queryAI(prompt) {
 }
 
 /**
- * Execute git command with retry and timeout
+ * Execute git command with retry
  */
 function executeGitCommand(command, retries = 3) {
     return new Promise((resolve, reject) => {
         const attemptCommand = (attempt) => {
-            console.log(`🔧 Git command (attempt ${attempt}/${retries}): ${command}`);
+            console.log(`🔧 Git (${attempt}/${retries}): ${command.substring(0, 80)}`);
             
             exec(command, { maxBuffer: 1024 * 1024 * 10, timeout: 30000 }, (error, stdout, stderr) => {
                 if (error) {
-                    console.error(`❌ Git command failed (attempt ${attempt}): ${command}`);
-                    console.error(`Error: ${error.message}`);
-                    console.error(`Stderr: ${stderr ? stderr.substring(0, 500) : 'none'}`);
+                    console.error(`❌ Git failed (${attempt}): ${stderr ? stderr.substring(0, 300) : error.message}`);
                     
                     if (attempt < retries) {
                         const waitTime = 5000 * attempt;
@@ -219,8 +217,7 @@ function executeGitCommand(command, retries = 3) {
                         reject(error);
                     }
                 } else {
-                    console.log(`✅ Git command success: ${command.substring(0, 80)}`);
-                    if (stdout) console.log(`Output: ${stdout.substring(0, 200)}`);
+                    console.log(`✅ Git success: ${command.substring(0, 50)}`);
                     resolve(stdout);
                 }
             });
@@ -231,11 +228,11 @@ function executeGitCommand(command, retries = 3) {
 }
 
 /**
- * Push to GitHub with robust retry mechanism
+ * Push to GitHub - ALWAYS clones fresh to /tmp/repo
  */
 async function pushToGitHub(htmlPath, improvementTypeName, day) {
     if (!GITHUB_TOKEN) {
-        console.log("⚠️ No GITHUB_TOKEN, skipping GitHub push");
+        console.log("⚠️ No GITHUB_TOKEN");
         return false;
     }
     
@@ -243,73 +240,50 @@ async function pushToGitHub(htmlPath, improvementTypeName, day) {
     
     try {
         const cleanToken = GITHUB_TOKEN.trim();
-        
-        // Configure git
-        await executeGitCommand('git config --global user.email "ai@example.com"');
-        await executeGitCommand('git config --global user.name "AI Auto-Improver"');
-        await executeGitCommand('git config --global http.postBuffer 524288000');
-        
         const repoUrl = `https://${cleanToken}@github.com/edthedog-debug/dark-fantasy-civ.git`;
         
-        // Check if in git repo
-        let inRepo = false;
-        try {
-            const result = await executeGitCommand('git rev-parse --is-inside-work-tree');
-            inRepo = result.trim() === 'true';
-        } catch (e) {
-            inRepo = false;
+        // ALWAYS clone fresh to /tmp/repo - avoids 'origin' not found
+        console.log("📁 Cloning fresh repository...");
+        await executeGitCommand('rm -rf /tmp/repo', 1);
+        await executeGitCommand(`git clone --depth 1 ${repoUrl} /tmp/repo`, 2);
+        
+        // Change to repo directory
+        const originalDir = process.cwd();
+        process.chdir('/tmp/repo');
+        console.log("📂 Working in:", process.cwd());
+        
+        // Configure git
+        await executeGitCommand('git config user.email "ai@example.com"');
+        await executeGitCommand('git config user.name "AI Auto-Improver"');
+        
+        // Copy files into repo
+        const targetPublicDir = path.join('/tmp/repo', 'public');
+        if (!fs.existsSync(targetPublicDir)) {
+            fs.mkdirSync(targetPublicDir, { recursive: true });
         }
         
-        if (!inRepo) {
-            console.log("📁 Cloning repository...");
-            try {
-                await executeGitCommand(`rm -rf /tmp/repo`);
-                await executeGitCommand(`git clone --depth 1 ${repoUrl} /tmp/repo`, 2);
-                process.chdir('/tmp/repo');
-                console.log("✅ Cloned to /tmp/repo");
-            } catch (cloneError) {
-                console.error("❌ Clone failed:", cloneError.message);
-                return false;
-            }
-        } else {
-            // Pull latest changes first
-            try {
-                console.log("🔄 Pulling latest changes...");
-                await executeGitCommand('git pull origin main --rebase', 2);
-            } catch (pullError) {
-                console.log("⚠️ Pull failed, continuing anyway");
-            }
-        }
+        fs.copyFileSync(htmlPath, path.join(targetPublicDir, 'index.html'));
+        fs.copyFileSync(STATE_FILE, path.join('/tmp/repo', 'worldState.json'));
+        console.log("✅ Files copied to /tmp/repo");
         
-        // Copy files
-        const targetDir = path.join(process.cwd(), 'public');
-        if (!fs.existsSync(targetDir)) {
-            fs.mkdirSync(targetDir, { recursive: true });
-        }
-        
-        const targetHtmlPath = path.join(targetDir, 'index.html');
-        fs.copyFileSync(htmlPath, targetHtmlPath);
-        console.log("✅ HTML copied");
-        
-        const targetStatePath = path.join(process.cwd(), 'worldState.json');
-        fs.copyFileSync(STATE_FILE, targetStatePath);
-        console.log("✅ State copied");
-        
-        // Git operations with retries
+        // Git operations
         await executeGitCommand('git add public/index.html worldState.json');
         
         const commitMessage = `🤖 [AI] ${improvementTypeName} - Day ${day}`;
         await executeGitCommand(`git commit -m "${commitMessage}" --allow-empty`);
         
-        // Push with force-with-lease to avoid conflicts
-        await executeGitCommand('git push origin main --force-with-lease', 2);
+        await executeGitCommand('git push origin main --force', 2);
         
         console.log("✅ Successfully pushed to GitHub!");
+        
+        // Return to original directory
+        process.chdir(originalDir);
+        
         addLog(`[GITHUB] Committed: ${improvementTypeName} - Day ${day}`);
         return true;
         
     } catch (gitError) {
-        console.error("❌ GitHub push failed after all retries:", gitError.message);
+        console.error("❌ GitHub push failed:", gitError.message);
         addLog(`[GITHUB ERROR] ${gitError.message.substring(0, 100)}`);
         return false;
     }
@@ -418,10 +392,10 @@ async function autoImproveGameCode() {
         console.log("📄 Current HTML size:", currentHtml.length, "chars");
         
         if (currentHtml.length > 100000) {
-            console.log("⚠️ HTML too large, resetting to clean version...");
+            console.log("⚠️ HTML too large, resetting...");
             currentHtml = getCleanHTML();
             fs.writeFileSync(htmlPath, currentHtml);
-            addLog("[SYSTEM] HTML reset to clean version (was too large)");
+            addLog("[SYSTEM] HTML reset to clean version");
         }
         
         const improvementType = worldState.aiImprovements % 3;
@@ -438,9 +412,8 @@ async function autoImproveGameCode() {
                 CRITICAL INSTRUCTIONS:
                 - PRESERVE ALL EXISTING FUNCTIONALITY AND HTML STRUCTURE.
                 - DO NOT change, rename, or remove any DOM element classes or IDs.
-                - Focus STRICTLY on aesthetic enhancements: rich dark fantasy color palettes, polished pixel-art borders, sleek retro UI card layouts, glowing status indicators, smooth hover transitions, and responsive mobile alignment.
-                - Maintain CSS keyframe animations for events: blood_moon (red atmospheric glow), fire (flickering orange overlay), storm (dark lightning background), plague (toxic green mist), prosperity (sparkling gold accent).
-                - Return ONLY the complete, fully valid CSS code to be placed inside the <style> tags (no explanation, maximum 250 lines).`;
+                - Focus STRICTLY on aesthetic enhancements.
+                - Return ONLY valid CSS (max 250 lines).`;
                 break;
                 
             case 1:
@@ -449,10 +422,9 @@ async function autoImproveGameCode() {
                 Current State: Day ${worldState.day}, Pop ${worldState.population}, Tech ${worldState.techPower}.
                 
                 CRITICAL INSTRUCTIONS:
-                - PRESERVE ALL EXISTING FUNCTIONALITY, state logic, WebSocket handlers, element bindings, and UI updates (stat-day, stat-era, stat-pop, stat-gold, stat-tech, stat-tanks, stat-status, stat-build, event-panel, log-stream).
-                - DO NOT break canvas resize events, render loops, object clamping, or WebSocket communication.
-                - Focus STRICTLY on graphical enhancements: detailed pixel-art structures, animated unit sprites, atmospheric particle effects (rain, embers, green fog, golden dust), dynamic terrain tiles, and smoother event rendering overlays.
-                - Return ONLY valid, complete JavaScript code to be placed inside the <script> tags (no explanation, maximum 400 lines).`;
+                - PRESERVE ALL EXISTING FUNCTIONALITY.
+                - Focus STRICTLY on graphical enhancements.
+                - Return ONLY valid JavaScript (max 400 lines).`;
                 break;
                 
             case 2:
@@ -460,22 +432,18 @@ async function autoImproveGameCode() {
                 Current State: Day ${worldState.day}, Pop ${worldState.population}, Era: ${worldState.era}.
                 
                 CRITICAL INSTRUCTIONS:
-                - PRESERVE ALL EXISTING FUNCTIONALITY AND DOM ELEMENT IDs EXACTLY AS THEY ARE:
-                  Required IDs: stat-day, stat-era, stat-pop, stat-gold, stat-tech, stat-tanks, stat-status, stat-build, event-panel, log-stream, gameCanvas.
-                - DO NOT add, remove, or modify functional JavaScript bindings or WebSocket hooks.
-                - Focus STRICTLY on visual hierarchy, clean container nesting, responsive grid improvements, and congruent retro fantasy UI presentation.
-                - Return ONLY valid HTML code for the content inside <body>...</body> (no explanation, maximum 150 lines).`;
+                - PRESERVE ALL EXISTING IDs.
+                - Focus STRICTLY on visual hierarchy.
+                - Return ONLY valid HTML body (max 150 lines).`;
                 break;
         }
         
-        console.log("🔍 Asking Groq to REPLACE", improvementType === 0 ? "CSS" : improvementType === 1 ? "Canvas JS" : "HTML", "...");
+        console.log("🔍 Asking Groq to REPLACE", improvementType === 0 ? "CSS" : improvementType === 1 ? "Canvas JS" : "HTML");
         const aiResponse = await queryAI(prompt);
         
         if (aiResponse && !aiResponse.startsWith("//") && aiResponse.length > 50) {
-            console.log("✅ Got valid AI response! Length:", aiResponse.length);
             codeToAdd = aiResponse.replace(/```css/gi, '').replace(/```javascript/gi, '').replace(/```html/gi, '').replace(/```js/gi, '').replace(/```/g, '').trim();
         } else {
-            console.log("⚠️ AI failed, using fallback");
             codeToAdd = null;
         }
         
@@ -500,7 +468,7 @@ async function autoImproveGameCode() {
         const improvementTypeName = improvementType === 0 ? "Graphics CSS" : improvementType === 1 ? "Event Canvas JS" : "Civilization HTML";
         addLog(`[AI COMMIT SUCCESS] ${improvementTypeName}! Total: ${worldState.aiImprovements}`);
         
-        // Push to GitHub with robust retry
+        // Push to GitHub
         await pushToGitHub(htmlPath, improvementTypeName, worldState.day);
         
     } catch (err) {
@@ -510,7 +478,7 @@ async function autoImproveGameCode() {
 }
 
 /**
- * Returns clean HTML with event display support
+ * Returns clean HTML
  */
 function getCleanHTML() {
     return `<!DOCTYPE html>
@@ -736,22 +704,16 @@ WSS.on('connection', (ws) => {
 
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
-    console.log("📊 Current state - Day:", worldState.day, "AI Improvements:", worldState.aiImprovements);
-    console.log("🤖 Using Groq API (OpenAI GPT-OSS 120B)");
-    console.log("📅 AI Events: every 150 days | Code Improvements: every 250 days");
-    console.log("⏳ Rate limiter: 7 seconds minimum between calls");
-    console.log("🎮 Pixel Art: Age of Empires style with event visuals");
-    console.log("📊 Event system: blood moon, fire, storm, plague, prosperity");
-    console.log("🔄 REPLACE mode: no duplicates, max 100KB HTML");
-    console.log("🔧 Git: retry mechanism with 3 attempts, force-with-lease");
+    console.log("📊 Day:", worldState.day, "| AI Improvements:", worldState.aiImprovements);
+    console.log("🤖 Groq API (GPT-OSS 120B) | 🔧 Git: fresh clone each push");
     
     queryAI("Say 'OK'")
         .then(response => {
             if (response) {
-                console.log("✅ Groq response:", response.substring(0, 100));
+                console.log("✅ Groq ready");
                 addLog("[SYSTEM] AI System ready (Groq Pixel Art Engine).");
             } else {
-                console.log("⚠️ Groq not responding, using fallbacks");
+                console.log("⚠️ Groq not responding");
                 addLog("[SYSTEM] AI System in fallback mode.");
             }
         });
