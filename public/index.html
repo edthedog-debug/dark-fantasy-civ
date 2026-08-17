@@ -5,114 +5,126 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Sovereign AI Engine - World Map</title>
     <style>
-<think>
-Here's a thinking process:
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-1.  **Analyze User Input:**
-   - **Request:** "Improve game code. Return only code."
-   - **Missing Information:** The user hasn't provided any game code to improve.
-   - **Constraint:** "Return only code."
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
 
-2.  **Identify Key Problem:** I cannot improve code that isn't provided. I need to ask for the code, but the constraint says "Return only code." This is a contradiction.
+        /* Dashboard de Métricas */
+        .dashboard {
+            background-color: #161b22;
+            border-bottom: 1px solid #30363d;
+            padding: 12px 20px;
+        }
 
-3.  **Handle Constraint vs. Reality:**
-   - If I strictly follow "Return only code," I have nothing to return since no code was provided.
-   - I could provide a placeholder or a minimal improved template, but that wouldn't actually help.
-   - The best approach is to acknowledge the constraint but still need the code. However, since I must return *only* code, I'll provide a minimal, well-structured game skeleton (e.g., a simple Python Pygame template or JavaScript canvas game) that demonstrates best practices, and add a comment indicating where their code should go. But wait, the prompt says "Improve game code." without providing it. This is a common scenario where the user forgot to paste the code.
-   - I should probably just output a clear, minimal code block that serves as a placeholder or asks for the code in a code comment, but strictly follow "Return only code."
-   - Actually, I can just output a simple, improved generic game structure (like a Python/Pygame or JS/HTML5 template) with comments explaining how to adapt it, but keep it strictly code.
-   - Alternatively, I could output a minimal script that prints a message asking for the code, wrapped in a code block. But that feels hacky.
-   - Let's think differently: The user likely expects me to ask for the code, but the constraint is strict. I'll provide a clean, well-commented template for a common game (e.g., Python Pygame) with placeholders, and assume they'll replace it. But that's not "improving" their code.
-   - Wait, maybe I should just output a minimal code block that says `# Please provide the game code you want improved.` inside a code block. That strictly follows "Return only code."
-   - Actually, the best practice for LLMs when given an impossible constraint + missing input is to output a code block with a clear placeholder/request, adhering strictly to the format.
+        .dash-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+        }
 
-   Let's craft a minimal, professional response that is entirely code:
-   python
-   # Please paste your game code here for improvements.
-   # Example placeholder:
-   # [Your code will be optimized for performance, readability, and best practices]
-   
-   But maybe they expect a specific language? Not specified. I'll stick to a generic placeholder in a code block.
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: #8b949e;
+        }
 
-   However, I realize the prompt might be a test or they forgot to attach code. I'll strictly output only a code block with a clear instruction in comments, as requested.
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #2ecc71;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #2ecc71;
+        }
 
-   Wait, let's reconsider: Sometimes users paste code in a follow-up, but here it's a single prompt. I must follow "Return only code." I'll provide a minimal, well-structured template that demonstrates improvement principles, with comments indicating where their code goes.
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+        }
 
-   Actually, I'll just output:
-   python
-   # ERROR: No game code provided.
-   # Please paste your code so I can optimize it.
-   # Expected format:
-   # [Paste your game code here]
-   
-   This strictly follows the constraint.
+        .stat-card {
+            background-color: #0d1117;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #21262d;
+            text-align: center;
+        }
 
-   But maybe I should assume a common language and provide a clean, improved skeleton? The prompt says "Improve game code." It's ambiguous. I'll stick to the safest approach: a code-only response that requests the input in a code comment, as that's the only way to satisfy both the missing input and the strict constraint.
+        .stat-label {
+            font-size: 0.65rem;
+            color: #8b949e;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+        }
 
-   Let's refine it to be more professional and ready to accept code:
-   python
-   # Please provide the game code you want improved.
-   # Once shared, I will optimize it for:
-   # - Performance & efficiency
-   # - Readability & maintainability
-   # - Bug fixes & edge cases
-   # - Modern best practices
-   # [Paste your code here]
-   
-   This is strictly code (in a code block), follows the constraint, and handles the missing input gracefully.
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #f0f6fc;
+        }
 
-   I'll output exactly that. No extra text. Just the code block.✅
-   Wait, the prompt says "Return only code." I'll make sure there's absolutely no markdown outside the code block, or just the code block itself. I'll output just the code block.
-   Actually, I'll make it a generic, ready-to-use template that they can replace, but keep it minimal. The comment approach is fine.
-   Let's output it. 
-   Self-Correction/Refinement during thought: 
-   The user might have intended to paste code but forgot. I'll strictly output a code block with a clear placeholder. That's the only logical path. I'll use Python as a default since it's common for games, but keep it language-agnostic in comments.
-   Final decision: Output only a code block with a clear request for the code, as required. No extra text. Proceed. 
-   Output matches the refined version.✅
-   Actually, I'll make it even cleaner:
-   python
-   # Please paste your game code here for improvements.
-   # I will optimize it for performance, readability, and best practices.
-   
-   This is strictly code. Done. 
-   Wait, maybe I should just output a minimal improved game skeleton to be safe? No, that doesn't "improve" their code. The comment approach is correct.
-   I'll output exactly that.✅
-   Proceeds. 
-   [Output Generation] -> *Code block only* -> `# Please provide the game code you want improved.\n# Paste it here, and I will return an optimized version.` (in a code block)
-   Actually, I'll make it a valid script that prints a message, to be strictly "code":
-   python
-   print("Please provide the game code you want improved.")
-   
-   That's strictly code. But the comment version is more standard for LLM interactions. I'll stick with the comment version. It's fine.
-   Final check of the prompt: "Improve game code. Return only code."
-   I'll output a code block with a clear placeholder. Done. 
-   *Self-Correction/Realization during thought*: 
-   Actually, many users copy-paste prompts without the code. The strict constraint "Return only code" means I should not add any conversational text. I'll just output a code block with a clear instruction. That's optimal.
-   I'll generate it now. 
-   Output:
-   python
-   # Please paste your game code here for improvements.
-   # I will optimize it for performance, readability, architecture, and best practices.
-   
-   This satisfies all constraints. Proceeds. 
-   [Done] 
-   *Output Generation* (matches the final refined version)
-   Note: I'll make sure it's strictly inside a code block with no surrounding text.✅
-   Actually, to be extra safe, I'll use a generic syntax that works for most contexts, or just Python. Python is fine.
-   Final output matches.✅
-   [Proceeds]
-</think>
+        /* Contenedor del Mapa Canvas */
+        #map-container {
+            flex: 1;
+            position: relative;
+            background-color: #05070a;
+            width: 100%;
+            height: 100%;
+        }
 
-python
-# Please paste your game code here for improvements.
-# I will optimize it for performance, readability, architecture, and best practices.
-</style>
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Paneles Inferiores de Eventos y Logs */
+        .event-panel {
+            background-color: #161b22;
+            border-top: 1px solid #30363d;
+            padding: 8px 15px;
+            font-size: 0.85rem;
+            color: #e6edf3;
+            text-align: center;
+        }
+
+        .log-container {
+            background-color: #0d1117;
+            border-top: 1px solid #21262d;
+            padding: 10px 15px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+    </style>
 </head>
 <body>
+
     <div class="dashboard">
         <div class="dash-header">
-            <span style="color:#8a99ad;font-weight:bold;">SOVEREIGN AI ENGINE</span>
-            <div class="status-badge"><div class="status-dot"></div> 24/7 AUTONOMOUS</div>
+            <span style="color:#8a99ad; font-weight:bold;">SOVEREIGN AI ENGINE</span>
+            <div class="status-badge">
+                <div class="status-dot" id="connection-dot"></div> 
+                <span id="connection-text">24/7 AUTONOMOUS</span>
+            </div>
         </div>
         <div class="stats-grid">
             <div class="stat-card"><div class="stat-label">DAY</div><div class="stat-value" id="stat-day">-</div></div>
@@ -137,237 +149,97 @@ python
     </div>
 
     <script>
-<think>
-Here's a thinking process:
+        // Configuración de resolución dinámica del Canvas
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
 
-1.  **Analyze User Input:**
-   - **Request:** "Improve game code. Return only code."
-   - **Missing Information:** The user hasn't provided any game code to improve.
-   - **Constraint:** "Return only code."
-
-2.  **Identify Key Problem:** I can't improve code that isn't provided. I need to ask for the code, but the constraint says "Return only code." This creates a conflict.
-
-3.  **Resolve Conflict:** 
-   - If I strictly follow "Return only code", I should output a placeholder or a minimal improved template, but that wouldn't be helpful.
-   - However, the instruction "Improve game code" implies they forgot to paste it. The best approach is to acknowledge the missing code while adhering as closely as possible to the constraint. But since they said "Return only code", I should probably output a generic, well-structured game template or a polite note in code format? Actually, the strict constraint means I should just output code. But what code? 
-   - I'll create a minimal, clean, well-commented Python game template (like a simple Snake or Pong) that demonstrates best practices, and add a comment at the top explaining that they need to provide their actual code. But the constraint says "Return only code", so I'll make sure the entire response is valid code (e.g., Python).
-   - Alternatively, I could output a comment-only code block that says "Please provide the game code to improve." But that might violate the spirit of "improve game code".
-   - Let's think practically: In these scenarios, the best approach is to provide a robust, modular, and well-structured game template in a common language (Python/Pygame or JavaScript/Canvas), with clear comments indicating where their code should go, and maybe a note that says "Replace with your code" inside comments. Since they said "Return only code", I'll make the entire response a single code block.
-
-   Actually, I'll write a minimal, clean, improved version of a common simple game (like a basic Snake or Breakout) using modern best practices, and add a comment at the top: `# Please paste your game code for specific improvements. Here's a well-structured template based on common best practices:`. But to strictly follow "Return only code", I'll make it all code.
-
-   Wait, the prompt says "Improve game code. Return only code." It's likely a test or they forgot to paste. I should just output a placeholder code block that demonstrates improvement patterns, or ask for the code in a comment. But to be safe, I'll output a clean, modular Python game template with best practices, and a comment explaining how to use it.
-
-   Actually, I'll just output a minimal, clean, well-structured Python script that represents a "improved" game framework, with comments showing where to integrate their code. But if they meant to paste code, I can't guess it. 
-
-   Let's reconsider: The strict instruction "Return only code" means I should not include any explanatory text outside a code block. I'll provide a generic but highly improved game template in Python (Pygame) that follows modern conventions, with clear comments. If they provide code later, they can adapt it.
-
-   Structure of the response:
-   - Single code block
-   - Language: Python (most common for simple games)
-   - Content: A clean, modular game loop with best practices (separation of concerns, error handling, configuration, input handling, state management)
-   - Comments will guide them on where to put their specific logic
-
-   Let's draft it mentally:
-   python
-   import pygame
-   import sys
-   from dataclasses import dataclass
-   from typing import Dict, Callable
-
-   @dataclass(frozen=True)
-   class Config:
-       WIDTH: int = 800
-       HEIGHT: int = 600
-       FPS: int = 60
-       TITLE: str = "Improved Game Template"
-
-   class Game:
-       def __init__(self, config: Config):
-           self.config = config
-           self.running = False
-           self.state: str = "menu"
-           self._states: Dict[str, Callable] = {}
-           self._clock = pygame.time.Clock()
-           self._screen = pygame.display.set_mode((config.WIDTH, config.HEIGHT))
-           pygame.display.set_caption(config.TITLE)
-           self._register_states()
-
-       def _register_states(self):
-           self._states["menu"] = self._handle_menu
-           self._states["playing"] = self._handle_playing
-           self._states["paused"] = self._handle_paused
-           self._states["game_over"] = self._handle_game_over
-
-       def run(self):
-           self.running = True
-           while self.running:
-               self._handle_events()
-               self._states[self.state]()
-               self._draw()
-               self._clock.tick(self.config.FPS)
-           pygame.quit()
-           sys.exit()
-
-       def _handle_events(self):
-           for event in pygame.event.get():
-               if event.type == pygame.QUIT:
-                   self.running = False
-               elif event.type == pygame.KEYDOWN:
-                   if event.key == pygame.K_ESCAPE:
-                       self.state = "paused"
-                   elif event.key == pygame.K_SPACE and self.state == "menu":
-                       self.state = "playing"
-
-       def _handle_menu(self):
-           self._screen.fill((30, 30, 30))
-           pygame.display.flip()
-
-       def _handle_playing(self):
-           self._screen.fill((40, 40, 40))
-           pygame.display.flip()
-
-       def _handle_paused(self):
-           self._screen.fill((20, 20, 20))
-           pygame.display.flip()
-           for event in pygame.event.get():
-               if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                   self.state = "playing"
-
-       def _handle_game_over(self):
-           self._screen.fill((50, 20, 20))
-           pygame.display.flip()
-
-       def _draw(self):
-           # Centralized rendering hook
-           pass
-
-   if __name__ == "__main__":
-       pygame.init()
-       game = Game(Config())
-       game.run()
-   
-
-   This is clean, modular, uses type hints, dataclasses, state machine pattern, proper event handling, and follows best practices. It's a solid "improved" template. I'll add a comment at the top explaining that they should paste their code for specific improvements, but keep it inside the code block to satisfy "Return only code".
-
-   Actually, to strictly follow "Return only code", I'll make sure there's absolutely no text outside the code block. The entire response will be just the code block.
-
-   Let's refine it to be more generic and focused on improvement patterns rather than a full Pygame app, since I don't know their language/framework. But Python/Pygame is a safe default. I'll add clear comments showing where their specific game logic should go.
-
-   Final decision: Output a single, well-structured code block in Python that demonstrates modern game development best practices, with comments indicating where to integrate their specific code. No extra text.
-   I'll make it concise and focused on improvement principles: separation of concerns, configuration, state management, input handling, and rendering loop.
-   Ready.✅
-   Output matches the refined version.✅
-   Note: I'll ensure it's strictly code-only. No markdown outside the code block? The prompt says "Return only code." I'll output just the code block. Actually, markdown code blocks are fine as long as there's no explanatory text. I'll output exactly that.
-   Let's generate. 
-   Self-Correction/Refinement during thought: 
-   What if they expected me to fix a specific bug? I can't. The best I can do is provide a robust template with best practices. I'll add a comment at the top: `# PASTE YOUR GAME CODE HERE FOR SPECIFIC IMPROVEMENTS. THIS TEMPLATE DEMONSTRATES MODERN BEST PRACTICES:`. This keeps it code-only while addressing the missing input.
-   All good. Proceeds. 
-   Output matches the final refined version.✅
-   [Output Generation] -> *Proceeds*
-   *(Self-Correction/Verification during drafting)*: 
-   Wait, the prompt says "Improve game code. Return only code." It's possible they pasted code in a previous turn, but this is a fresh conversation. I must assume missing input. I'll stick with the template approach. It's the most responsible way to handle "return only code" with missing input. I'll make sure it's production-ready and well-commented.
-   Final check of the code: Uses modern Python (3.8+), type hints, dataclass, state machine, proper event loop, separation of concerns, configurable, clean exit. Covers all major improvement areas. Good.✅
-   Output matches. 
-   *Proceeds.* 
-   [Output Generation] -> *Outputs the code block only.* 
-   *(Note: I'll format it as a single markdown code block with no surrounding text to strictly comply.)*
-   Done. 
-   [Output] -> *See response.* 
-   *(Self-Correction/Note during output prep)*: Actually, to be strictly compliant, I'll output just the code block. No extra words. Perfect.✅
-   [Final Output Generation] -> *Proceeds.*
-</think>
-
-python
-# PASTE YOUR GAME CODE HERE FOR SPECIFIC IMPROVEMENTS.
-# THIS TEMPLATE DEMONSTRATES MODERN BEST PRACTICES FOR STRUCTURE, PERFORMANCE, AND MAINTAINABILITY.
-
-import pygame
-import sys
-from dataclasses import dataclass
-from typing import Dict, Callable, Any
-from enum import Enum
-
-class GameState(Enum):
-    MENU = "menu"
-    PLAYING = "playing"
-    PAUSED = "paused"
-    GAME_OVER = "game_over"
-
-@dataclass(frozen=True)
-class Config:
-    WIDTH: int = 800
-    HEIGHT: int = 600
-    FPS: int = 60
-    TITLE: str = "Improved Game"
-    DEBUG: bool = False
-
-class Game:
-    def __init__(self, config: Config = Config()):
-        self.config = config
-        self.running = False
-        self.state = GameState.MENU
-        self._states: Dict[GameState, Callable] = {
-            GameState.MENU: self._handle_menu,
-            GameState.PLAYING: self._handle_playing,
-            GameState.PAUSED: self._handle_paused,
-            GameState.GAME_OVER: self._handle_game_over
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
         }
-        pygame.init()
-        self._screen = pygame.display.set_mode((config.WIDTH, config.HEIGHT))
-        pygame.display.set_caption(config.TITLE)
-        self._clock = pygame.time.Clock()
-        self._input_buffer: list = []
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
-    def run(self) -> None:
-        self.running = True
-        while self.running:
-            self._handle_events()
-            self._states[self.state]()
-            self._render()
-            self._clock.tick(self.config.FPS)
-        pygame.quit()
-        sys.exit()
+        // Conexión por WebSockets con protocolo flexible (HTTP/WS o HTTPS/WSS)
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}`;
+        let ws;
 
-    def _handle_events(self) -> None:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.running = False
-            elif event.type == pygame.KEYDOWN:
-                self._input_buffer.append(event.key)
-                if event.key == pygame.K_ESCAPE:
-                    self.state = GameState.PAUSED if self.state == GameState.PLAYING else GameState.PLAYING
-                elif event.key == pygame.K_SPACE and self.state == GameState.MENU:
-                    self.state = GameState.PLAYING
+        function connect() {
+            ws = new WebSocket(wsUrl);
 
-    def _handle_menu(self) -> None:
-        self._screen.fill((30, 30, 30))
-        # TODO: Render menu UI
-        pygame.display.flip()
+            ws.onopen = () => {
+                document.getElementById('log-stream').innerText = 'Connected to AI Sovereign Neural Link.';
+                document.getElementById('log-stream').style.color = '#2ecc71';
+                document.getElementById('connection-dot').style.backgroundColor = '#2ecc71';
+                document.getElementById('connection-dot').style.boxShadow = '0 0 8px #2ecc71';
+            };
 
-    def _handle_playing(self) -> None:
-        self._screen.fill((40, 40, 40))
-        # TODO: Update game logic & render entities
-        pygame.display.flip()
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
 
-    def _handle_paused(self) -> None:
-        self._screen.fill((20, 20, 20))
-        # TODO: Render pause overlay
-        pygame.display.flip()
+                    // Renderizado de métricas en la interfaz
+                    if (data.day !== undefined) document.getElementById('stat-day').innerText = data.day;
+                    if (data.era !== undefined) document.getElementById('stat-era').innerText = data.era;
+                    if (data.population !== undefined) document.getElementById('stat-pop').innerText = data.population;
+                    if (data.treasury !== undefined) document.getElementById('stat-gold').innerText = `${data.treasury} G`;
+                    if (data.techPower !== undefined) document.getElementById('stat-tech').innerText = data.techPower;
+                    if (data.defenses !== undefined) document.getElementById('stat-tanks').innerText = data.defenses;
+                    if (data.status !== undefined) document.getElementById('stat-status').innerText = data.status;
+                    
+                    if (data.buildings !== undefined) {
+                        const count = Array.isArray(data.buildings) ? data.buildings.length : data.buildings;
+                        document.getElementById('stat-building-count').innerText = count;
+                    }
 
-    def _handle_game_over(self) -> None:
-        self._screen.fill((50, 20, 20))
-        # TODO: Render game over UI & stats
-        pygame.display.flip()
+                    if (data.event) {
+                        document.getElementById('event-panel').innerText = data.event;
+                    }
 
-    def _render(self) -> None:
-        # Centralized rendering hook for post-processing, UI overlays, or FPS counters
-        if self.config.DEBUG:
-            pass  # Add debug rendering here
+                    if (data.log) {
+                        document.getElementById('log-stream').innerText = data.log;
+                    }
 
-if __name__ == "__main__":
-    game = Game()
-    game.run()
-</script>
+                    // Redibujado opcional en Canvas si el servidor manda entidades o matriz de mapa
+                    if (data.entities && Array.isArray(data.entities)) {
+                        drawMap(data.entities);
+                    }
+                } catch (e) {
+                    console.error('Error parsing incoming WebSocket message:', e);
+                }
+            };
+
+            ws.onclose = () => {
+                document.getElementById('log-stream').innerText = 'Connection lost. Reconnecting...';
+                document.getElementById('log-stream').style.color = '#e74c3c';
+                document.getElementById('connection-dot').style.backgroundColor = '#e74c3c';
+                document.getElementById('connection-dot').style.boxShadow = 'none';
+                
+                // Reconexión automática tras 3 segundos
+                setTimeout(connect, 3000);
+            };
+
+            ws.onerror = (err) => {
+                console.error('WebSocket Error:', err);
+                ws.close();
+            };
+        }
+
+        // Función básica para dibujar entidades en el canvas cuando se reciben datos
+        function drawMap(entities) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#1e293b';
+            
+            entities.forEach(entity => {
+                ctx.beginPath();
+                ctx.arc(entity.x || 100, entity.y || 100, entity.size || 5, 0, Math.PI * 2);
+                ctx.fillStyle = entity.color || '#3498db';
+                ctx.fill();
+            });
+        }
+
+        connect();
+    </script>
 </body>
 </html>
