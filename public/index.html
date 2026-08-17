@@ -5,11 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Sovereign AI Engine - World Map</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        :root {
+            --bg-primary: #070913;
+            --bg-panel: rgba(16, 22, 36, 0.9);
+            --bg-card: rgba(25, 33, 52, 0.6);
+            --border-glow: rgba(0, 210, 255, 0.25);
+            --text-primary: #e0e6ed;
+            --text-secondary: #8a99ad;
+            --accent-cyan: #00d2ff;
+            --accent-gold: #ffd700;
+            --accent-green: #2ecc71;
+            --accent-red: #e74c3c;
+            --accent-purple: #9b59b6;
+            --accent-blue: #3498db;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
         body {
-            background-color: #070913;
-            color: #e0e6ed;
-            height: 100vh;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
             padding: 12px;
@@ -19,12 +40,13 @@
 
         /* Top Stats Dashboard */
         .dashboard {
-            background: rgba(16, 22, 36, 0.9);
-            border: 1px solid rgba(0, 210, 255, 0.2);
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
             border-radius: 12px;
             padding: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(0, 210, 255, 0.05);
         }
+
         .dash-header {
             display: flex;
             justify-content: space-between;
@@ -33,8 +55,9 @@
             font-size: 13px;
             font-weight: bold;
             letter-spacing: 1px;
-            color: #8a99ad;
+            color: var(--text-secondary);
         }
+
         .status-badge {
             color: #00ff88;
             font-size: 11px;
@@ -42,12 +65,19 @@
             align-items: center;
             gap: 5px;
         }
+
         .status-dot {
             width: 8px;
             height: 8px;
             background-color: #00ff88;
             border-radius: 50%;
             box-shadow: 0 0 8px #00ff88;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { box-shadow: 0 0 8px #00ff88; }
+            50% { box-shadow: 0 0 16px #00ff88, 0 0 24px #00ff88; }
         }
 
         .stats-grid {
@@ -55,35 +85,59 @@
             grid-template-columns: repeat(4, 1fr);
             gap: 8px;
         }
+
         .stat-card {
-            background: rgba(25, 33, 52, 0.6);
+            background: var(--bg-card);
             border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 8px;
             padding: 8px;
+            transition: all 0.3s ease;
+            cursor: default;
         }
-        .stat-label { font-size: 10px; color: #6b7c93; text-transform: uppercase; margin-bottom: 2px; }
-        .stat-value { font-size: 14px; font-weight: bold; color: #ffffff; }
-        .val-gold { color: #f1c40f; }
-        .val-pop { color: #2ecc71; }
-        .val-tech { color: #3498db; }
-        .val-era { color: #9b59b6; }
+
+        .stat-card:hover {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #6b7c93;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .val-gold { color: var(--accent-gold); text-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
+        .val-pop { color: var(--accent-green); text-shadow: 0 0 8px rgba(46, 204, 113, 0.4); }
+        .val-tech { color: var(--accent-blue); text-shadow: 0 0 8px rgba(52, 152, 219, 0.4); }
+        .val-era { color: var(--accent-purple); text-shadow: 0 0 8px rgba(155, 89, 182, 0.4); }
 
         /* Middle Map Container */
         #map-container {
             flex: 1;
             background: #04060d;
-            border: 1px solid rgba(0, 210, 255, 0.25);
+            border: 1px solid var(--border-glow);
             border-radius: 12px;
             position: relative;
             overflow: hidden;
-            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8);
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 210, 255, 0.1);
         }
+
         canvas {
             display: block;
             width: 100%;
             height: 100%;
             touch-action: none;
         }
+
         .map-overlay-info {
             position: absolute;
             top: 10px;
@@ -94,20 +148,37 @@
             font-size: 11px;
             border: 1px solid rgba(0, 210, 255, 0.3);
             pointer-events: none;
-            color: #00d2ff;
+            color: var(--accent-cyan);
+            z-index: 10;
+            backdrop-filter: blur(4px);
         }
 
         /* Bottom Event Logs Stream */
         .log-container {
             height: 100px;
             background: rgba(12, 17, 29, 0.95);
-            border: 1px solid rgba(0, 210, 255, 0.2);
+            border: 1px solid var(--border-glow);
             border-radius: 12px;
             padding: 10px;
             overflow-y: auto;
             font-family: 'Courier New', Courier, monospace;
             font-size: 11px;
         }
+
+        .log-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .log-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb {
+            background: rgba(0, 210, 255, 0.3);
+            border-radius: 3px;
+        }
+
         .log-title {
             font-size: 11px;
             color: #6b7c93;
@@ -115,1474 +186,49 @@
             font-weight: bold;
             letter-spacing: 1px;
         }
-        .log-entry { margin-bottom: 3px; color: #a0aec0; line-height: 1.3; }
-        .log-entry:last-child { color: #00d2ff; }
 
-        @media (max-width: 600px) {
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
-            .stat-value { font-size: 12px; }
+        .log-entry {
+            margin-bottom: 3px;
+            color: #a0aec0;
+            line-height: 1.3;
+        }
+
+        .log-entry:last-child {
+            color: var(--accent-cyan);
+            text-shadow: 0 0 8px rgba(0, 210, 255, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .stat-value {
+                font-size: 12px;
+            }
+            body {
+                padding: 8px;
+                gap: 8px;
+            }
+            .log-container {
+                height: 80px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .stat-value {
+                font-size: 10px;
+            }
+            .stat-label {
+                font-size: 8px;
+            }
+            .dash-header {
+                font-size: 11px;
+            }
         }
     </style>
-
-<!-- === AI CSS IMPROVEMENT (Day 50) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 50) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 50) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 50) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 50) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 50) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 50) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 50) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 50) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 50) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 50) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 50) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 50) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 50) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 50) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 50) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 100) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 100');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 150) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 150');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 200) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 200');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 250) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 250');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 300) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 300');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 350) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 350');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 400) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 400');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 450) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 450');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 500) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 500');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 550) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 550');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 600) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 600');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 650) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 650');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 700) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 700');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 750) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 750');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 800) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 800');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 850) === -->
-<style>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 850');
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 900) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 900 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 950) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 950 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 1000) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 1000 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 1050) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 1050 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 1100) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 1100 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 1150) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 1150 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 1200) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 1200 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 1250) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 1250 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 1300) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 1300 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 1350) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 1350 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 1500) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 1500 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 1750) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 1750 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 2000) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 2000 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 2250) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 2250 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 2500) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 2500 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 2750) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 2750 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 3000) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 3000 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 3250) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 3250 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 3500) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 3500 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 3750) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 3750 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 4000) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 4000 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 4250) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 4250 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 4500) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 4500 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 4750) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 4750 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 5000) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 5000 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 5250) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 5250 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 5500) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 5500 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 5750) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 5750 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 6005) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 6005 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 6255) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 6255 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 6505) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 6505 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 6754) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 6754 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 7002) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 7002 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 14002) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 14002 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 14252) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 14252 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 23757) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 23757 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 24007) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 24007 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 24255) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 24255 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 24502) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 24502 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 26755) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 26755 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 27005) === -->
-<style>
-
-/* AI Design Improvement - Dark Fantasy Theme - Day 27005 */
-body {
-    background: linear-gradient(135deg, #1a0a0a 0%, #2a1a1a 50%, #1a0a0a 100%);
-    color: #d4c5a0;
-    font-family: 'Cinzel', 'MedievalSharp', serif;
-    text-shadow: 0 0 10px rgba(212, 197, 160, 0.5);
-}
-
-.stats-panel {
-    background: rgba(20, 10, 10, 0.8);
-    border: 2px solid #8b6914;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 0 20px rgba(139, 105, 20, 0.5);
-    animation: glow 3s ease-in-out infinite;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(139, 105, 20, 0.5); }
-    50% { box-shadow: 0 0 40px rgba(139, 105, 20, 0.8); }
-}
-</style>
-
-<!-- === AI CSS IMPROVEMENT (Day 28250) === -->
-<style>
-/* -------------------------------------------------
-   Dark Fantasy / Mystical Theme
-   ------------------------------------------------- */
-
-/* Root variables for easy theming */
-:root {
-    --bg-primary: #0a0a0a;
-    --bg-gradient: radial-gradient(circle at 20% 30%, #1a0c1f, #0a0a0a);
-    --text-primary: #e0d7ff;
-    --text-secondary: #a89ecb;
-    --accent-primary: #6b3fa0;
-    --accent-glow: rgba(107, 63, 160, 0.4);
-    --border-color: #3a2c4d;
-    --shadow-dark: 0 0 15px #00000066;
-    --shadow-glow: 0 0 12px var(--accent-primary);
-    --font-primary: 'Cinzel Decorative', serif;
-    --font-mono: 'Fira Code', monospace;
-}
-
-/* Global reset & layout */
-*,
-*::before,
-*::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-html, body {
-    height: 100%;
-    font-family: var(--font-primary);
-    background: var(--bg-gradient) fixed;
-    color: var(--text-primary);
-    overflow-x: hidden;
-    scroll-behavior: smooth;
-}
-
-/* Container */
-.game-ui {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    max-width: 960px;
-    margin: 2rem auto;
-    padding: 1.5rem;
-    background: rgba(10,10,10,0.85);
-    border: 2px solid var(--border-color);
-    border-radius: 12px;
-    box-shadow: var(--shadow-dark), var(--shadow-glow);
-    backdrop-filter: blur(4px);
-}
-
-/* Header */
-.game-header {
-    text-align: center;
-    margin-bottom: 1.5rem;
-    font-size: 2.2rem;
-    letter-spacing: 0.05em;
-    color: var(--accent-primary);
-    text-shadow: 0 0 8px var(--accent-glow);
-    animation: pulseGlow 4s infinite ease-in-out;
-}
-
-/* Stats panel */
-.stats-panel {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-.stat-card {
-    background: rgba(20, 20, 30, 0.65);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 0.8rem 1rem;
-    text-align: center;
-    box-shadow: inset 0 0 8px var(--accent-glow);
-    position: relative;
-    overflow: hidden;
-}
-.stat-card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, transparent 0%, var(--accent-glow) 50%, transparent 100%);
-    opacity: 0.15;
-    transform: translateX(-100%);
-    animation: slideGlint 3s infinite;
-}
-.stat-card h3 {
-    font-size: 0.9rem;
-    margin-bottom: 0.3rem;
-    color: var(--text-secondary);
-}
-.stat-card p {
-    font-size: 1.4rem;
-    font-family: var(--font-mono);
-    color: var(--accent-primary);
-}
-
-/* Era banner */
-.era-banner {
-    background: rgba(40, 20, 55, 0.75);
-    border: 1px solid var(--accent-primary);
-    border-radius: 6px;
-    padding: 0.6rem 1rem;
-    text-align: center;
-    font-size: 1.1rem;
-    margin-bottom: 1rem;
-    position: relative;
-    overflow: hidden;
-}
-.era-banner::after {
-    content: "";
-    position: absolute;
-    left: -150%;
-    top: 0;
-    width: 200%;
-    height: 100%;
-    background: linear-gradient(120deg, transparent, var(--accent-glow), transparent);
-    animation: sweep 5s linear infinite;
-}
-
-/* Buttons */
-.btn {
-    display: inline-block;
-    padding: 0.6rem 1.2rem;
-    margin: 0.4rem;
-    background: rgba(70, 45, 90, 0.85);
-    border: 1px solid var(--accent-primary);
-    border-radius: 4px;
-    color: var(--text-primary);
-    font-size: 0.95rem;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 6px var(--accent-glow);
-}
-.btn:hover {
-    background: rgba(90, 60, 120, 0.95);
-    box-shadow: 0 0 12px var(--accent-primary);
-    transform: translateY(-2px);
-}
-.btn:active {
-    transform: translateY(1px);
-    box-shadow: 0 0 4px var(--accent-primary);
-}
-
-/* Tooltip (mystical rune style) */
-.tooltip {
-    position: relative;
-    cursor: help;
-}
-.tooltip::after {
-    content: attr(data-tip);
-    position: absolute;
-    bottom: 125%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(20, 10, 30, 0.9);
-    color: var(--text-primary);
-    padding: 0.4rem 0.6rem;
-    border-radius: 4px;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.25s ease;
-    border: 1px solid var(--accent-primary);
-    box-shadow: 0 0 8px var(--accent-glow);
-    font-size: 0.85rem;
-}
-.tooltip:hover::after {
-    opacity: 1;
-}
-
-/* Animations */
-@keyframes pulseGlow {
-    0%, 100% { text-shadow: 0 0 8px var(--accent-glow); }
-    50% { text-shadow: 0 0 20px var(--accent-glow); }
-}
-@keyframes slideGlint {
-    0% { transform: translateX(-100%); }
-    50% { transform: translateX(100%); }
-    100% { transform: translateX(100%); }
-}
-@keyframes sweep {
-    0% { left: -150%; }
-    100% { left: 150%; }
-}
-
-/* Responsive tweaks */
-@media (max-width: 600px) {
-    .game-header { font-size: 1.8rem; }
-    .stat-card p { font-size: 1.2rem; }
-    .btn { padding: 0.5rem 1rem; font-size: 0.85rem; }
-}
-</style>
 </head>
 <body>
-
     <!-- TOP DASHBOARD -->
     <div class="dashboard">
         <div class="dash-header">
@@ -1655,6 +301,10 @@ html, body {
             }
         };
 
+        ws.onerror = () => {
+            document.getElementById('log-stream').innerHTML = '<div class="log-entry" style="color:#e74c3c;">⚠️ Connection lost - retrying...</div>';
+        };
+
         function updateUI() {
             document.getElementById('stat-day').innerText = worldState.day;
             document.getElementById('stat-era').innerText = worldState.era;
@@ -1666,7 +316,6 @@ html, body {
             document.getElementById('stat-status').style.color = worldState.inWar ? '#e74c3c' : '#2ecc71';
             document.getElementById('stat-build').innerText = worldState.engineBuild || 'v2.0';
 
-            // Logs stream update
             const logBox = document.getElementById('log-stream');
             if (worldState.logs && worldState.logs.length > 0) {
                 logBox.innerHTML = worldState.logs.map(l => `<div class="log-entry">${l}</div>`).join('');
@@ -1690,7 +339,7 @@ html, body {
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // Mouse controls: Pan & Zoom
+        // Mouse controls
         canvas.addEventListener('mousedown', (e) => {
             isDragging = true;
             startX = e.clientX - camera.x;
@@ -1709,27 +358,40 @@ html, body {
             camera.zoom = Math.min(Math.max(0.5, camera.zoom * zoomFactor), 2.5);
         }, { passive: false });
 
-        // Touch controls for mobile devices
+        // Touch controls for mobile
+        let lastTouchDistance = 0;
         canvas.addEventListener('touchstart', (e) => {
             if (e.touches.length === 1) {
                 isDragging = true;
                 startX = e.touches[0].clientX - camera.x;
                 startY = e.touches[0].clientY - camera.y;
+            } else if (e.touches.length === 2) {
+                isDragging = false;
+                lastTouchDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
             }
         });
         canvas.addEventListener('touchend', () => isDragging = false);
         canvas.addEventListener('touchmove', (e) => {
-            if (isDragging && e.touches.length === 1) {
+            e.preventDefault();
+            if (e.touches.length === 1 && isDragging) {
                 camera.x = e.touches[0].clientX - startX;
                 camera.y = e.touches[0].clientY - startY;
+            } else if (e.touches.length === 2) {
+                const dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                const zoomFactor = dist / lastTouchDistance;
+                camera.zoom = Math.min(Math.max(0.5, camera.zoom * zoomFactor), 2.5);
+                lastTouchDistance = dist;
             }
-        });
+        }, { passive: false });
 
-        // Isometric conversion helpers
         function toIso(x, y) {
-            const isoX = (x - y) * 32;
-            const isoY = (x + y) * 16;
-            return { x: isoX, y: isoY };
+            return { x: (x - y) * 32, y: (x + y) * 16 };
         }
 
         let frameCount = 0;
@@ -1744,11 +406,10 @@ html, body {
 
             const gridSize = 14;
 
-            // 1. Draw Grid Terrain Tiles
+            // Draw terrain tiles
             for (let x = 0; x < gridSize; x++) {
                 for (let y = 0; y < gridSize; y++) {
                     const pos = toIso(x, y);
-                    
                     ctx.beginPath();
                     ctx.moveTo(pos.x, pos.y);
                     ctx.lineTo(pos.x + 32, pos.y + 16);
@@ -1756,9 +417,8 @@ html, body {
                     ctx.lineTo(pos.x - 32, pos.y + 16);
                     ctx.closePath();
 
-                    // River running through tile 6
                     if (x === 6) {
-                        ctx.fillStyle = '#1e3799';
+                        ctx.fillStyle = '#1a3a5a';
                     } else {
                         ctx.fillStyle = ((x + y) % 2 === 0) ? '#0f2027' : '#203a43';
                     }
@@ -1769,17 +429,17 @@ html, body {
                 }
             }
 
-            // 2. Render Buildings based on Population & Tech Power
+            // Render buildings
             const buildingCount = Math.min(25, Math.floor(worldState.population / 2) + 2);
             for (let i = 0; i < buildingCount; i++) {
                 const gx = (i * 3) % gridSize;
                 const gy = Math.floor((i * 3) / gridSize) * 2 % gridSize;
-                if (gx === 6) continue; // Don't build in river
+                if (gx === 6) continue;
 
                 const pos = toIso(gx, gy);
                 const height = 20 + (i % 3) * 15 + Math.min(40, worldState.techPower * 2);
 
-                // Front Face
+                // Front face
                 ctx.fillStyle = '#00d2ff';
                 ctx.beginPath();
                 ctx.moveTo(pos.x - 12, pos.y + 10);
@@ -1789,7 +449,7 @@ html, body {
                 ctx.closePath();
                 ctx.fill();
 
-                // Side Face
+                // Side face
                 ctx.fillStyle = '#0083b0';
                 ctx.beginPath();
                 ctx.moveTo(pos.x, pos.y + 16);
@@ -1810,13 +470,12 @@ html, body {
                 ctx.fill();
             }
 
-            // 3. Render Citizens (Moving Glowing Particles)
+            // Render citizens (glowing particles)
             const citizenDots = Math.min(30, worldState.population);
             for (let c = 0; c < citizenDots; c++) {
                 const speed = 0.02;
                 const offset = (frameCount * speed + c * 1.5) % 10;
                 const cPos = toIso(2 + (c % 4) * 2 + offset, 2 + Math.floor(c / 4) * 2);
-
                 ctx.beginPath();
                 ctx.arc(cPos.x, cPos.y + 10, 3, 0, Math.PI * 2);
                 ctx.fillStyle = '#2ecc71';
@@ -1826,7 +485,7 @@ html, body {
                 ctx.shadowBlur = 0;
             }
 
-            // 4. Render Defense Units / Tanks
+            // Render defense units
             for (let t = 0; t < Math.min(10, worldState.tanks); t++) {
                 const tPos = toIso(1, 1 + t * 1.2);
                 ctx.fillStyle = '#e74c3c';
@@ -1840,1144 +499,6 @@ html, body {
         }
 
         requestAnimationFrame(render);
-    
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT #1 (Day 50 - AI Era 1) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT #1 (Day 50 - AI Era 1) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT #1 (visual_effects) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT #1 (visual_effects) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-
-// === AI IMPROVEMENT (Day 50) ===
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 50');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #2 (Day 20) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 20');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI IMPROVEMENT #1 (Day 10) === -->
-<script>
-// Gemini unavailable - using fallback improvement
-console.log('Dark Fantasy System - Day 10');
-</script>
-
-<!-- === AI JS IMPROVEMENT (Day 7253) === -->
-<script>
-
-// AI Functionality Improvement - Day 7253
-function createMagicEffect() {
-    const effect = document.createElement('div');
-    effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
-    document.body.appendChild(effect);
-    
-    const style = document.createElement('style');
-    style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
-    document.head.appendChild(style);
-}
-createMagicEffect();
-</script>
-
-<!-- === AI JS IMPROVEMENT (Day 7504) === -->
-<script>
-
-// AI Functionality Improvement - Day 7504
-function createMagicEffect() {
-    const effect = document.createElement('div');
-    effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
-    document.body.appendChild(effect);
-    
-    const style = document.createElement('style');
-    style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
-    document.head.appendChild(style);
-}
-createMagicEffect();
-</script>
-
-<!-- === AI HTML IMPROVEMENT (Day 7752) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 73</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 734.01</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 1770</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 8000) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 83</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 834.09</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 1747</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 8250) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 83</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 839.39</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 1734</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 8502) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 84</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 844.91</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 1797</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 8750) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 84</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 850.19</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 1859</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 9000) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 85</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 855.84</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 1922</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 9250) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 85</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 860.74</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 1984</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 9500) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 86</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 866.14</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 2047</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 9750) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 87</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 871.54</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 2109</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 10000) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 87</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 876.69</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 2172</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 10250) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 88</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 881.89</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 2234</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 10500) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 88</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 887.54</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 2297</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 10750) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 89</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 892.34</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 2359</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 11000) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 89</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 898.09</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 2422</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 11250) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 90</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 903.49</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 2484</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 11500) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 90</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 908.59</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 2547</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 11750) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 91</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 914.19</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 2609</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 12000) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 91</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 919.34</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 2672</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 12250) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 92</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 924.29</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 2734</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 12500) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 92</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 929.79</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 2797</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 12750) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 93</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 934.74</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 2859</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 13000) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 93</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 940.24</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 2922</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 13250) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 94</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 945.49</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 2984</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 13502) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 103</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1035.61</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 3044</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 13752) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #3</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 115</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1160.51</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 3094</p>
-</div>
-
-<!-- === AI JS IMPROVEMENT (Day 14502) === -->
-<script>
-
-// AI Functionality Improvement - Day 14502
-function createMagicEffect() {
-    const effect = document.createElement('div');
-    effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
-    document.body.appendChild(effect);
-    
-    const style = document.createElement('style');
-    style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
-    document.head.appendChild(style);
-}
-createMagicEffect();
-</script>
-
-<!-- === AI HTML IMPROVEMENT (Day 14751) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 146</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1470.55</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 3279</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 15000) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 147</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1476.04</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 3342</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 15250) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 147</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1481.24</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 3404</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 15500) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 148</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1486.79</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 3467</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 15750) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 149</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1492.24</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 3529</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 16000) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 149</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1497.29</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 3592</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 16250) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 150</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1502.49</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 3654</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 16500) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 150</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1507.84</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 3717</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 16750) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 151</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1512.99</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 3779</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 17000) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 151</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1518.44</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 3842</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 17250) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 152</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1523.49</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 3904</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 17500) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 152</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1528.99</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 3967</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 17755) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 153</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1534.64</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 4030</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 18000) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 154</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1540.19</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 4092</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 18250) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 154</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1545.24</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 4154</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 18500) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 154</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1550.84</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 4217</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 18750) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 155</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1556.54</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 4279</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 19000) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 155</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1561.49</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 4342</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 19250) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 170</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1701.39</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 4386</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 19500) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 170</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1706.89</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 4449</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 19750) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 170</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1711.69</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 4511</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 20000) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 171</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1717.39</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 4574</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 20252) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 172</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1723.01</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 4637</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 20500) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 172</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1728.34</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 4699</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 20750) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 173</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1733.44</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 4761</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 21000) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 173</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1738.94</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 4824</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 21250) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 174</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1744.24</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 4886</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 21500) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 174</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1749.94</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 4949</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 21750) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 175</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1755.14</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 5011</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 22000) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 175</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1760.29</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 5074</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 22250) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 176</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1765.49</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 5136</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 22500) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 176</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1770.99</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 5199</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 22756) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 182</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1825.95</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 5250</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 23005) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 190</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 1911.04</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 5305</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 23255) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 201</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 2010.94</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 5363</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 23505) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #6</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 206</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 2066.04</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 5412</p>
-</div>
-
-<!-- === AI JS IMPROVEMENT (Day 24750) === -->
-<script>
-
-// AI Functionality Improvement - Day 24750
-function createMagicEffect() {
-    const effect = document.createElement('div');
-    effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
-    document.body.appendChild(effect);
-    
-    const style = document.createElement('style');
-    style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
-    document.head.appendChild(style);
-}
-createMagicEffect();
-</script>
-
-<!-- === AI JS IMPROVEMENT (Day 25000) === -->
-<script>
-
-// AI Functionality Improvement - Day 25000
-function createMagicEffect() {
-    const effect = document.createElement('div');
-    effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
-    document.body.appendChild(effect);
-    
-    const style = document.createElement('style');
-    style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
-    document.head.appendChild(style);
-}
-createMagicEffect();
-</script>
-
-<!-- === AI JS IMPROVEMENT (Day 25250) === -->
-<script>
-
-// AI Functionality Improvement - Day 25250
-function createMagicEffect() {
-    const effect = document.createElement('div');
-    effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
-    document.body.appendChild(effect);
-    
-    const style = document.createElement('style');
-    style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
-    document.head.appendChild(style);
-}
-createMagicEffect();
-</script>
-
-<!-- === AI JS IMPROVEMENT (Day 25500) === -->
-<script>
-
-// AI Functionality Improvement - Day 25500
-function createMagicEffect() {
-    const effect = document.createElement('div');
-    effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
-    document.body.appendChild(effect);
-    
-    const style = document.createElement('style');
-    style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
-    document.head.appendChild(style);
-}
-createMagicEffect();
-</script>
-
-<!-- === AI JS IMPROVEMENT (Day 25755) === -->
-<script>
-
-// AI Functionality Improvement - Day 25755
-function createMagicEffect() {
-    const effect = document.createElement('div');
-    effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
-    document.body.appendChild(effect);
-    
-    const style = document.createElement('style');
-    style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
-    document.head.appendChild(style);
-}
-createMagicEffect();
-</script>
-
-<!-- === AI HTML IMPROVEMENT (Day 26007) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #9</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 257</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 2571.81</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 5743</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 26253) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #9</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 257</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 2577.07</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 5805</p>
-</div>
-
-<!-- === AI HTML IMPROVEMENT (Day 26505) === -->
-
-<div class="ai-panel" style="position:fixed;bottom:20px;right:20px;background:rgba(20,10,10,0.9);border:1px solid #8b6914;border-radius:10px;padding:15px;z-index:9998;">
-    <h4 style="color:#ffd700;margin:0 0 10px 0;">⚔️ AI Enhancement #9</h4>
-    <p style="color:#d4c5a0;margin:5px 0;">Era: Transcendent AI Era 264</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Tech Power: 2642.19</p>
-    <p style="color:#d4c5a0;margin:5px 0;">Population: 5853</p>
-</div>
-
-<!-- === AI JS IMPROVEMENT (Day 27253) === -->
-<script>
-
-// AI Functionality Improvement - Day 27253
-function createMagicEffect() {
-    const effect = document.createElement('div');
-    effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
-    document.body.appendChild(effect);
-    
-    const style = document.createElement('style');
-    style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
-    document.head.appendChild(style);
-}
-createMagicEffect();
-</script>
-
-<!-- === AI JS IMPROVEMENT (Day 27505) === -->
-<script>
-
-// AI Functionality Improvement - Day 27505
-function createMagicEffect() {
-    const effect = document.createElement('div');
-    effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
-    document.body.appendChild(effect);
-    
-    const style = document.createElement('style');
-    style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
-    document.head.appendChild(style);
-}
-createMagicEffect();
-</script>
-
-<!-- === AI JS IMPROVEMENT (Day 27797) === -->
-<script>
-
-// AI Functionality Improvement - Day 27797
-function createMagicEffect() {
-    const effect = document.createElement('div');
-    effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
-    document.body.appendChild(effect);
-    
-    const style = document.createElement('style');
-    style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
-    document.head.appendChild(style);
-}
-createMagicEffect();
-</script>
-
-<!-- === AI HTML IMPROVEMENT (Day 28000) === -->
-<!-- Dark Fantasy UI Add‑on -->
-<style>
-    .df-ui { 
-        font-family: 'Cinzel', serif; 
-        color: #e0e0e0; 
-        background: rgba(10,10,10,0.85); 
-        border: 2px solid #4b0000; 
-        border-radius: 8px; 
-        padding: 12px; 
-        margin: 8px 0; 
-        backdrop-filter: blur(4px);
-    }
-    .df-ui h2 { 
-        font-size: 1.3rem; 
-        color: #ff5555; 
-        margin: 0 0 6px 0; 
-        text-shadow: 0 0 4px #ff0000;
-    }
-    .df-ui .stat { 
-        display: flex; 
-        justify-content: space-between; 
-        padding: 4px 0; 
-        border-bottom: 1px solid #2a0000;
-    }
-    .df-ui .stat:last-child { border-bottom: none; }
-    .df-ui .stat span { font-weight: 600; }
-    .df-ui .icon { 
-        width: 20px; 
-        height: 20px; 
-        margin-right: 6px; 
-        vertical-align: middle;
-    }
-    .df-panel { 
-        display: grid; 
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-        gap: 12px; 
-    }
-</style>
-
-<div class="df-panel">
-    <!-- Soul Harvest Panel -->
-    <div class="df-ui" id="soul-harvest-panel">
-        <h2><img src="icons/soul.svg" class="icon" alt="Soul"> Soul Harvest</h2>
-        <div class="stat"><span>Collected Souls:</span> <span id="collected-souls">12,453,219</span></div>
-        <div class="stat"><span>Harvest Rate:</span> <span id="harvest-rate">+3.7%/day</span></div>
-        <div class="stat"><span>Ritual Cost:</span> <span id="ritual-cost">1.2 B Essence</span></div>
-    </div>
-
-    <!-- Eldritch Influence Panel -->
-    <div class="df-ui" id="eldritch-influence-panel">
-        <h2><img src="icons/eldritch.svg" class="icon" alt="Eldritch"> Eldritch Influence</h2>
-        <div class="stat"><span>Corruption Level:</span> <span id="corruption-level">68%</span></div>
-        <div class="stat"><span>Forbidden Knowledge:</span> <span id="forbidden-knowledge">7,842</span></div>
-        <div class="stat"><span>Dark Pact Bonus:</span> <span id="dark-pact-bonus">+12% Production</span></div>
-    </div>
-
-    <!-- Necrotic Resources Panel -->
-    <div class="df-ui" id="necrotic-resources-panel">
-        <h2><img src="icons/necrotic.svg" class="icon" alt="Necrotic"> Necrotic Resources</h2>
-        <div class="stat"><span>Obsidian:</span> <span id="obsidian">3,712,048</span></div>
-        <div class="stat"><span>Bone Ash:</span> <span id="bone-ash">9,104,321</span></div>
-        <div class="stat"><span>Blood Quartz:</span> <span id="blood-quartz">1,578,904</span></div>
-    </div>
-
-    <!-- Arcane Corruption Panel -->
-    <div class="df-ui" id="arcane-corruption-panel">
-        <h2><img src="icons/arcane.svg" class="icon" alt="Arcane"> Arcane Corruption</h2>
-        <div class="stat"><span>Mana Leech:</span> <span id="mana-leech">+5%/day</span></div>
-        <div class="stat"><span>Curse Decay:</span> <span id="curse-decay">-0.3%/day</span></div>
-        <div class="stat"><span>Ritual Slots:</span> <span id="ritual-slots">4 / 6</span></div>
-    </div>
-</div>
-
-<!-- === AI JS IMPROVEMENT (Day 28503) === -->
-<script>
-
-// AI Functionality - Responsive - Day 28503
-function createMagicEffect() {
-    const effect = document.createElement('div');
-    effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
-    document.body.appendChild(effect);
-    
-    const style = document.createElement('style');
-    style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
-    document.head.appendChild(style);
-}
-
-// Touch-friendly for mobile
-function initTouchSupport() {
-    if ('ontouchstart' in window) {
-        document.querySelectorAll('.stats-panel').forEach(panel => {
-            panel.addEventListener('touchstart', () => {
-                panel.style.transform = 'scale(0.98)';
-            });
-            panel.addEventListener('touchend', () => {
-                panel.style.transform = 'scale(1)';
-            });
-        });
-    }
-}
-
-createMagicEffect();
-initTouchSupport();
-</script>
-
-<!-- === AI JS IMPROVEMENT (Day 28751) === -->
-<script>
-
-// AI Functionality - Responsive - Day 28751
-function createMagicEffect() {
-    const effect = document.createElement('div');
-    effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
-    document.body.appendChild(effect);
-    
-    const style = document.createElement('style');
-    style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
-    document.head.appendChild(style);
-}
-
-// Touch-friendly for mobile
-function initTouchSupport() {
-    if ('ontouchstart' in window) {
-        document.querySelectorAll('.stats-panel').forEach(panel => {
-            panel.addEventListener('touchstart', () => {
-                panel.style.transform = 'scale(0.98)';
-            });
-            panel.addEventListener('touchend', () => {
-                panel.style.transform = 'scale(1)';
-            });
-        });
-    }
-}
-
-createMagicEffect();
-initTouchSupport();
-</script>
+    </script>
 </body>
 </html>
