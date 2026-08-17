@@ -264,7 +264,7 @@ async function generateAIEvents() {
 }
 
 /**
- * 2. AI CODE IMPROVEMENT - PIXEL ART STYLE AGE OF EMPIRES
+ * 2. AI CODE IMPROVEMENT - IMPROVES EXISTING MAP WITH REAL STATS
  */
 async function autoImproveGameCode() {
     console.log("\n🤖 AI CODE IMPROVEMENT...");
@@ -288,61 +288,64 @@ async function autoImproveGameCode() {
         let codeToAdd;
         
         switch(improvementType) {
-            case 0: // PIXEL ART CSS
-                prompt = `Create PIXEL ART style CSS for an Age of Empires inspired dark fantasy game.
+            case 0: // IMPROVE EXISTING MAP CSS
+                prompt = `IMPROVE the EXISTING map CSS for this pixel art civilization game.
                 Current stats: Day ${worldState.day}, Population: ${worldState.population}, Tech: ${worldState.techPower}.
                 Era: ${worldState.era}
+                Treasury: ${worldState.treasury}
                 
-                PIXEL ART REQUIREMENTS:
-                - Use image-rendering: pixelated for all elements
-                - Use pixel-style borders (box-shadow with steps)
-                - Retro color palette (browns, greens, golds - like Age of Empires)
-                - Sharp edges, NO border-radius (or very minimal 2px)
-                - Use pixel-style fonts if possible
-                - Blocky shadows and highlights
-                - Responsive with @media queries for mobile
-                - CSS Grid for layout
+                CRITICAL INSTRUCTIONS:
+                - MODIFY the existing map styles, do NOT create a new map
+                - The map must show buildings proportional to population: ${worldState.population} people = MANY buildings
+                - Show ${Math.floor(worldState.population / 5)} buildings on the map
+                - Show ${Math.floor(worldState.population / 10)} pixel people walking
+                - Buildings should be DENSE and DETAILED like a real city
+                - Use pixel art style with sharp edges
+                - Terrain colors must match the civilization era: ${worldState.era}
+                - Add more detail to existing buildings (windows, doors, roofs)
                 
-                Return ONLY valid CSS code. No explanations.`;
+                Return ONLY valid CSS improvements. No explanations.`;
                 break;
                 
-            case 1: // PIXEL ART JAVASCRIPT CANVAS
-                prompt = `Create PIXEL ART JavaScript canvas rendering for an Age of Empires style game map.
+            case 1: // IMPROVE EXISTING MAP CANVAS JAVASCRIPT
+                prompt = `IMPROVE the EXISTING canvas map rendering for this pixel art game.
                 Current stats: Day ${worldState.day}, Population: ${worldState.population}, Tech: ${worldState.techPower}.
+                Era: ${worldState.era}
+                Buildings: ${Math.floor(worldState.population / 5)}
+                Units: ${Math.floor(worldState.population / 10)}
                 
-                PIXEL ART CANVAS REQUIREMENTS:
-                - Draw EVERYTHING as pixel art (NO icons, NO emojis)
-                - Use fillRect for pixel blocks to create buildings, trees, units
-                - Buildings: castles with crenellations, houses with roofs, barracks
-                - Trees: pixelated green triangles with brown trunks
-                - Water: animated blue pixels with wave effect
-                - Units: tiny pixel people (2-3px wide) moving
-                - Resources: gold mines as yellow pixel clusters
-                - Terrain: grass, dirt, stone as different colored pixels
-                - Use ctx.imageSmoothingEnabled = false for crisp pixels
-                - Animate water, trees swaying, units moving
-                - Isometric perspective like Age of Empires
+                CRITICAL INSTRUCTIONS:
+                - MODIFY the existing draw functions, do NOT create new map
+                - Draw ${Math.floor(worldState.population / 5)} buildings on the map (castles, houses, barracks)
+                - Draw ${Math.floor(worldState.population / 10)} pixel people walking around
+                - Buildings must be DETAILED: windows, doors, roofs, crenellations
+                - Show population density - more buildings = bigger city
+                - Tech power ${worldState.techPower} = more advanced buildings
+                - Use ctx.imageSmoothingEnabled = false
+                - Use fillRect for EVERYTHING (pixel art)
+                - Animate units walking between buildings
+                - Add smoke from chimneys, flags on castles
                 
-                Return ONLY valid JavaScript code. No explanations.`;
+                Return ONLY valid JavaScript code that IMPROVES existing functions.`;
                 break;
                 
-            case 2: // PIXEL ART HTML STRUCTURE
-                prompt = `Add PIXEL ART style HTML structure for an Age of Empires inspired game.
-                Current stats: Day ${worldState.day}, Era: ${worldState.era}, Treasury: ${worldState.treasury}.
+            case 2: // IMPROVE EXISTING MAP HTML
+                prompt = `IMPROVE the EXISTING map HTML structure for this pixel art game.
+                Current stats: Day ${worldState.day}, Population: ${worldState.population}, Era: ${worldState.era}.
+                Treasury: ${worldState.treasury}
                 
-                PIXEL ART HTML REQUIREMENTS:
-                - Use pixel-style panels with sharp corners
-                - Add canvas element for the game map (NO icons, NO emojis in map)
-                - Add resource counter panels (gold, wood, stone, food)
-                - Add minimap canvas in corner
-                - Add unit selection panel
-                - All elements pixel-art themed
+                CRITICAL INSTRUCTIONS:
+                - MODIFY existing map containers, do NOT create new structure
+                - Show building count: ${Math.floor(worldState.population / 5)}
+                - Show population counter overlay on map
+                - Show era name on map
+                - Add building list panel showing what exists
                 
-                Return ONLY valid HTML code. No explanations.`;
+                Return ONLY valid HTML that IMPROVES existing structure.`;
                 break;
         }
         
-        console.log("🔍 Asking Groq for", improvementType === 0 ? "PIXEL ART CSS" : improvementType === 1 ? "PIXEL ART CANVAS JS" : "PIXEL ART HTML", "improvement...");
+        console.log("🔍 Asking Groq to IMPROVE EXISTING map for", improvementType === 0 ? "CSS" : improvementType === 1 ? "Canvas JS" : "HTML", "...");
         const aiResponse = await queryAI(prompt);
         
         if (aiResponse && !aiResponse.startsWith("//") && aiResponse.length > 20) {
@@ -356,20 +359,7 @@ async function autoImproveGameCode() {
         if (!codeToAdd || codeToAdd.length < 10) {
             if (improvementType === 0) {
                 codeToAdd = `
-/* PIXEL ART Dark Fantasy - Day ${worldState.day} */
-* {
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-}
-
-body {
-    background: #1a0a0a;
-    color: #d4c5a0;
-    font-family: 'Press Start 2P', 'Courier New', monospace;
-    min-height: 100vh;
-    overflow-x: hidden;
-}
-
+/* IMPROVED PIXEL ART MAP CSS - Day ${worldState.day} - Pop ${worldState.population} */
 .game-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -379,26 +369,13 @@ body {
     margin: 0 auto;
 }
 
-.stats-panel {
-    background: #2a1a0a;
-    border: 3px solid #8b6914;
-    padding: 15px;
-    box-shadow: 4px 4px 0 #000;
-    image-rendering: pixelated;
-}
-
-.stats-panel h2 {
-    color: #ffd700;
-    font-size: 14px;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-}
-
 .map-container {
     border: 3px solid #8b6914;
     box-shadow: 4px 4px 0 #000;
     overflow: hidden;
     background: #0a0505;
+    position: relative;
+    min-height: 400px;
     image-rendering: pixelated;
 }
 
@@ -409,19 +386,22 @@ body {
     image-rendering: pixelated;
 }
 
-@media (max-width: 768px) {
-    .game-container {
-        grid-template-columns: 1fr;
-        gap: 3px;
-        padding: 5px;
-    }
-    .stats-panel {
-        padding: 10px;
-    }
+.map-overlay {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background: rgba(0,0,0,0.8);
+    padding: 4px 8px;
+    border: 2px solid #8b6914;
+    font-size: 10px;
+    color: #ffd700;
+    z-index: 10;
 }`;
             } else if (improvementType === 1) {
                 codeToAdd = `
-// PIXEL ART MAP ENGINE - Day ${worldState.day}
+// IMPROVED PIXEL ART MAP ENGINE - Day ${worldState.day}
+// Population: ${worldState.population} | Buildings: ${Math.floor(worldState.population / 5)} | Units: ${Math.floor(worldState.population / 10)}
+
 function createPixelArtMap() {
     const canvas = document.getElementById('gameCanvas') || document.createElement('canvas');
     canvas.id = 'gameCanvas';
@@ -438,125 +418,172 @@ function createPixelArtMap() {
     
     function resizeCanvas() {
         canvas.width = canvas.parentElement.clientWidth;
-        canvas.height = canvas.parentElement.clientHeight || 300;
+        canvas.height = canvas.parentElement.clientHeight || 400;
     }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
     
-    const PIXEL = 4;
+    const PIXEL = 3;
     let frameCount = 0;
+    const buildings = [];
+    const units = [];
     
-    function drawPixelTree(px, py) {
-        // Trunk
-        ctx.fillStyle = '#5a3a1a';
-        ctx.fillRect(px, py, PIXEL, PIXEL * 3);
-        // Canopy (pixel layers)
-        ctx.fillStyle = '#1a5a1a';
-        ctx.fillRect(px - PIXEL * 2, py - PIXEL * 3, PIXEL * 5, PIXEL * 3);
-        ctx.fillStyle = '#2a6a2a';
-        ctx.fillRect(px - PIXEL, py - PIXEL * 4, PIXEL * 3, PIXEL);
+    // Generate buildings based on population
+    const buildingCount = Math.min(80, Math.floor(${worldState.population} / 5) + 2);
+    for (let i = 0; i < buildingCount; i++) {
+        buildings.push({
+            x: (i * 47 + 20) % (canvas.width - 30),
+            y: (i * 31 + 15) % (canvas.height - 40),
+            type: i % 4,
+            height: 20 + (i % 5) * 8 + Math.min(30, ${Math.floor(worldState.techPower)} * 0.5)
+        });
     }
     
-    function drawPixelCastle(px, py) {
+    // Generate units based on population
+    const unitCount = Math.min(50, Math.floor(${worldState.population} / 10) + 2);
+    for (let u = 0; u < unitCount; u++) {
+        units.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            targetX: Math.random() * canvas.width,
+            targetY: Math.random() * canvas.height,
+            speed: 0.5 + Math.random() * 1.5,
+            color: ['#ff6666', '#6666ff', '#66ff66', '#ffff66', '#ff66ff'][u % 5]
+        });
+    }
+    
+    function drawPixelCastle(x, y, h) {
         // Main tower
         ctx.fillStyle = '#8a8a8a';
-        ctx.fillRect(px - PIXEL * 3, py - PIXEL * 6, PIXEL * 6, PIXEL * 7);
-        // Crenellations (top)
-        for (let i = -3; i < 3; i += 2) {
-            ctx.fillRect(px + i * PIXEL, py - PIXEL * 8, PIXEL, PIXEL * 2);
+        ctx.fillRect(x - 6, y - h, 12, h);
+        // Crenellations
+        for (let i = -6; i < 6; i += 3) {
+            ctx.fillRect(x + i, y - h - 4, 3, 4);
+        }
+        // Windows
+        ctx.fillStyle = '#ffff88';
+        for (let w = 0; w < h / 10; w++) {
+            ctx.fillRect(x - 2, y - h + 4 + w * 10, 4, 4);
         }
         // Door
         ctx.fillStyle = '#3a1a0a';
-        ctx.fillRect(px - PIXEL, py - PIXEL * 2, PIXEL * 2, PIXEL * 3);
+        ctx.fillRect(x - 3, y - 6, 6, 6);
         // Flag
         ctx.fillStyle = '#ff0000';
-        ctx.fillRect(px + PIXEL * 2, py - PIXEL * 9, PIXEL * 2, PIXEL);
+        ctx.fillRect(x + 6, y - h - 8, 5, 3);
     }
     
-    function drawPixelHouse(px, py) {
+    function drawPixelHouse(x, y, h) {
         // Body
         ctx.fillStyle = '#c4a060';
-        ctx.fillRect(px - PIXEL * 2, py - PIXEL * 2, PIXEL * 4, PIXEL * 3);
+        ctx.fillRect(x - 8, y - h, 16, h);
         // Roof
         ctx.fillStyle = '#8a3a1a';
-        ctx.fillRect(px - PIXEL * 3, py - PIXEL * 3, PIXEL * 6, PIXEL);
-        ctx.fillRect(px - PIXEL * 2, py - PIXEL * 4, PIXEL * 4, PIXEL);
+        ctx.fillRect(x - 10, y - h - 3, 20, 3);
+        ctx.fillRect(x - 6, y - h - 6, 12, 3);
+        // Windows
+        ctx.fillStyle = '#ffff88';
+        ctx.fillRect(x - 4, y - h + 4, 3, 3);
+        ctx.fillRect(x + 1, y - h + 4, 3, 3);
         // Door
         ctx.fillStyle = '#3a1a0a';
-        ctx.fillRect(px - PIXEL, py - PIXEL * 1, PIXEL, PIXEL * 2);
+        ctx.fillRect(x - 2, y - 4, 4, 4);
     }
     
-    function drawPixelUnit(px, py, color) {
+    function drawPixelBarracks(x, y, h) {
         // Body
-        ctx.fillStyle = color;
-        ctx.fillRect(px, py - PIXEL * 2, PIXEL, PIXEL * 2);
+        ctx.fillStyle = '#6a6a6a';
+        ctx.fillRect(x - 10, y - h, 20, h);
+        // Roof
+        ctx.fillStyle = '#4a4a4a';
+        ctx.fillRect(x - 12, y - h - 2, 24, 2);
+        // Sword icon (pixel)
+        ctx.fillStyle = '#c0c0c0';
+        ctx.fillRect(x - 1, y - h + 2, 2, h - 4);
+        ctx.fillRect(x - 3, y - h + 2, 6, 2);
+    }
+    
+    function drawPixelTower(x, y, h) {
+        // Tall tower
+        ctx.fillStyle = '#7a7a7a';
+        ctx.fillRect(x - 4, y - h, 8, h);
+        // Top
+        ctx.fillStyle = '#5a5a5a';
+        ctx.fillRect(x - 6, y - h - 2, 12, 2);
+    }
+    
+    function drawPixelUnit(unit) {
+        const legOffset = Math.sin(frameCount * 0.1 + unit.x) > 0 ? 0 : PIXEL;
+        // Body
+        ctx.fillStyle = unit.color;
+        ctx.fillRect(unit.x, unit.y - PIXEL * 2, PIXEL, PIXEL * 2);
         // Head
         ctx.fillStyle = '#ffcc99';
-        ctx.fillRect(px, py - PIXEL * 3, PIXEL, PIXEL);
-        // Legs animation
-        const legOffset = Math.sin(frameCount * 0.1) > 0 ? 0 : PIXEL;
+        ctx.fillRect(unit.x, unit.y - PIXEL * 3, PIXEL, PIXEL);
+        // Legs
         ctx.fillStyle = '#333';
-        ctx.fillRect(px, py, PIXEL / 2, PIXEL + legOffset);
-        ctx.fillRect(px + PIXEL / 2, py, PIXEL / 2, PIXEL - legOffset);
+        ctx.fillRect(unit.x, unit.y, PIXEL / 2, PIXEL + legOffset);
+        ctx.fillRect(unit.x + PIXEL / 2, unit.y, PIXEL / 2, PIXEL - legOffset);
+    }
+    
+    function updateUnits() {
+        units.forEach(unit => {
+            const dx = unit.targetX - unit.x;
+            const dy = unit.targetY - unit.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist < 5) {
+                unit.targetX = Math.random() * canvas.width;
+                unit.targetY = Math.random() * canvas.height;
+            } else {
+                unit.x += (dx / dist) * unit.speed;
+                unit.y += (dy / dist) * unit.speed;
+            }
+        });
     }
     
     function render() {
         frameCount++;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Draw pixel terrain
-        for (let x = 0; x < canvas.width; x += PIXEL * 4) {
-            for (let y = 0; y < canvas.height; y += PIXEL * 4) {
-                ctx.fillStyle = ((x + y) % 8 === 0) ? '#1a3a1a' : '#1a2a1a';
-                ctx.fillRect(x, y, PIXEL * 4, PIXEL * 4);
+        // Terrain
+        for (let x = 0; x < canvas.width; x += PIXEL * 6) {
+            for (let y = 0; y < canvas.height; y += PIXEL * 6) {
+                ctx.fillStyle = ((x + y) % 12 === 0) ? '#2a3a1a' : '#1a2a1a';
+                ctx.fillRect(x, y, PIXEL * 6, PIXEL * 6);
             }
         }
         
         // Water river
         for (let y = 0; y < canvas.height; y += PIXEL) {
-            const waveOffset = Math.sin((y * 0.1) + (frameCount * 0.05)) * PIXEL;
+            const waveOffset = Math.sin((y * 0.05) + (frameCount * 0.03)) * PIXEL * 2;
             ctx.fillStyle = '#1a3a5a';
-            ctx.fillRect(canvas.width * 0.4 + waveOffset, y, PIXEL * 3, PIXEL);
+            ctx.fillRect(canvas.width * 0.35 + waveOffset, y, PIXEL * 4, PIXEL);
         }
         
-        // Trees
-        const treeCount = 10 + Math.floor(worldState.population / 10);
-        for (let i = 0; i < treeCount; i++) {
-            const tx = (i * 73) % (canvas.width - 20);
-            const ty = (i * 47) % (canvas.height - 30) + 10;
-            drawPixelTree(tx, ty);
-        }
-        
-        // Buildings (castles and houses)
-        const buildingCount = Math.min(20, Math.floor(worldState.population / 5) + 2);
-        for (let i = 0; i < buildingCount; i++) {
-            const bx = (i * 97) % (canvas.width - 40) + 20;
-            const by = (i * 53) % (canvas.height - 40) + 20;
-            if (i % 3 === 0) {
-                drawPixelCastle(bx, by);
-            } else {
-                drawPixelHouse(bx, by);
+        // Draw ALL buildings
+        buildings.forEach(building => {
+            switch(building.type) {
+                case 0: drawPixelCastle(building.x, building.y, building.height); break;
+                case 1: drawPixelHouse(building.x, building.y, building.height * 0.6); break;
+                case 2: drawPixelBarracks(building.x, building.y, building.height * 0.7); break;
+                case 3: drawPixelTower(building.x, building.y, building.height * 1.2); break;
             }
-        }
+        });
         
-        // Units (pixel people)
-        const unitCount = Math.min(20, Math.floor(worldState.population / 20));
-        for (let u = 0; u < unitCount; u++) {
-            const ux = (u * 137 + frameCount) % (canvas.width - 10);
-            const uy = (u * 89) % (canvas.height - 10) + 10;
-            const colors = ['#ff4444', '#4444ff', '#44ff44', '#ffff44'];
-            drawPixelUnit(ux, uy, colors[u % 4]);
-        }
+        // Draw ALL units walking
+        updateUnits();
+        units.forEach(unit => drawPixelUnit(unit));
         
-        // Gold mines (pixel clusters)
-        const goldSpots = 3 + Math.floor(worldState.techPower / 10);
-        for (let g = 0; g < goldSpots; g++) {
-            const gx = (g * 67) % (canvas.width - 20) + 10;
-            const gy = (g * 101) % (canvas.height - 20) + 10;
+        // Gold mines
+        const goldCount = 3 + Math.floor(${Math.floor(worldState.techPower)} / 5);
+        for (let g = 0; g < Math.min(goldCount, 10); g++) {
+            const gx = (g * 89 + 10) % (canvas.width - 15);
+            const gy = (g * 67 + 10) % (canvas.height - 15);
             ctx.fillStyle = '#ffd700';
             ctx.fillRect(gx, gy, PIXEL * 2, PIXEL * 2);
             ctx.fillRect(gx + PIXEL, gy - PIXEL, PIXEL, PIXEL * 3);
-            ctx.fillRect(gx - PIXEL, gy + PIXEL, PIXEL, PIXEL);
+            ctx.fillRect(gx - PIXEL, gy + PIXEL, PIXEL * 2, PIXEL);
         }
         
         requestAnimationFrame(render);
@@ -568,32 +595,13 @@ function createPixelArtMap() {
 createPixelArtMap();`;
             } else {
                 codeToAdd = `
-<div class="game-container" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:4px;padding:10px;max-width:1400px;margin:0 auto;">
-    <div class="map-container" style="grid-column:1/-1;border:3px solid #8b6914;box-shadow:4px 4px 0 #000;overflow:hidden;background:#0a0505;position:relative;">
-        <canvas id="gameCanvas" style="width:100%;height:100%;display:block;image-rendering:pixelated;"></canvas>
-        <div style="position:absolute;top:5px;left:5px;background:rgba(0,0,0,0.8);padding:4px 8px;border:2px solid #8b6914;font-size:10px;color:#ffd700;">DAY ${worldState.day}</div>
+<div class="map-container" style="grid-column:1/-1;border:3px solid #8b6914;box-shadow:4px 4px 0 #000;overflow:hidden;background:#0a0505;position:relative;min-height:400px;">
+    <canvas id="gameCanvas" style="width:100%;height:100%;display:block;image-rendering:pixelated;"></canvas>
+    <div class="map-overlay" style="position:absolute;top:5px;left:5px;background:rgba(0,0,0,0.8);padding:4px 8px;border:2px solid #8b6914;font-size:10px;color:#ffd700;">
+        DAY ${worldState.day} | POP ${worldState.population} | BUILDINGS ${Math.floor(worldState.population / 5)}
     </div>
-    
-    <div class="stats-panel" style="background:#2a1a0a;border:3px solid #8b6914;padding:15px;box-shadow:4px 4px 0 #000;">
-        <h2 style="color:#ffd700;font-size:14px;margin-bottom:10px;">RESOURCES</h2>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
-            <div style="background:#1a0a0a;padding:8px;border:2px solid #5a3a1a;">
-                <span style="color:#d4c5a0;">💰 Gold</span>
-                <span style="float:right;color:#ffd700;">${Math.floor(worldState.treasury)}</span>
-            </div>
-            <div style="background:#1a0a0a;padding:8px;border:2px solid #5a3a1a;">
-                <span style="color:#d4c5a0;">👥 Pop</span>
-                <span style="float:right;color:#44ff44;">${worldState.population}</span>
-            </div>
-            <div style="background:#1a0a0a;padding:8px;border:2px solid #5a3a1a;">
-                <span style="color:#d4c5a0;">⚡ Tech</span>
-                <span style="float:right;color:#4488ff;">${worldState.techPower.toFixed(1)}</span>
-            </div>
-            <div style="background:#1a0a0a;padding:8px;border:2px solid #5a3a1a;">
-                <span style="color:#d4c5a0;">🏛️ Era</span>
-                <span style="float:right;color:#ff44ff;">${worldState.era.split(' ').slice(0,2).join(' ')}</span>
-            </div>
-        </div>
+    <div class="map-overlay" style="position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.8);padding:4px 8px;border:2px solid #8b6914;font-size:10px;color:#ffd700;">
+        ERA: ${worldState.era}
     </div>
 </div>`;
             }
@@ -602,21 +610,21 @@ createPixelArtMap();`;
         let improvedHtml = currentHtml;
         
         if (improvementType === 0) {
-            const cssBlock = `\n<!-- === AI PIXEL ART CSS (Day ${worldState.day}) === -->\n<style>\n${codeToAdd}\n</style>\n`;
+            const cssBlock = `\n<!-- === AI IMPROVED MAP CSS (Day ${worldState.day}) === -->\n<style>\n${codeToAdd}\n</style>\n`;
             if (improvedHtml.includes('</head>')) {
                 improvedHtml = improvedHtml.replace('</head>', cssBlock + '</head>');
             } else {
                 improvedHtml = cssBlock + improvedHtml;
             }
         } else if (improvementType === 1) {
-            const jsBlock = `\n<!-- === AI PIXEL ART MAP JS (Day ${worldState.day}) === -->\n<script>\n${codeToAdd}\n</script>\n`;
+            const jsBlock = `\n<!-- === AI IMPROVED MAP JS (Day ${worldState.day}) === -->\n<script>\n${codeToAdd}\n</script>\n`;
             if (improvedHtml.includes('</body>')) {
                 improvedHtml = improvedHtml.replace('</body>', jsBlock + '</body>');
             } else {
                 improvedHtml += jsBlock;
             }
         } else {
-            const htmlBlock = `\n<!-- === AI PIXEL ART HTML (Day ${worldState.day}) === -->\n${codeToAdd}\n`;
+            const htmlBlock = `\n<!-- === AI IMPROVED MAP HTML (Day ${worldState.day}) === -->\n${codeToAdd}\n`;
             if (improvedHtml.includes('</body>')) {
                 improvedHtml = improvedHtml.replace('</body>', htmlBlock + '</body>');
             } else {
@@ -628,7 +636,7 @@ createPixelArtMap();`;
         console.log("✅ HTML improved! New size:", improvedHtml.length);
         
         worldState.aiImprovements += 1;
-        const improvementTypeName = improvementType === 0 ? "Pixel Art CSS" : improvementType === 1 ? "Pixel Art Canvas JS" : "Pixel Art HTML";
+        const improvementTypeName = improvementType === 0 ? "Improved Map CSS" : improvementType === 1 ? "Improved Map Canvas JS" : "Improved Map HTML";
         addLog(`[AI COMMIT SUCCESS] ${improvementTypeName} improved! Total: ${worldState.aiImprovements}`);
         
         if (GITHUB_TOKEN) {
@@ -763,7 +771,8 @@ SERVER.listen(PORT, () => {
     console.log("📅 AI Events: every 150 days | Code Improvements: every 250 days");
     console.log("⏳ Rate limiter: 7 seconds minimum between calls");
     console.log("🎮 Pixel Art style: Age of Empires inspired");
-    console.log("🗺️ Map: Canvas-based pixel art (NO icons, NO emojis)");
+    console.log("🏗️ Map shows buildings proportional to population");
+    console.log("🚶 Units walk between buildings");
     
     queryAI("Say 'OK'")
         .then(response => {
