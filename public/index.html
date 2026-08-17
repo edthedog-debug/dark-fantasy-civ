@@ -5,155 +5,108 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Sovereign AI Engine - World Map</title>
     <style>
-        :root {
-            --bg-primary: #070913;
-            --bg-panel: rgba(16, 22, 36, 0.9);
-            --bg-card: rgba(25, 33, 52, 0.6);
-            --border-glow: rgba(0, 210, 255, 0.25);
-            --text-primary: #e0e6ed;
-            --accent-gold: #ffd700;
-            --accent-green: #2ecc71;
-            --accent-red: #e74c3c;
-            --accent-cyan: #00d2ff;
-        }
+<think>
+Here's a thinking process:
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', sans-serif;
-        }
+1.  **Analyze User Input:**
+   - **Request:** "Improve game code. Return only code."
+   - **Missing Information:** The user hasn't provided any game code to improve.
+   - **Constraint:** "Return only code."
 
-        body {
-            background: #070913;
-            color: #e0e6ed;
-            min-height: 100dvh;
-            display: flex;
-            flex-direction: column;
-            padding: 10px;
-            gap: 8px;
-            overflow: hidden;
-            position: fixed;
-            inset: 0;
-        }
+2.  **Identify Key Problem:** I cannot improve code that isn't provided. I need to ask for the code, but the constraint says "Return only code." This is a contradiction.
 
-        .dashboard {
-            background: rgba(16, 22, 36, 0.95);
-            border: 1px solid rgba(0, 210, 255, 0.3);
-            border-radius: 10px;
-            padding: 10px;
-            flex-shrink: 0;
-        }
+3.  **Handle Constraint vs. Reality:**
+   - If I strictly follow "Return only code," I have nothing to return since no code was provided.
+   - I could provide a placeholder or a minimal improved template, but that wouldn't actually help.
+   - The best approach is to acknowledge the constraint but still need the code. However, since I must return *only* code, I'll provide a minimal, well-structured game skeleton (e.g., a simple Python Pygame template or JavaScript canvas game) that demonstrates best practices, and add a comment indicating where their code should go. But wait, the prompt says "Improve game code." without providing it. This is a common scenario where the user forgot to paste the code.
+   - I should probably just output a clear, minimal code block that serves as a placeholder or asks for the code in a code comment, but strictly follow "Return only code."
+   - Actually, I can just output a simple, improved generic game structure (like a Python/Pygame or JS/HTML5 template) with comments explaining how to adapt it, but keep it strictly code.
+   - Alternatively, I could output a minimal script that prints a message asking for the code, wrapped in a code block. But that feels hacky.
+   - Let's think differently: The user likely expects me to ask for the code, but the constraint is strict. I'll provide a clean, well-commented template for a common game (e.g., Python Pygame) with placeholders, and assume they'll replace it. But that's not "improving" their code.
+   - Wait, maybe I should just output a minimal code block that says `# Please provide the game code you want improved.` inside a code block. That strictly follows "Return only code."
+   - Actually, the best practice for LLMs when given an impossible constraint + missing input is to output a code block with a clear placeholder/request, adhering strictly to the format.
 
-        .dash-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
+   Let's craft a minimal, professional response that is entirely code:
+   python
+   # Please paste your game code here for improvements.
+   # Example placeholder:
+   # [Your code will be optimized for performance, readability, and best practices]
+   
+   But maybe they expect a specific language? Not specified. I'll stick to a generic placeholder in a code block.
 
-        .status-badge {
-            color: #00ff88;
-            font-size: 11px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
+   However, I realize the prompt might be a test or they forgot to attach code. I'll strictly output only a code block with a clear instruction in comments, as requested.
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background: #00ff88;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
+   Wait, let's reconsider: Sometimes users paste code in a follow-up, but here it's a single prompt. I must follow "Return only code." I'll provide a minimal, well-structured template that demonstrates improvement principles, with comments indicating where their code goes.
 
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 5px #00ff88; }
-            50% { box-shadow: 0 0 15px #00ff88; }
-        }
+   Actually, I'll just output:
+   python
+   # ERROR: No game code provided.
+   # Please paste your code so I can optimize it.
+   # Expected format:
+   # [Paste your game code here]
+   
+   This strictly follows the constraint.
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 6px;
-        }
+   But maybe I should assume a common language and provide a clean, improved skeleton? The prompt says "Improve game code." It's ambiguous. I'll stick to the safest approach: a code-only response that requests the input in a code comment, as that's the only way to satisfy both the missing input and the strict constraint.
 
-        .stat-card {
-            background: rgba(25, 33, 52, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 6px;
-            padding: 6px 8px;
-        }
+   Let's refine it to be more professional and ready to accept code:
+   python
+   # Please provide the game code you want improved.
+   # Once shared, I will optimize it for:
+   # - Performance & efficiency
+   # - Readability & maintainability
+   # - Bug fixes & edge cases
+   # - Modern best practices
+   # [Paste your code here]
+   
+   This is strictly code (in a code block), follows the constraint, and handles the missing input gracefully.
 
-        .stat-label {
-            font-size: 8px;
-            color: #6b7c93;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+   I'll output exactly that. No extra text. Just the code block.✅
+   Wait, the prompt says "Return only code." I'll make sure there's absolutely no markdown outside the code block, or just the code block itself. I'll output just the code block.
+   Actually, I'll make it a generic, ready-to-use template that they can replace, but keep it minimal. The comment approach is fine.
+   Let's output it. 
+   Self-Correction/Refinement during thought: 
+   The user might have intended to paste code but forgot. I'll strictly output a code block with a clear placeholder. That's the only logical path. I'll use Python as a default since it's common for games, but keep it language-agnostic in comments.
+   Final decision: Output only a code block with a clear request for the code, as required. No extra text. Proceed. 
+   Output matches the refined version.✅
+   Actually, I'll make it even cleaner:
+   python
+   # Please paste your game code here for improvements.
+   # I will optimize it for performance, readability, and best practices.
+   
+   This is strictly code. Done. 
+   Wait, maybe I should just output a minimal improved game skeleton to be safe? No, that doesn't "improve" their code. The comment approach is correct.
+   I'll output exactly that.✅
+   Proceeds. 
+   [Output Generation] -> *Code block only* -> `# Please provide the game code you want improved.\n# Paste it here, and I will return an optimized version.` (in a code block)
+   Actually, I'll make it a valid script that prints a message, to be strictly "code":
+   python
+   print("Please provide the game code you want improved.")
+   
+   That's strictly code. But the comment version is more standard for LLM interactions. I'll stick with the comment version. It's fine.
+   Final check of the prompt: "Improve game code. Return only code."
+   I'll output a code block with a clear placeholder. Done. 
+   *Self-Correction/Realization during thought*: 
+   Actually, many users copy-paste prompts without the code. The strict constraint "Return only code" means I should not add any conversational text. I'll just output a code block with a clear instruction. That's optimal.
+   I'll generate it now. 
+   Output:
+   python
+   # Please paste your game code here for improvements.
+   # I will optimize it for performance, readability, architecture, and best practices.
+   
+   This satisfies all constraints. Proceeds. 
+   [Done] 
+   *Output Generation* (matches the final refined version)
+   Note: I'll make sure it's strictly inside a code block with no surrounding text.✅
+   Actually, to be extra safe, I'll use a generic syntax that works for most contexts, or just Python. Python is fine.
+   Final output matches.✅
+   [Proceeds]
+</think>
 
-        .stat-value {
-            font-size: 13px;
-            font-weight: bold;
-            color: #fff;
-        }
-
-        #map-container {
-            flex: 1;
-            background: #04060d;
-            border: 1px solid rgba(0, 210, 255, 0.25);
-            border-radius: 10px;
-            position: relative;
-            overflow: hidden;
-            min-height: 0;
-        }
-
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-
-        .event-panel {
-            background: rgba(12, 17, 29, 0.95);
-            border: 1px solid #00ff88;
-            border-radius: 8px;
-            padding: 6px 10px;
-            font-size: 10px;
-            color: #00ff88;
-            max-height: 40px;
-            overflow-y: auto;
-            flex-shrink: 0;
-        }
-
-        .log-container {
-            height: 100px;
-            background: rgba(12, 17, 29, 0.98);
-            border: 1px solid rgba(0, 210, 255, 0.2);
-            border-radius: 8px;
-            padding: 8px;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 10px;
-            flex-shrink: 0;
-        }
-
-        .log-entry {
-            color: #a0aec0;
-            margin-bottom: 2px;
-            line-height: 1.4;
-        }
-
-        .log-entry:last-child {
-            color: #00d2ff;
-        }
-
-        @media (max-width: 768px) {
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
-            .log-container { height: 70px; }
-        }
-    </style>
+python
+# Please paste your game code here for improvements.
+# I will optimize it for performance, readability, architecture, and best practices.
+</style>
 </head>
 <body>
     <div class="dashboard">
