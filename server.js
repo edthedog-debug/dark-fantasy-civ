@@ -295,12 +295,17 @@ async function autoImproveGameCode() {
         let codeToAdd;
         
         switch(improvementType) {
-            case 0: // CSS/Design improvement - RESPONSIVE
-                prompt = `Create SPECTACULAR responsive CSS for a dark fantasy civilization game.
+            case 0: // CSS/Design improvement - OPTIMIZE EXISTING
+                prompt = `IMPROVE and OPTIMIZE the EXISTING CSS of this dark fantasy civilization game.
                 Current stats: Day ${worldState.day}, Population: ${worldState.population}, Tech: ${worldState.techPower}.
                 Era: ${worldState.era}
                 
-                REQUIREMENTS:
+                IMPORTANT INSTRUCTIONS:
+                - Do NOT add new CSS blocks that conflict with existing ones
+                - FIX and OPTIMIZE the current styles
+                - Improve the MAP graphics and overall web design
+                - Make the map look like a real game map (like Age of Empires style)
+                - Add terrain colors, resource indicators, and building icons
                 - MUST work perfectly on BOTH desktop AND mobile
                 - Use @media queries for mobile (max-width: 768px)
                 - Dark fantasy theme: dark backgrounds, gold borders, mystical glow
@@ -310,33 +315,50 @@ async function autoImproveGameCode() {
                 - Include hover effects for desktop and touch-friendly for mobile
                 - Font sizes must be readable on mobile
                 - Panels should stack vertically on mobile, side-by-side on desktop
+                - IMPROVE the map with: terrain gradients, resource nodes, animated elements
                 
-                Return ONLY valid CSS code. No explanations, no comments.`;
+                Return ONLY valid CSS code that REPLACES and IMPROVES existing styles.
+                No explanations, no comments.`;
                 break;
                 
-            case 1: // JavaScript functionality
-                prompt = `Add new interactive functionality to this dark fantasy civilization game.
+            case 1: // JavaScript functionality - MAP IMPROVEMENT
+                prompt = `Add new interactive MAP functionality to this dark fantasy civilization game.
                 Current stats: Day ${worldState.day}, Population: ${worldState.population}, Tech: ${worldState.techPower}.
-                Return ONLY JavaScript code that adds new features, animations, or gameplay mechanics.
+                
+                IMPROVE THE MAP GRAPHICS:
+                - Create a canvas-based map with terrain
+                - Add animated elements (water, trees, buildings)
+                - Show population moving on the map
+                - Add resource nodes that pulse/glow
+                - Show buildings as icons on the map
+                - Make it interactive (click/hover to see info)
+                
+                Return ONLY valid JavaScript code. No explanations, no comments.
                 Make it work on both desktop and mobile.`;
                 break;
                 
-            case 2: // UI/HTML structure improvement - RESPONSIVE
-                prompt = `Add new responsive UI elements to this dark fantasy civilization game.
+            case 2: // UI/HTML structure improvement - MAP ENHANCEMENT
+                prompt = `Add new MAP UI elements to this dark fantasy civilization game.
                 Current stats: Day ${worldState.day}, Era: ${worldState.era}, Treasury: ${worldState.treasury}.
+                
+                IMPROVE THE MAP DISPLAY:
+                - Add a map container with canvas element
+                - Add map legend with resource types
+                - Add minimap in the corner
+                - Add building list overlay
+                - Add resource counters overlay
                 
                 REQUIREMENTS:
                 - MUST work on both desktop AND mobile
                 - Use responsive HTML structure
-                - Include viewport meta tag if not present
-                - Use CSS Grid/Flexbox classes
                 - Dark fantasy themed
+                - Use CSS Grid/Flexbox classes
                 
                 Return ONLY valid HTML code. No explanations, no comments.`;
                 break;
         }
         
-        console.log("🔍 Asking Groq (GPT-OSS 120B) for", improvementType === 0 ? "RESPONSIVE CSS" : improvementType === 1 ? "JavaScript" : "RESPONSIVE HTML", "improvement...");
+        console.log("🔍 Asking Groq (GPT-OSS 120B) for", improvementType === 0 ? "CSS OPTIMIZATION" : improvementType === 1 ? "MAP JavaScript" : "MAP HTML", "improvement...");
         const aiResponse = await queryAI(prompt);
         
         // Check if AI response is valid
@@ -355,7 +377,7 @@ async function autoImproveGameCode() {
         if (!codeToAdd || codeToAdd.length < 10) {
             if (improvementType === 0) {
                 codeToAdd = `
-/* RESPONSIVE Dark Fantasy Design - Day ${worldState.day} */
+/* OPTIMIZED RESPONSIVE Dark Fantasy Design - Day ${worldState.day} */
 * {
     margin: 0;
     padding: 0;
@@ -400,6 +422,23 @@ body {
     50% { box-shadow: 0 0 50px rgba(139, 105, 20, 0.8); }
 }
 
+/* MAP STYLES */
+.map-container {
+    position: relative;
+    width: 100%;
+    min-height: 300px;
+    border: 2px solid #8b6914;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #0a0505;
+}
+
+#gameCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
 /* MOBILE RESPONSIVE */
 @media (max-width: 768px) {
     .game-container {
@@ -411,6 +450,10 @@ body {
     .stats-panel {
         padding: 15px;
         border-radius: 12px;
+    }
+    
+    .map-container {
+        min-height: 200px;
     }
     
     body {
@@ -427,38 +470,80 @@ body {
 }`;
             } else if (improvementType === 1) {
                 codeToAdd = `
-// AI Functionality - Responsive - Day ${worldState.day}
-function createMagicEffect() {
-    const effect = document.createElement('div');
-    effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
-    document.body.appendChild(effect);
+// AI Map Functionality - Day ${worldState.day}
+function createGameMap() {
+    const canvas = document.getElementById('gameCanvas') || document.createElement('canvas');
+    canvas.id = 'gameCanvas';
     
-    const style = document.createElement('style');
-    style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
-    document.head.appendChild(style);
-}
-
-// Touch-friendly for mobile
-function initTouchSupport() {
-    if ('ontouchstart' in window) {
-        document.querySelectorAll('.stats-panel').forEach(panel => {
-            panel.addEventListener('touchstart', () => {
-                panel.style.transform = 'scale(0.98)';
-            });
-            panel.addEventListener('touchend', () => {
-                panel.style.transform = 'scale(1)';
-            });
+    if (!canvas.parentElement) {
+        const mapContainer = document.createElement('div');
+        mapContainer.className = 'map-container';
+        mapContainer.appendChild(canvas);
+        document.body.appendChild(mapContainer);
+    }
+    
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight || 300;
+    
+    // Draw terrain
+    function drawTerrain() {
+        // Water
+        ctx.fillStyle = '#1a2a3a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Land masses
+        ctx.fillStyle = '#2a3a1a';
+        ctx.beginPath();
+        ctx.ellipse(canvas.width * 0.3, canvas.height * 0.4, 200, 150, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = '#3a4a2a';
+        ctx.beginPath();
+        ctx.ellipse(canvas.width * 0.7, canvas.height * 0.6, 250, 180, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Resources (gold nodes)
+        const goldSpots = [
+            {x: 0.3, y: 0.4}, {x: 0.5, y: 0.5}, {x: 0.7, y: 0.6}
+        ];
+        
+        goldSpots.forEach(spot => {
+            ctx.fillStyle = '#ffd700';
+            ctx.beginPath();
+            ctx.arc(spot.x * canvas.width, spot.y * canvas.height, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Pulsing glow
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(spot.x * canvas.width, spot.y * canvas.height, 10 + Math.sin(Date.now() / 1000) * 5, 0, Math.PI * 2);
+            ctx.stroke();
         });
     }
+    
+    function animate() {
+        drawTerrain();
+        requestAnimationFrame(animate);
+    }
+    
+    animate();
 }
 
-createMagicEffect();
-initTouchSupport();`;
+createGameMap();`;
             } else {
                 codeToAdd = `
 <div class="game-container" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;padding:20px;max-width:1400px;margin:0 auto;">
+    <div class="map-container" style="grid-column:1/-1;background:rgba(10,5,5,0.8);border:2px solid #8b6914;border-radius:15px;padding:20px;box-shadow:0 0 25px rgba(139,105,20,0.4);">
+        <h3 style="color:#ffd700;margin-bottom:15px;text-align:center;">🗺️ Kingdom Map - Day ${worldState.day}</h3>
+        <div style="position:relative;min-height:300px;border:1px solid #8b6914;border-radius:10px;overflow:hidden;background:#0a0505;">
+            <canvas id="gameCanvas" style="width:100%;height:100%;display:block;"></canvas>
+        </div>
+    </div>
+    
     <div class="stats-panel" style="background:rgba(20,10,10,0.85);border:2px solid #8b6914;border-radius:15px;padding:20px;box-shadow:0 0 25px rgba(139,105,20,0.4);">
-        <h3 style="color:#ffd700;margin-bottom:15px;text-align:center;">⚔️ Kingdom Overview - Day ${worldState.day}</h3>
+        <h3 style="color:#ffd700;margin-bottom:15px;text-align:center;">⚔️ Kingdom Stats</h3>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">
             <div style="background:rgba(10,5,5,0.6);padding:10px;border-radius:8px;border:1px solid #8b6914;">
                 <span style="color:#d4c5a0;">👥 Population</span>
@@ -483,7 +568,7 @@ initTouchSupport();`;
         
         if (improvementType === 0) {
             // CSS improvement
-            const cssBlock = `\n<!-- === AI RESPONSIVE CSS IMPROVEMENT (Day ${worldState.day}) === -->\n<style>\n${codeToAdd}\n</style>\n`;
+            const cssBlock = `\n<!-- === AI CSS OPTIMIZATION (Day ${worldState.day}) === -->\n<style>\n${codeToAdd}\n</style>\n`;
             if (improvedHtml.includes('</head>')) {
                 improvedHtml = improvedHtml.replace('</head>', cssBlock + '</head>');
             } else {
@@ -491,7 +576,7 @@ initTouchSupport();`;
             }
         } else if (improvementType === 1) {
             // JavaScript improvement
-            const jsBlock = `\n<!-- === AI JS IMPROVEMENT (Day ${worldState.day}) === -->\n<script>\n${codeToAdd}\n</script>\n`;
+            const jsBlock = `\n<!-- === AI MAP JS IMPROVEMENT (Day ${worldState.day}) === -->\n<script>\n${codeToAdd}\n</script>\n`;
             if (improvedHtml.includes('</body>')) {
                 improvedHtml = improvedHtml.replace('</body>', jsBlock + '</body>');
             } else {
@@ -499,7 +584,7 @@ initTouchSupport();`;
             }
         } else {
             // HTML structure improvement
-            const htmlBlock = `\n<!-- === AI RESPONSIVE HTML IMPROVEMENT (Day ${worldState.day}) === -->\n${codeToAdd}\n`;
+            const htmlBlock = `\n<!-- === AI MAP HTML IMPROVEMENT (Day ${worldState.day}) === -->\n${codeToAdd}\n`;
             if (improvedHtml.includes('</body>')) {
                 improvedHtml = improvedHtml.replace('</body>', htmlBlock + '</body>');
             } else {
@@ -512,7 +597,7 @@ initTouchSupport();`;
         console.log("✅ HTML improved! New size:", improvedHtml.length);
         
         worldState.aiImprovements += 1;
-        const improvementTypeName = improvementType === 0 ? "Responsive CSS" : improvementType === 1 ? "JavaScript" : "Responsive HTML";
+        const improvementTypeName = improvementType === 0 ? "CSS Optimization" : improvementType === 1 ? "Map JavaScript" : "Map HTML";
         addLog(`[AI COMMIT SUCCESS] ${improvementTypeName} improved! Total: ${worldState.aiImprovements}`);
         
         // Push to GitHub
@@ -651,6 +736,7 @@ SERVER.listen(PORT, () => {
     console.log("📅 AI Events: every 150 days | Code Improvements: every 250 days");
     console.log("⏳ Rate limiter: 7 seconds minimum between calls");
     console.log("📱 Responsive design: Desktop + Mobile optimized");
+    console.log("🗺️ Map graphics: Canvas-based with terrain and resources");
     
     queryAI("Say 'OK'")
         .then(response => {
