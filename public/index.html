@@ -2610,5 +2610,21 @@ function createMagicEffect() {
 }
 createMagicEffect();
 </script>
+
+<!-- === AI JS IMPROVEMENT (Day 27505) === -->
+<script>
+
+// AI Functionality Improvement - Day 27505
+function createMagicEffect() {
+    const effect = document.createElement('div');
+    effect.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;background:radial-gradient(circle,rgba(139,105,20,0.6),transparent);border-radius:50%;pointer-events:none;z-index:9999;animation:magicPulse 2s ease-out infinite;';
+    document.body.appendChild(effect);
+    
+    const style = document.createElement('style');
+    style.textContent = '@keyframes magicPulse { 0% { transform:translate(-50%,-50%) scale(0); opacity:1; } 100% { transform:translate(-50%,-50%) scale(3); opacity:0; } }';
+    document.head.appendChild(style);
+}
+createMagicEffect();
+</script>
 </body>
 </html>
