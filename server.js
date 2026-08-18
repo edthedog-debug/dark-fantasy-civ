@@ -21,10 +21,10 @@ const SERVER = http.createServer(APP);
 const WSS = new WebSocket.Server({ server: SERVER, perMessageDeflate: false });
 const STATE_FILE = path.join(__dirname, 'worldState.json');
 
-// Rate limiter - 120 seconds
+// Rate limiter - 300 seconds (5 minutes)
 const rateLimiter = {
     lastCallTime: 0,
-    minInterval: 120000,
+    minInterval: 300000,
     
     async waitForSlot() {
         const now = Date.now();
@@ -101,7 +101,7 @@ function addLog(msg) {
 }
 
 /**
- * GROQ API - WITH GLOBAL LOCK (2 MINUTES WAIT)
+ * GROQ COMPOUND API - WITH GLOBAL LOCK (5 MINUTES WAIT)
  */
 async function queryAI(prompt, taskType) {
     if (!GROQ_API_KEY) {
@@ -109,18 +109,18 @@ async function queryAI(prompt, taskType) {
         return null;
     }
 
-    // WAIT if another AI request is in progress - 2 MINUTES
+    // WAIT if another AI request is in progress - 5 MINUTES
     while (isAIRequestInProgress) {
-        console.log("⏳ Another AI request in progress - waiting 120s...");
-        await new Promise(resolve => setTimeout(resolve, 120000)); // 120 seconds = 2 minutes
+        console.log("⏳ Another AI request in progress - waiting 300s...");
+        await new Promise(resolve => setTimeout(resolve, 300000)); // 300 seconds = 5 minutes
     }
     
     // SET the lock
     isAIRequestInProgress = true;
 
     console.log("┌─────────────────────────────────────");
-    console.log("│ 🤖 GROQ AI - " + taskType);
-    console.log("│ 🧠 Model: qwen/qwen3.6-27b");
+    console.log("│ 🤖 GROQ COMPOUND - " + taskType);
+    console.log("│ 🧠 Model: groq/compound");
     console.log("└─────────────────────────────────────");
     
     try {
@@ -128,38 +128,60 @@ async function queryAI(prompt, taskType) {
         
         const url = 'https://api.groq.com/openai/v1/chat/completions';
         
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        // Function to make the request
+        const makeRequest = async () => {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${GROQ_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: 'groq/compound',
+                    messages: [{ role: 'user', content: prompt }],
+                    temperature: 0.3,
+                    max_tokens: 1024, // Reduced to save tokens
+                }),
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            return response;
+        };
         
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${GROQ_API_KEY}`
-            },
-            body: JSON.stringify({
-                model: 'qwen/qwen3.6-27b',
-                messages: [{ role: 'user', content: prompt }],
-                temperature: 0.3,
-                max_tokens: 4096
-            }),
-            signal: controller.signal
-        });
+        let response = await makeRequest();
         
-        clearTimeout(timeoutId);
+        // Handle rate limiting (429)
+        if (response.status === 429) {
+            console.log("│ ⚠️ RATE LIMITED (429) - Waiting 60s...");
+            await new Promise(resolve => setTimeout(resolve, 60000));
+            response = await makeRequest();
+        }
         
         console.log("│ 📊 Status: " + response.status);
         
         if (response.ok) {
             const data = await response.json();
             const text = data.choices?.[0]?.message?.content;
+            
+            // Debug
+            console.log("│ 📝 Text length:", text?.length);
+            
             if (text && text.length > 10) {
                 console.log("│ ✅ SUCCESS");
                 console.log("└─────────────────────────────────────");
                 return text;
+            } else {
+                console.log("│ ⚠️ Empty response");
+                console.log("│ Response:", JSON.stringify(data).substring(0, 200));
             }
         } else {
+            const errorText = await response.text();
             console.log("│ ❌ ERROR: " + response.status);
+            console.log("│ Error:", errorText.substring(0, 200));
         }
     } catch (e) {
         console.log("│ ❌ FAILED: " + e.message);
@@ -230,10 +252,9 @@ async function generateAIEvents() {
     
     console.log("\n🎲 GENERATING AI EVENT...");
     
-    const prompt = `Generate a dark fantasy event for a civilization simulation.
-    Current: Day ${worldState.day}, Pop ${worldState.population}, Treasury ${treasury}.
-    Return ONLY JSON: {"event":"description","goldImpact":number,"happinessImpact":number,"techImpact":number,"visualEffect":"blood_moon|fire|storm|plague|prosperity","duration":number}
-    goldImpact should be a PERCENTAGE of treasury (e.g. -0.10 for 10% loss, +0.05 for 5% gain).`;
+    const prompt = `Generate dark fantasy event JSON.
+Day ${worldState.day}, Pop ${worldState.population}, Gold ${treasury}.
+Format: {"event":"text","goldImpact":-0.1,"happinessImpact":5,"techImpact":0.2,"visualEffect":"storm","duration":30}`;
     
     const aiResult = await queryAI(prompt, "EVENT GENERATION");
     
@@ -258,7 +279,7 @@ async function generateAIEvents() {
             console.log("⚠️ Parse failed:", e.message);
         }
     } else {
-        addLog("[AI EVENT] Groq unavailable - skipped");
+        addLog("[AI EVENT] Compound unavailable - skipped");
     }
     
     if (worldState.activeEvents) {
@@ -341,11 +362,13 @@ function runSimulationTick() {
         worldState.activeEvents = worldState.activeEvents.filter(e => e.endDay > worldState.day);
     }
 
-    if (worldState.day % 250 === 0) {
+    // Changed from 250 to 300 days to reduce API calls
+    if (worldState.day % 300 === 0) {
         generateAIEvents();
     }
 
-    if (worldState.day % 400 === 0) {
+    // Changed from 400 to 500 days to reduce API calls
+    if (worldState.day % 500 === 0) {
         autoImproveGameCode().catch(err => console.error(err.message));
     }
 
@@ -385,35 +408,8 @@ async function autoImproveGameCode() {
             fs.writeFileSync(htmlPath, currentHtml);
         }
         
-        const prompt = `You are improving the ${improvementType} of this dark fantasy civilization game.
-
-HERE IS THE CURRENT HTML CODE:
-\`\`\`html
-${currentHtml}
-\`\`\`
-
-IMPROVEMENT GOALS:
-${
-    improvementType === "MAP GRAPHICS & MECHANICS" 
-    ? `- ENHANCE Canvas rendering with detailed pixel art, animations, particles
-- IMPROVE unit animations and types
-- ADD atmospheric effects`
-    : improvementType === "CSS STYLING"
-    ? `- ENHANCE dark fantasy aesthetic
-- IMPROVE panel designs
-- ADD transitions and hover effects`
-    : `- IMPROVE layout structure
-- ADD semantic HTML
-- ENHANCE responsive design`
-}
-
-CRITICAL RULES:
-1. PRESERVE WebSocket code EXACTLY
-2. PRESERVE all element IDs
-3. KEEP dark background #070913
-4. KEEP overflow: hidden, position: fixed
-5. Return COMPLETE modified HTML`;
-
+        const prompt = `Improve ${improvementType} in this HTML. Keep WebSocket, IDs, #070913 background, hidden overflow. Return full HTML.`;
+        
         const aiResponse = await queryAI(prompt, "CODE IMPROVEMENT - " + improvementType);
         
         if (aiResponse && aiResponse.length > 100) {
@@ -451,9 +447,9 @@ CRITICAL RULES:
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
-    console.log("🤖 AI Model: qwen/qwen3.6-27b");
-    console.log("⏱️ Events: every 250 days | Code: every 400 days | Rate: 120s");
-    console.log("🔒 AI Lock: 2 minute wait between requests");
+    console.log("🤖 AI Model: groq/compound");
+    console.log("⏱️ Events: every 300 days | Code: every 500 days | Rate: 300s");
+    console.log("🔒 AI Lock: 5 minute wait between requests");
     
     addLog("[SYSTEM] Simulation started.");
     broadcastState();
