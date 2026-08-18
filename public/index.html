@@ -188,20 +188,45 @@ html
 
     <script>
 <think>
-The user wants me to improve the canvas graphics of a dark fantasy game while preserving all IDs and WebSocket functionality. Since they haven't provided existing code, I need to create a comprehensive dark fantasy game with excellent canvas graphics. Let me build something impressive with:
+The user wants me to improve the canvas graphics of a dark fantasy game. Since they didn't provide existing code, I need to create a dark fantasy game with impressive canvas graphics that includes:
 
-1. Rich particle systems (embers, dust, fog)
-2. Atmospheric lighting (god rays, dynamic shadows, bloom effects)
-3. Detailed character rendering with animations
-4. Parallax scrolling backgrounds with layered depth
-5. Post-processing effects (vignette, chromatic aberration, screen shake)
-6. Animated environment elements (torches, water, fire)
-7. Dark fantasy aesthetic with gothic architecture elements
-8. Smooth animations and transitions
+1. A canvas-based game with dark fantasy theme
+2. All IDs preserved (they mention preserving IDs, so I should use meaningful IDs)
+3. WebSocket functionality
+4. Dark fantasy aesthetic - think dark colors, atmospheric effects, particles, glowing elements
 
-I'll preserve WebSocket functionality for real-time multiplayer/chat and keep all IDs intact.
+Let me create a comprehensive dark fantasy game with:
+- Atmospheric background with gradient skies
+- Particle systems (embers, fog, dust)
+- Character rendering with glow effects
+- Terrain generation
+- Post-processing effects (vignette, bloom)
+- Dark fantasy UI elements
+- WebSocket integration for multiplayer/networking
+- Smooth animations
 
-Let me create a full, self-contained HTML file with all the graphics improvements.
+I'll create a complete HTML file with embedded CSS and JavaScript that showcases impressive canvas graphics while maintaining game functionality.
+
+Let me build this as a full, self-contained HTML file with:
+- Canvas rendering with multiple layers
+- Player character with glowing effects
+- Enemies with dark aesthetics
+- Particle systems for atmosphere
+- Terrain with parallax
+- HUD with dark fantasy styling
+- WebSocket connection handling
+- Game loop with delta time
+
+Let me make the graphics truly impressive with:
+- Bloom/glow post-processing
+- Dynamic lighting
+- Particle effects (embers, fog, blood particles)
+- Animated terrain
+- Character with trail effects
+- Enemy auras
+- Atmospheric fog layers
+- Vignette effect
+- Scanline/noise overlay for grit
 </think>
 
 html
@@ -210,178 +235,160 @@ html
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dark Fantasy - Abyssal Realms</title>
+<title>Shadowrealms - Dark Fantasy</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-background: #000;
-overflow: hidden;
-font-family: 'Segoe UI', serif;
-cursor: none;
+  background: #0a0a0f;
+  overflow: hidden;
+  font-family: 'Georgia', serif;
+  cursor: crosshair;
 }
 #gameCanvas {
-display: block;
-image-rendering: auto;
+  display: block;
+  position: absolute;
+  top: 0; left: 0;
+  z-index: 1;
 }
 #uiOverlay {
-position: fixed;
-top: 0; left: 0;
-width: 100%; height: 100%;
-pointer-events: none;
-z-index: 10;
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+#hud {
+  position: absolute;
+  top: 20px; left: 20px;
+  z-index: 3;
+  pointer-events: none;
 }
 #healthBar {
-position: fixed;
-top: 20px; left: 20px;
-z-index: 20;
+  width: 220px; height: 18px;
+  background: rgba(15,5,5,0.85);
+  border: 2px solid #5a1a1a;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  box-shadow: 0 0 10px rgba(139,0,0,0.4), inset 0 0 8px rgba(0,0,0,0.6);
 }
-.health-outer {
-width: 220px;
-height: 16px;
-background: rgba(20,0,0,0.8);
-border: 2px solid #5a1a1a;
-border-radius: 2px;
-overflow: hidden;
-box-shadow: 0 0 10px rgba(139,0,0,0.5), inset 0 0 5px rgba(0,0,0,0.5);
-}
-.health-inner {
-height: 100%;
-width: 100%;
-background: linear-gradient(180deg, #cc2222, #880000, #550000);
-box-shadow: inset 0 2px 0 rgba(255,100,100,0.3), inset 0 -2px 0 rgba(0,0,0,0.3);
-transition: width 0.3s ease;
-position: relative;
-}
-.health-inner::after {
-content: '';
-position: absolute;
-top: 0; left: 0; right: 0;
-height: 50%;
-background: linear-gradient(180deg, rgba(255,255,255,0.15), transparent);
+#healthFill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #8b0000, #dc143c, #ff4444);
+  transition: width 0.3s ease;
+  box-shadow: 0 0 6px rgba(220,20,60,0.6);
 }
 #manaBar {
-position: fixed;
-top: 42px; left: 20px;
-z-index: 20;
+  width: 220px; height: 14px;
+  background: rgba(5,5,15,0.85);
+  border: 2px solid #1a1a5a;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(0,50,139,0.4), inset 0 0 8px rgba(0,0,0,0.6);
 }
-.mana-outer {
-width: 180px;
-height: 12px;
-background: rgba(0,0,20,0.8);
-border: 2px solid #1a1a5a;
-border-radius: 2px;
-overflow: hidden;
-box-shadow: 0 0 10px rgba(0,0,139,0.5);
-}
-.mana-inner {
-height: 100%;
-width: 80%;
-background: linear-gradient(180deg, #4466cc, #223388, #112255);
-box-shadow: inset 0 2px 0 rgba(100,150,255,0.3);
-transition: width 0.3s ease;
-}
-#staminaBar {
-position: fixed;
-top: 60px; left: 20px;
-z-index: 20;
-}
-.stamina-outer {
-width: 150px;
-height: 10px;
-background: rgba(0,20,0,0.8);
-border: 2px solid #1a5a1a;
-border-radius: 2px;
-overflow: hidden;
-box-shadow: 0 0 10px rgba(0,139,0,0.5);
-}
-.stamina-inner {
-height: 100%;
-width: 100%;
-background: linear-gradient(180deg, #44aa44, #226622, #114411);
-box-shadow: inset 0 2px 0 rgba(100,255,100,0.3);
-transition: width 0.3s ease;
-}
-#playerName {
-position: fixed;
-top: 82px; left: 20px;
-color: #cc9944;
-font-size: 14px;
-z-index: 20;
-text-shadow: 0 0 10px rgba(204,153,68,0.5);
-letter-spacing: 2px;
-font-variant: small-caps;
+#manaFill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #00008b, #1e90ff, #44aaff);
+  transition: width 0.3s ease;
+  box-shadow: 0 0 6px rgba(30,144,255,0.6);
 }
 #xpBar {
-position: fixed;
-bottom: 20px; left: 50%;
-transform: translateX(-50%);
-z-index: 20;
+  width: 220px; height: 8px;
+  background: rgba(10,10,5,0.85);
+  border: 1px solid #3a3a1a;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+  box-shadow: 0 0 6px rgba(100,100,0,0.3);
 }
-.xp-outer {
-width: 400px;
-height: 8px;
-background: rgba(20,20,0,0.8);
-border: 1px solid #5a5a1a;
-border-radius: 4px;
-overflow: hidden;
-box-shadow: 0 0 10px rgba(139,139,0,0.3);
+#xpFill {
+  height: 100%;
+  width: 30%;
+  background: linear-gradient(90deg, #8b8000, #b8860b, #daa520);
+  box-shadow: 0 0 4px rgba(218,165,32,0.5);
 }
-.xp-inner {
-height: 100%;
-width: 45%;
-background: linear-gradient(90deg, #aa8800, #ccaa00, #ddcc44);
-box-shadow: 0 0 8px rgba(204,170,0,0.4);
-transition: width 0.5s ease;
+#playerName {
+  color: #c4a06a;
+  font-size: 13px;
+  text-shadow: 0 0 8px rgba(196,160,106,0.5);
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+#levelDisplay {
+  color: #8a7a5a;
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+#minimap {
+  position: absolute;
+  bottom: 20px; right: 20px;
+  width: 160px; height: 160px;
+  border: 2px solid #3a2a1a;
+  border-radius: 4px;
+  background: rgba(10,8,15,0.8);
+  box-shadow: 0 0 15px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.5);
+  z-index: 3;
+  pointer-events: none;
+}
+#inventory {
+  position: absolute;
+  bottom: 20px; left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  z-index: 3;
+  pointer-events: auto;
+}
+.inv-slot {
+  width: 52px; height: 52px;
+  background: rgba(15,10,20,0.85);
+  border: 2px solid #3a2a1a;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6a5a4a;
+  font-size: 10px;
+  position: relative;
+  box-shadow: 0 0 8px rgba(0,0,0,0.6), inset 0 0 10px rgba(0,0,0,0.4);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.inv-slot:hover {
+  border-color: #7a5a2a;
+  box-shadow: 0 0 12px rgba(122,90,42,0.4), inset 0 0 10px rgba(0,0,0,0.4);
+}
+.inv-slot .key-hint {
+  position: absolute;
+  top: 2px; left: 4px;
+  font-size: 9px;
+  color: #5a4a3a;
+}
+.inv-slot .icon {
+  font-size: 22px;
 }
 #chatBox {
-position: fixed;
-bottom: 40px; left: 20px;
-width: 320px;
-z-index: 20;
-pointer-events: all;
+  position: absolute;
+  bottom: 85px; left: 20px;
+  width: 320px;
+  z-index: 3;
+  pointer-events: auto;
 }
 #chatMessages {
-max-height: 180px;
-overflow-y: auto;
-background: rgba(0,0,0,0.6);
-border: 1px solid rgba(100,80,60,0.4);
-padding: 8px;
-margin-bottom: 4px;
-border-radius: 2px;
-font-size: 12px;
-color: #aa9977;
-scrollbar-width: thin;
-scrollbar-color: #333 #111;
+  max-height: 150px;
+  overflow-y: auto;
+  margin-bottom: 4px;
+  scrollbar-width: none;
 }
-#chatMessages::-webkit-scrollbar { width: 4px; }
-#chatMessages::-webkit-scrollbar-track { background: #111; }
-#chatMessages::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
-.chat-msg { margin: 2px 0; line-height: 1.4; }
-.chat-name { color: #cc9944; font-weight: bold; }
-.chat-text { color: #aa9977; }
-.chat-system { color: #886644; font-style: italic; }
-.chat-damage { color: #cc4444; }
-.chat-loot { color: #44cc44; }
-#chatInput {
-width: 100%;
-background: rgba(0,0,0,0.7);
-border: 1px solid rgba(100,80,60,0.5);
-color: #ccaa77;
-padding: 6px 10px;
-font-size: 12px;
-outline: none;
-border-radius: 2px;
-font-family: inherit;
+#chatMessages::-webkit-scrollbar { display: none; }
+.chat-msg {
+  color: #8a7a6a;
+  font-size: 12px;
+  padding: 2px 0;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
 }
-#chatInput:focus { border-color: rgba(150,120,80,0.8); }
-#minimap {
-position: fixed;
-top: 20px; right: 20px;
-width: 160px; height: 160px;
-z-index: 20;
-background: rgba(0,0,0,0.7);
-border: 2px solid #3a2a1a;
-border-radius: 4px;
+.chat-msg .
 </script>
 </body>
 </html>
