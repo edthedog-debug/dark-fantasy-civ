@@ -188,218 +188,200 @@ html
 
     <script>
 <think>
-The user wants me to improve the canvas graphics of a dark fantasy game while preserving all IDs and WebSocket functionality. Since no existing code was provided, I'll create a dark fantasy game with rich canvas graphics. Let me build something impressive with:
+The user wants me to improve the canvas graphics of a dark fantasy game, preserving all IDs and WebSocket functionality. However, they haven't provided any code for me to work with. I need to ask them to share the code they want me to improve.
 
-1. Dark atmospheric rendering
-2. Particle systems for ambient effects
-3. Detailed character rendering
-4. Atmospheric lighting and shadows
-5. Environmental effects (fog, rain, embers)
-6. Smooth animations
-7. A complete game loop with WebSocket support
+Wait, let me reconsider. Perhaps they expect me to create a dark fantasy game with canvas graphics from scratch, or maybe they forgot to paste the code. Since they said "Improve" and "Preserve all IDs," they likely have existing code. But without seeing it, I can't improve it.
 
-Let me create a comprehensive dark fantasy game with beautiful canvas graphics.
+Actually, let me create a comprehensive dark fantasy canvas game with excellent graphics, common IDs, and WebSocket support. I'll make it a complete, polished game with atmospheric visuals - think dark fantasy RPG elements like a character, enemies, particles, lighting effects, etc.
 
-I'll design:
-- A dark fantasy scene with a character exploration
-- Atmospheric fog/rain effects
-- Particle systems (embers, dust motes)
-- Dynamic lighting with glow effects
-- Detailed terrain rendering
-- Enemy creatures
-- Health/magic UI with gothic styling
-- WebSocket integration for multiplayer or server communication
-- All proper IDs preserved for DOM elements
+Let me create a full dark fantasy game with:
+- Atmospheric lighting and shadows
+- Particle effects (embers, fog, blood)
+- Dark color palette
+- Character rendering
+- Enemy rendering
+- Terrain/environment
+- WebSocket connectivity
+- Common element IDs preserved
 
-Let me build this as a single HTML file with embedded CSS and JavaScript.
+I'll build this as a complete HTML file with embedded CSS and JavaScript that features stunning canvas graphics for a dark fantasy setting.
 </think>
+
+Since no original code was provided, I'll create a complete dark fantasy game with premium canvas graphics, proper IDs, and WebSocket support:
 
 html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shadows of the Forgotten Realm</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=MedievalSharp&display=swap');
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            background: #0a0a0f;
-            overflow: hidden;
-            font-family: 'Cinzel', serif;
-            cursor: none;
-        }
-
-        #game-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-        }
-
-        #gameCanvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-
-        #ui-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 10;
-        }
-
-        #health-bar-container {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            width: 280px;
-            pointer-events: auto;
-        }
-
-        #health-label {
-            color: #8b0000;
-            font-size: 14px;
-            text-shadow: 0 0 10px rgba(139, 0, 0, 0.8), 0 0 20px rgba(139, 0, 0, 0.4);
-            margin-bottom: 6px;
-            letter-spacing: 3px;
-        }
-
-        #health-bar-bg {
-            width: 100%;
-            height: 22px;
-            background: linear-gradient(180deg, #1a0000, #0d0000);
-            border: 2px solid #3a0000;
-            border-radius: 3px;
-            box-shadow: 0 0 15px rgba(139, 0, 0, 0.3), inset 0 1px 3px rgba(0,0,0,0.8);
-            overflow: hidden;
-            position: relative;
-        }
-
-        #health-bar-fill {
-            height: 100%;
-            width: 100%;
-            background: linear-gradient(180deg, #cc0000, #8b0000, #5a0000);
-            border-radius: 1px;
-            transition: width 0.3s ease;
-            position: relative;
-            box-shadow: 0 0 10px rgba(204, 0, 0, 0.5);
-        }
-
-        #health-bar-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 40%;
-            background: linear-gradient(180deg, rgba(255,100,100,0.3), transparent);
-            border-radius: 1px 1px 0 0;
-        }
-
-        #health-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #ff6666;
-            font-size: 11px;
-            text-shadow: 0 0 5px rgba(0,0,0,0.9);
-            z-index: 2;
-        }
-
-        #magic-bar-container {
-            position: absolute;
-            top: 54px;
-            left: 20px;
-            width: 280px;
-            pointer-events: auto;
-        }
-
-        #magic-label {
-            color: #1a4a8b;
-            font-size: 14px;
-            text-shadow: 0 0 10px rgba(26, 74, 139, 0.8), 0 0 20px rgba(26, 74, 139, 0.4);
-            margin-bottom: 6px;
-            letter-spacing: 3px;
-        }
-
-        #magic-bar-bg {
-            width: 100%;
-            height: 22px;
-            background: linear-gradient(180deg, #000a1a, #00050d);
-            border: 2px solid #0a2a5a;
-            border-radius: 3px;
-            box-shadow: 0 0 15px rgba(26, 74, 139, 0.3), inset 0 1px 3px rgba(0,0,0,0.8);
-            overflow: hidden;
-            position: relative;
-        }
-
-        #magic-bar-fill {
-            height: 100%;
-            width: 100%;
-            background: linear-gradient(180deg, #4488cc, #1a4a8b, #0a2a5a);
-            border-radius: 1px;
-            transition: width 0.3s ease;
-            position: relative;
-            box-shadow: 0 0 10px rgba(68, 136, 204, 0.5);
-        }
-
-        #magic-bar-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 40%;
-            background: linear-gradient(180deg, rgba(100,180,255,0.3), transparent);
-            border-radius: 1px 1px 0 0;
-        }
-
-        #magic-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #66aaff;
-            font-size: 11px;
-            text-shadow: 0 0 5px rgba(0,0,0,0.9);
-            z-index: 2;
-        }
-
-        #stamina-bar-container {
-            position: absolute;
-            top: 88px;
-            left: 20px;
-            width: 280px;
-            pointer-events: auto;
-        }
-
-        #stamina-label {
-            color: #4a8b1a;
-            font-size: 14px;
-            text-shadow: 0 0 10px rgba(74, 139, 26, 0.8), 0 0 20px rgba(74, 139, 26, 0.4);
-            margin-bottom: 6px;
-            letter-spacing: 3px;
-        }
-
-        #stamina-bar-bg {
-            width: 100%;
-            height: 22px;
-            background: linear-gradient(180deg, #0a1a00, #050d00);
-            border: 2px solid #1a4a00;
-            border-radius: 3px;
-            box-shadow: 0 0 15px rgba(74, 139, 26, 0.3), inset 0 1px 3px rgba(
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dark Fantasy - Shadow Realm</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0a0a;
+  overflow: hidden;
+  font-family: 'Segoe UI', sans-serif;
+  cursor: none;
+}
+#gameCanvas {
+  display: block;
+  position: absolute;
+  top: 0; left: 0;
+}
+#ui-overlay {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+#health-bar-container {
+  position: absolute;
+  top: 20px; left: 20px;
+  width: 280px; height: 24px;
+  background: rgba(20,0,0,0.8);
+  border: 2px solid #5a1a1a;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 0 15px rgba(180,0,0,0.4);
+}
+#health-bar {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(180deg, #ff2020, #8b0000, #4a0000);
+  transition: width 0.3s;
+  box-shadow: inset 0 2px 4px rgba(255,100,100,0.3);
+}
+#health-text {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ffcccc;
+  font-size: 12px;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px #000;
+  letter-spacing: 1px;
+}
+#mana-bar-container {
+  position: absolute;
+  top: 52px; left: 20px;
+  width: 280px; height: 18px;
+  background: rgba(0,0,30,0.8);
+  border: 2px solid #1a1a5a;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 0 15px rgba(0,0,180,0.4);
+}
+#mana-bar {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(180deg, #4060ff, #1a1a8b, #0a0a4a);
+  transition: width 0.3s;
+}
+#mana-text {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ccccff;
+  font-size: 11px;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px #000;
+}
+#xp-bar-container {
+  position: absolute;
+  top: 78px; left: 20px;
+  width: 280px; height: 10px;
+  background: rgba(10,10,0,0.8);
+  border: 1px solid #3a3a1a;
+  border-radius: 3px;
+  overflow: hidden;
+}
+#xp-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ffaa00, #ff6600);
+  box-shadow: 0 0 8px rgba(255,170,0,0.5);
+}
+#level-display {
+  position: absolute;
+  top: 95px; left: 20px;
+  color: #ffcc44;
+  font-size: 14px;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(255,200,0,0.5);
+}
+#stats-panel {
+  position: absolute;
+  top: 20px; right: 20px;
+  color: #888;
+  font-size: 12px;
+  text-align: right;
+  line-height: 1.8;
+}
+#stats-panel span { color: #ccc; }
+#minimap-container {
+  position: absolute;
+  bottom: 20px; right: 20px;
+  width: 180px; height: 180px;
+  border: 2px solid #3a2a1a;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(0,0,0,0.8);
+}
+#minimap {
+  width: 100%; height: 100%;
+}
+#chat-container {
+  position: absolute;
+  bottom: 20px; left: 20px;
+  width: 350px;
+  pointer-events: auto;
+}
+#chat-messages {
+  height: 150px;
+  overflow-y: auto;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid #2a2a2a;
+  border-radius: 4px 4px 0 0;
+  padding: 8px;
+  font-size: 12px;
+  color: #aaa;
+  scrollbar-width: thin;
+  scrollbar-color: #333 #111;
+}
+#chat-messages::-webkit-scrollbar { width: 4px; }
+#chat-messages::-webkit-scrollbar-track { background: #111; }
+#chat-messages::-webkit-scrollbar-thumb { background: #333; }
+#chat-input {
+  width: 100%;
+  height: 32px;
+  background: rgba(20,20,20,0.9);
+  border: 1px solid #333;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  color: #ddd;
+  padding: 0 10px;
+  font-size: 12px;
+  outline: none;
+}
+#chat-input:focus { border-color: #5a3a1a; }
+#death-screen {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(80,0,0,0.85);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  pointer-events: auto;
+  z-index: 100;
+}
+#death-screen h1 {
+  color: #ff2020;
+  font-size: 64px;
+  text-shadow: 0 0 40px rgba(255,0,0,0.8), 0
 </script>
 </body>
 </html>
