@@ -5,155 +5,166 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Sovereign AI Engine - World Map</title>
     <style>
-<think>
-The user wants me to improve the CSS styling of a dark fantasy game. They want me to preserve all IDs and WebSocket functionality, and return only code. However, they haven't provided any existing code. This is a problem - I need to see the existing code to improve it.
+        :root {
+            --bg-primary: #070913;
+            --bg-panel: rgba(16, 22, 36, 0.95);
+            --bg-card: rgba(25, 33, 52, 0.7);
+            --border-glow: rgba(0, 210, 255, 0.25);
+            --text-primary: #e0e6ed;
+            --accent-gold: #ffd700;
+            --accent-green: #2ecc71;
+            --accent-red: #e74c3c;
+            --accent-cyan: #00d2ff;
+            --accent-purple: #9b59b6;
+            --accent-blue: #3498db;
+        }
 
-Wait, let me re-read the prompt. They said "Improve the CSS STYLING of this dark fantasy game" but didn't actually paste any code. This could mean:
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-1. They forgot to paste the code
-2. They want me to create a dark fantasy game with improved CSS from scratch
+        body {
+            background: #070913 !important;
+            color: #e0e6ed;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            gap: 8px;
+            overflow: hidden !important;
+            position: fixed !important;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+        }
 
-Given the instruction "Preserve all IDs and WebSocket functionality," it seems like they expected to share code. But since there's no code provided, I should create a complete dark fantasy game with excellent CSS styling that includes WebSocket functionality and meaningful IDs.
+        .dashboard {
+            background: rgba(16, 22, 36, 0.95);
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            border-radius: 10px;
+            padding: 10px;
+            flex-shrink: 0;
+        }
 
-Let me create a comprehensive dark fantasy game with rich, atmospheric CSS styling. I'll include:
-- A dark fantasy themed UI
-- WebSocket connection handling
-- Game elements with proper IDs
-- Rich visual effects (glowing borders, particle effects, dark color palette)
-- Responsive design
-- Animations
+        .dash-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
 
-Let me build something impressive with deep dark fantasy aesthetics - think blood reds, deep purples, gold accents, gothic typography, fog effects, etc.
+        .status-badge {
+            color: #00ff88;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
 
-I'll create a complete HTML file with embedded CSS and JavaScript that demonstrates a dark fantasy game interface with WebSocket support.
-</think>
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #00ff88;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
 
-html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Realm of Shadows</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cinzel+Decorative:wght@700;900&family=MedievalSharp&family=UnifrakturMaguntia&display=swap');
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 5px #00ff88; }
+            50% { box-shadow: 0 0 15px #00ff88; }
+        }
 
-  /* ═══════════════════════════════════════════
-     CSS CUSTOM PROPERTIES
-     ═══════════════════════════════════════════ */
-  :root {
-    --bg-deepest: #0a0a0f;
-    --bg-deep: #0d0d15;
-    --bg-mid: #14141f;
-    --bg-surface: #1a1a2a;
-    --bg-elevated: #222236;
-    --bg-card: #1e1e30;
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
 
-    --blood-primary: #8b0000;
-    --blood-bright: #c41e3a;
-    --blood-glow: #ff2d55;
-    --blood-dark: #5c0000;
+        .stat-card {
+            background: rgba(25, 33, 52, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 6px 8px;
+        }
 
-    --gold-primary: #c9a84c;
-    --gold-bright: #ffd700;
-    --gold-pale: #f0d68a;
-    --gold-dark: #8b6914;
+        .stat-label {
+            font-size: 8px;
+            color: #6b7c93;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
 
-    --bone-white: #e8dcc8;
-    --bone-dim: #b0a890;
-    --bone-dark: #7a7060;
+        .stat-value {
+            font-size: 13px;
+            font-weight: bold;
+            color: #fff;
+        }
 
-    --purple-deep: #2a1050;
-    --purple-mid: #6b2fa0;
-    --purple-glow: #9b59b6;
-    --purple-ghost: rgba(155, 89, 182, 0.15);
+        #map-container {
+            flex: 1;
+            background: #04060d;
+            border: 1px solid rgba(0, 210, 255, 0.25);
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            min-height: 0;
+        }
 
-    --green-toxic: #2ecc40;
-    --green-poison: #00ff41;
-    --green-dark: #1a5c2a;
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
 
-    --mana-blue: #1e90ff;
-    --mana-glow: #4fc3f7;
-    --mana-dark: #0a3d6b;
+        .event-panel {
+            background: rgba(12, 17, 29, 0.95);
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 10px;
+            color: #00ff88;
+            max-height: 40px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
 
-    --shadow-black: rgba(0, 0, 0, 0.7);
-    --shadow-blood: rgba(139, 0, 0, 0.4);
-    --shadow-purple: rgba(107, 47, 160, 0.3);
-    --shadow-gold: rgba(201, 168, 76, 0.2);
+        .log-container {
+            height: 100px;
+            background: rgba(12, 17, 29, 0.98);
+            border: 1px solid rgba(0, 210, 255, 0.2);
+            border-radius: 8px;
+            padding: 8px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            flex-shrink: 0;
+        }
 
-    --border-gold: rgba(201, 168, 76, 0.3);
-    --border-blood: rgba(196, 30, 58, 0.4);
-    --border-purple: rgba(155, 89, 182, 0.3);
+        .log-entry {
+            color: #a0aec0;
+            margin-bottom: 2px;
+            line-height: 1.4;
+        }
 
-    --font-display: 'UnifrakturMaguntia', cursive;
-    --font-header: 'Cinzel Decorative', cursive;
-    --font-subheader: 'Cinzel', serif;
-    --font-body: 'MedievalSharp', cursive;
+        .log-entry:last-child {
+            color: #00d2ff;
+        }
 
-    --transition-fast: 0.15s ease;
-    --transition-med: 0.3s ease;
-    --transition-slow: 0.6s ease;
-
-    --glow-blood: 0 0 10px var(--blood-bright), 0 0 20px rgba(196, 30, 58, 0.5), 0 0 40px rgba(139, 0, 0, 0.3);
-    --glow-gold: 0 0 10px var(--gold-primary), 0 0 20px rgba(201, 168, 76, 0.4), 0 0 40px rgba(201, 168, 76, 0.2);
-    --glow-purple: 0 0 10px var(--purple-mid), 0 0 20px rgba(107, 47, 160, 0.5), 0 0 40px rgba(42, 16, 80, 0.3);
-    --glow-green: 0 0 10px var(--green-toxic), 0 0 20px rgba(46, 204, 64, 0.4);
-    --glow-mana: 0 0 10px var(--mana-blue), 0 0 20px rgba(30, 144, 255, 0.4);
-
-    --inset-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.03);
-  }
-
-  /* ═══════════════════════════════════════════
-     RESET & BASE
-     ═══════════════════════════════════════════ */
-  *, *::before, *::after {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-
-  html {
-    font-size: 16px;
-    scroll-behavior: smooth;
-  }
-
-  body {
-    font-family: var(--font-body);
-    background: var(--bg-deepest);
-    color: var(--bone-white);
-    min-height: 100vh;
-    overflow-x: hidden;
-    position: relative;
-  }
-
-  /* ═══════════════════════════════════════════
-     ATMOSPHERIC BACKGROUND
-     ═══════════════════════════════════════════ */
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background:
-      radial-gradient(ellipse at 20% 50%, rgba(42, 16, 80, 0.15) 0%, transparent 60%),
-      radial-gradient(ellipse at 80% 20%, rgba(139, 0, 0, 0.08) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 80%, rgba(30, 144, 255, 0.05) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 50%, rgba(10, 10, 15, 0) 0%, var(--bg-deepest) 100%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  body::after {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://
-</style>
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 4px; }
+            .stat-value { font-size: 11px; }
+            .log-container { height: 70px; }
+            body { padding: 6px; gap: 6px; }
+        }
+    </style>
 </head>
 <body>
     <div class="dashboard">
@@ -187,189 +198,273 @@ html
     </div>
 
     <script>
-<think>
-The user wants me to improve the canvas graphics of a dark fantasy game while preserving all IDs and WebSocket functionality. Since they said "this dark fantasy game" but didn't provide code, I need to create/imagine a dark fantasy game with canvas graphics, IDs, and WebSocket functionality, and make it visually impressive.
+    (() => {
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
 
-Let me create a comprehensive dark fantasy game with:
-- Rich atmospheric canvas rendering (fog, particles, lighting effects)
-- Dark fantasy aesthetic (gothic colors, moody atmosphere)
-- Particle systems for ambiance
-- Proper IDs throughout
-- WebSocket communication for multiplayer/networking
-- Game loop with rendering
-- Character rendering with effects
-- Environmental effects (rain, fog, embers)
+        let worldState = null;
+        let ws = null;
+        let buildings = [];
+        let units = [];
+        let frameCount = 0;
+        let camera = { x: 0, y: 0, zoom: 1 };
+        let isDragging = false;
+        let startX = 0, startY = 0;
+        let lastRegeneration = 0;
 
-I'll make this a complete, self-contained HTML file with excellent canvas graphics.
-</think>
+        const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+        const px = (p, d) => (p / 100) * d;
 
-html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dark Fantasy Realm</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: #000;
-    overflow: hidden;
-    font-family: 'Segoe UI', sans-serif;
-    cursor: none;
-  }
-  #gameCanvas {
-    display: block;
-    position: absolute;
-    top: 0; left: 0;
-  }
-  #uiOverlay {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    pointer-events: none;
-    z-index: 10;
-  }
-  #hud {
-    position: absolute;
-    top: 20px; left: 20px;
-    z-index: 20;
-    pointer-events: none;
-  }
-  #healthBar {
-    width: 220px; height: 18px;
-    background: rgba(20,0,0,0.8);
-    border: 1px solid #8b0000;
-    border-radius: 9px;
-    overflow: hidden;
-    box-shadow: 0 0 10px rgba(139,0,0,0.5), inset 0 0 5px rgba(0,0,0,0.5);
-  }
-  #healthFill {
-    height: 100%;
-    width: 100%;
-    background: linear-gradient(90deg, #8b0000, #dc143c, #ff4444);
-    border-radius: 9px;
-    transition: width 0.3s;
-    box-shadow: 0 0 8px rgba(220,20,60,0.6);
-  }
-  #manaBar {
-    width: 220px; height: 14px;
-    background: rgba(0,0,30,0.8);
-    border: 1px solid #1a1a8b;
-    border-radius: 7px;
-    overflow: hidden;
-    margin-top: 6px;
-    box-shadow: 0 0 10px rgba(26,26,139,0.5), inset 0 0 5px rgba(0,0,0,0.5);
-  }
-  #manaFill {
-    height: 100%;
-    width: 100%;
-    background: linear-gradient(90deg, #1a1a8b, #4169e1, #6495ed);
-    border-radius: 7px;
-    transition: width 0.3s;
-    box-shadow: 0 0 8px rgba(65,105,225,0.6);
-  }
-  #xpBar {
-    width: 220px; height: 8px;
-    background: rgba(20,20,0,0.8);
-    border: 1px solid #8b8b00;
-    border-radius: 4px;
-    overflow: hidden;
-    margin-top: 4px;
-  }
-  #xpFill {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, #8b8b00, #daa520, #ffd700);
-    border-radius: 4px;
-    transition: width 0.3s;
-  }
-  #statsPanel {
-    position: absolute;
-    top: 20px; right: 20px;
-    color: #c0b090;
-    font-size: 13px;
-    text-align: right;
-    text-shadow: 0 0 8px rgba(139,0,0,0.5);
-    pointer-events: none;
-  }
-  #chatBox {
-    position: absolute;
-    bottom: 20px; left: 20px;
-    width: 350px;
-    pointer-events: auto;
-    z-index: 20;
-  }
-  #chatMessages {
-    height: 150px;
-    overflow-y: auto;
-    background: rgba(0,0,0,0.6);
-    border: 1px solid rgba(139,69,19,0.4);
-    border-radius: 4px;
-    padding: 8px;
-    margin-bottom: 6px;
-    color: #c0a060;
-    font-size: 12px;
-    scrollbar-width: thin;
-    scrollbar-color: #5a3a1a #1a0a0a;
-  }
-  #chatMessages::-webkit-scrollbar { width: 6px; }
-  #chatMessages::-webkit-scrollbar-track { background: #1a0a0a; }
-  #chatMessages::-webkit-scrollbar-thumb { background: #5a3a1a; border-radius: 3px; }
-  #chatInput {
-    width: 100%;
-    background: rgba(0,0,0,0.7);
-    border: 1px solid rgba(139,69,19,0.5);
-    border-radius: 4px;
-    color: #c0a060;
-    padding: 8px 12px;
-    font-size: 13px;
-    outline: none;
-  }
-  #chatInput::placeholder { color: rgba(192,160,96,0.4); }
-  #minimap {
-    position: absolute;
-    bottom: 20px; right: 20px;
-    width: 180px; height: 180px;
-    border: 2px solid rgba(139,69,19,0.6);
-    border-radius: 4px;
-    overflow: hidden;
-    box-shadow: 0 0 20px rgba(0,0,0,0.8), inset 0 0 15px rgba(0,0,0,0.5);
-    pointer-events: none;
-    z-index: 20;
-  }
-  #inventory {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(10,5,0,0.92);
-    border: 2px solid rgba(139,69,19,0.7);
-    border-radius: 6px;
-    padding: 20px;
-    display: none;
-    pointer-events: auto;
-    z-index: 30;
-    box-shadow: 0 0 40px rgba(139,0,0,0.3);
-  }
-  #inventory h3 {
-    color: #daa520;
-    margin-bottom: 12px;
-    text-align: center;
-    text-shadow: 0 0 10px rgba(218,165,32,0.5);
-  }
-  .inv-slot {
-    width: 50px; height: 50px;
-    background: rgba(30,15,0,0.8);
-    border: 1px solid rgba(139,69,19,0.5);
-    display: inline-block;
-    margin: 3px;
-    border-radius: 4px;
-    position: relative;
-  }
-  .inv-slot:hover { border-color: #daa520; }
-  #connectionStatus {
-    position: absolute;
-    top: 20px; left:
-</script>
+        function resizeCanvas() {
+            const container = document.getElementById('map-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        window.addEventListener('resize', () => setTimeout(resizeCanvas, 150));
+        resizeCanvas();
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(protocol + '//' + window.location.host);
+
+            ws.onopen = () => {
+                console.log('✅ WebSocket connected');
+                document.getElementById('log-stream').innerHTML = '<span style="color:#00ff88;">✅ Connected - receiving data...</span>';
+                document.getElementById('connection-dot').style.background = '#00ff88';
+                document.getElementById('connection-text').innerText = 'CONNECTED';
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'WORLD_UPDATE') {
+                        worldState = msg.data;
+                        updateUI();
+                        const now = Date.now();
+                        if (now - lastRegeneration > 5000) {
+                            lastRegeneration = now;
+                            generateObjects();
+                        }
+                    }
+                } catch (e) {
+                    console.error('❌ Parse error:', e);
+                }
+            };
+
+            ws.onerror = () => {
+                document.getElementById('log-stream').innerHTML = '<span style="color:#ff4444;">❌ Connection error</span>';
+                document.getElementById('connection-dot').style.background = '#e74c3c';
+                document.getElementById('connection-text').innerText = 'ERROR';
+            };
+
+            ws.onclose = () => {
+                document.getElementById('log-stream').innerHTML = '<span style="color:#ffcc00;">🔄 Reconnecting...</span>';
+                document.getElementById('connection-dot').style.background = '#ffcc00';
+                document.getElementById('connection-text').innerText = 'RECONNECTING';
+                setTimeout(connectWebSocket, 2000);
+            };
+        }
+
+        function updateUI() {
+            if (!worldState) return;
+            document.getElementById('stat-day').innerText = worldState.day;
+            document.getElementById('stat-era').innerText = worldState.era;
+            document.getElementById('stat-pop').innerText = worldState.population;
+            document.getElementById('stat-gold').innerText = Math.floor(worldState.treasury).toLocaleString() + ' G';
+            document.getElementById('stat-tech').innerText = Number(worldState.techPower).toFixed(1);
+            document.getElementById('stat-tanks').innerText = worldState.tanks;
+            document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
+            document.getElementById('stat-status').style.color = worldState.inWar ? '#e74c3c' : '#2ecc71';
+            document.getElementById('stat-building-count').innerText = Math.floor(worldState.population / 5) + 2;
+
+            const ep = document.getElementById('event-panel');
+            if (worldState.activeEvents && worldState.activeEvents.length > 0) {
+                ep.innerHTML = worldState.activeEvents.map(e => '⚡ ' + e.description).join(' | ');
+                ep.style.borderColor = '#ff4444';
+                ep.style.color = '#ff6666';
+            } else {
+                ep.innerHTML = 'No active events';
+                ep.style.borderColor = '#00ff88';
+                ep.style.color = '#00ff88';
+            }
+
+            const logBox = document.getElementById('log-stream');
+            if (worldState.logs && worldState.logs.length > 0) {
+                logBox.innerHTML = worldState.logs.map(l => '<div class="log-entry">' + l + '</div>').join('');
+                logBox.scrollTop = logBox.scrollHeight;
+            }
+        }
+
+        function generateObjects() {
+            if (!worldState) return;
+            buildings = [];
+            units = [];
+            const bCount = clamp(Math.floor(worldState.population / 5) + 2, 5, 80);
+            const uCount = clamp(Math.floor(worldState.population / 10) + 2, 3, 50);
+            for (let i = 0; i < bCount; i++) {
+                buildings.push({
+                    xPercent: 5 + ((i * 7) % 90),
+                    yPercent: 10 + ((i * 5) % 80),
+                    type: i % 4,
+                    heightPercent: 8 + (i % 5) * 3
+                });
+            }
+            for (let u = 0; u < uCount; u++) {
+                units.push({
+                    xPercent: 5 + Math.random() * 90,
+                    yPercent: 10 + Math.random() * 80,
+                    color: ['#ff6666', '#6666ff', '#66ff66', '#ffff66', '#ff66ff'][u % 5]
+                });
+            }
+        }
+
+        // Mouse controls
+        canvas.addEventListener('mousedown', (e) => { isDragging = true; startX = e.clientX - camera.x; startY = e.clientY - camera.y; });
+        window.addEventListener('mouseup', () => isDragging = false);
+        canvas.addEventListener('mousemove', (e) => { if (isDragging) { camera.x = e.clientX - startX; camera.y = e.clientY - startY; } });
+        canvas.addEventListener('wheel', (e) => { e.preventDefault(); camera.zoom = clamp(camera.zoom * (e.deltaY < 0 ? 1.1 : 0.9), 0.5, 2.5); }, { passive: false });
+
+        // Touch controls
+        let lastTouchDist = 0;
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (e.touches.length === 1) { isDragging = true; startX = e.touches[0].clientX - camera.x; startY = e.touches[0].clientY - camera.y; }
+            else if (e.touches.length === 2) { isDragging = false; lastTouchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
+        });
+        canvas.addEventListener('touchend', () => isDragging = false);
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (e.touches.length === 1 && isDragging) { camera.x = e.touches[0].clientX - startX; camera.y = e.touches[0].clientY - startY; }
+            else if (e.touches.length === 2) {
+                const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                camera.zoom = clamp(camera.zoom * (d / lastTouchDist), 0.5, 2.5);
+                lastTouchDist = d;
+            }
+        }, { passive: false });
+
+        // Pixel art drawing
+        function drawCastle(x, y, h) {
+            ctx.fillStyle = '#8a8a8a';
+            ctx.fillRect(x - h * 0.3, y - h, h * 0.6, h);
+            for (let i = -2; i <= 2; i++) {
+                ctx.fillRect(x + i * h * 0.12, y - h - 4, 4, 4);
+            }
+            ctx.fillStyle = '#ffff88';
+            for (let w = 0; w < 3; w++) {
+                ctx.fillRect(x - 3, y - h + 6 + w * 10, 6, 5);
+            }
+            ctx.fillStyle = '#3a1a0a';
+            ctx.fillRect(x - 4, y - 8, 8, 8);
+        }
+
+        function drawHouse(x, y, h) {
+            ctx.fillStyle = '#c4a060';
+            ctx.fillRect(x - h * 0.35, y - h, h * 0.7, h);
+            ctx.fillStyle = '#8a3a1a';
+            ctx.fillRect(x - h * 0.45, y - h - 3, h * 0.9, 4);
+            ctx.fillStyle = '#ffff88';
+            ctx.fillRect(x - 3, y - h + 5, 5, 4);
+            ctx.fillStyle = '#3a1a0a';
+            ctx.fillRect(x - 3, y - 5, 6, 5);
+        }
+
+        function drawBarracks(x, y, h) {
+            ctx.fillStyle = '#6a6a6a';
+            ctx.fillRect(x - h * 0.4, y - h, h * 0.8, h);
+            ctx.fillStyle = '#4a4a4a';
+            ctx.fillRect(x - h * 0.5, y - h - 2, h, 3);
+        }
+
+        function drawTower(x, y, h) {
+            ctx.fillStyle = '#7a7a7a';
+            ctx.fillRect(x - h * 0.2, y - h, h * 0.4, h);
+            ctx.fillStyle = '#5a5a5a';
+            ctx.fillRect(x - h * 0.3, y - h - 3, h * 0.6, 3);
+        }
+
+        function render() {
+            frameCount++;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(camera.x, camera.y);
+            ctx.scale(camera.zoom, camera.zoom);
+
+            // Terrain
+            for (let x = 0; x < canvas.width + 20; x += 20) {
+                for (let y = 0; y < canvas.height + 20; y += 20) {
+                    ctx.fillStyle = ((x + y) % 40 === 0) ? '#1a3a1a' : '#1a2a1a';
+                    ctx.fillRect(x, y, 20, 20);
+                }
+            }
+
+            // River
+            for (let y = 0; y < canvas.height; y += 4) {
+                const wave = Math.sin((y * 0.04) + frameCount * 0.03) * 8;
+                ctx.fillStyle = '#1a4a6a';
+                ctx.fillRect(canvas.width * 0.4 + wave, y, 16, 4);
+            }
+
+            // Trees
+            const treePositions = [[8,15],[22,25],[45,12],[60,30],[75,18],[15,50],[38,45],[65,55],[85,40]];
+            treePositions.forEach(t => {
+                const tx = px(t[0], canvas.width);
+                const ty = px(t[1], canvas.height);
+                ctx.fillStyle = '#5a3a1a';
+                ctx.fillRect(tx, ty, 4, 12);
+                ctx.fillStyle = '#1a5a1a';
+                ctx.fillRect(tx - 7, ty - 12, 18, 12);
+                ctx.fillStyle = '#2a6a2a';
+                ctx.fillRect(tx - 4, ty - 16, 12, 5);
+            });
+
+            // Buildings
+            buildings.forEach(b => {
+                const bx = px(b.xPercent, canvas.width);
+                const by = px(b.yPercent, canvas.height);
+                const bh = px(b.heightPercent, canvas.height);
+                switch(b.type) {
+                    case 0: drawCastle(bx, by, bh); break;
+                    case 1: drawHouse(bx, by, bh * 0.6); break;
+                    case 2: drawBarracks(bx, by, bh * 0.7); break;
+                    case 3: drawTower(bx, by, bh * 1.2); break;
+                }
+            });
+
+            // Units
+            units.forEach(u => {
+                const ux = px(u.xPercent, canvas.width);
+                const uy = px(u.yPercent, canvas.height);
+                const legOffset = Math.sin(frameCount * 0.1 + ux) > 0 ? 0 : 3;
+                ctx.fillStyle = u.color;
+                ctx.fillRect(Math.round(ux), Math.round(uy - 6), 3, 6);
+                ctx.fillStyle = '#ffcc99';
+                ctx.fillRect(Math.round(ux), Math.round(uy - 9), 3, 3);
+                ctx.fillStyle = '#333';
+                ctx.fillRect(Math.round(ux), Math.round(uy), 1, 3 + legOffset);
+                ctx.fillRect(Math.round(ux + 2), Math.round(uy), 1, 3 - legOffset);
+            });
+
+            // Event overlays
+            if (worldState && worldState.activeEvents) {
+                worldState.activeEvents.forEach(evt => {
+                    if (evt.type === 'blood_moon') { ctx.fillStyle = 'rgba(150,0,0,0.3)'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+                    if (evt.type === 'fire') { ctx.fillStyle = 'rgba(255,100,0,0.2)'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+                    if (evt.type === 'storm') { ctx.fillStyle = 'rgba(30,30,60,0.5)'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+                    if (evt.type === 'plague') { ctx.fillStyle = 'rgba(0,150,0,0.2)'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+                    if (evt.type === 'prosperity') { ctx.fillStyle = 'rgba(255,215,0,0.15)'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+                });
+            }
+
+            ctx.restore();
+            requestAnimationFrame(render);
+        }
+
+        // START
+        connectWebSocket();
+        requestAnimationFrame(render);
+    })();
+    </script>
 </body>
 </html>
