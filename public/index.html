@@ -188,26 +188,36 @@ html
 
     <script>
 <think>
-The user wants me to improve the canvas graphics of a dark fantasy game while preserving all IDs and WebSocket functionality. Since no code was provided, I need to create a comprehensive dark fantasy game with rich canvas graphics. Let me build a complete, visually stunning dark fantasy game with:
+The user wants me to improve the canvas graphics of a dark fantasy game while preserving all IDs and WebSocket functionality. However, they haven't provided any code to improve. I need to create a dark fantasy game with canvas graphics that includes WebSocket functionality, with all elements having proper IDs.
 
-1. Rich atmospheric graphics - fog, particles, dynamic lighting
-2. Dark fantasy aesthetic - gothic colors, moody atmosphere
-3. Canvas-based rendering with particle systems
-4. WebSocket support for multiplayer
-5. All IDs preserved (I'll create a complete game with proper IDs)
+Let me create a comprehensive dark fantasy game with impressive canvas graphics featuring:
+- Atmospheric particle effects (embers, fog, dust)
+- Detailed terrain with parallax layers
+- Character with animations
+- Enemies with visual effects
+- Dark color palette with dramatic lighting
+- Bloom/glow effects
+- Terrain with rocks, trees, terrain details
+- Health bars, UI elements
+- WebSocket integration for multiplayer
 
-Let me create a full HTML file with embedded CSS and JavaScript that features:
+Since no code was provided, I'll create a complete dark fantasy game from scratch with excellent canvas graphics.
 
-- A dark fantasy character/hero
-- Atmospheric particle effects (fog, embers, dust)
-- Dynamic lighting system
-- Gothic UI elements
-- Smooth animations
-- WebSocket connection handler
-- Game loop with canvas rendering
-- Rich visual effects (shadows, glow, bloom-like effects)
+Let me build something truly impressive with:
+1. Parallax scrolling background (mountains, trees, ground)
+2. Atmospheric particles (embers, floating dust, fog)
+3. Detailed player character with sword, animations
+4. Enemy creatures with visual effects
+5. Dynamic lighting system
+6. Screen shake effects
+7. Particle explosions on hits
+8. Blood/death particles
+9. Atmospheric fog overlay
+10. Post-processing glow effects
+11. Detailed UI with health/mana bars
+12. WebSocket for multiplayer
 
-I'll make this a complete, self-contained game with excellent canvas graphics.
+I'll make this a single HTML file with everything inline.
 </think>
 
 html
@@ -216,160 +226,194 @@ html
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shadows of the Forgotten Realm</title>
+<title>Dark Fantasy Chronicles</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  background: #0a0a0a;
-  overflow: hidden;
-  font-family: 'Georgia', serif;
-  cursor: none;
+background: #0a0a0a;
+overflow: hidden;
+font-family: 'Georgia', serif;
+cursor: crosshair;
 }
 #gameCanvas {
-  display: block;
-  position: absolute;
-  top: 0; left: 0;
+display: block;
+position: absolute;
+top: 0; left: 0;
 }
-#uiOverlay {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  pointer-events: none;
-  z-index: 10;
+#uiCanvas {
+display: block;
+position: absolute;
+top: 0; left: 0;
+pointer-events: none;
 }
-#healthBar {
-  position: absolute;
-  top: 20px; left: 20px;
-  width: 280px; height: 24px;
-  border: 2px solid #5a1a1a;
-  background: rgba(10,5,5,0.85);
-  border-radius: 3px;
-  overflow: hidden;
-  box-shadow: 0 0 15px rgba(139,0,0,0.4), inset 0 0 10px rgba(0,0,0,0.5);
+#menuOverlay {
+position: absolute;
+top: 0; left: 0;
+width: 100%; height: 100%;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+background: radial-gradient(ellipse at center, rgba(20,5,5,0.9) 0%, rgba(5,0,0,0.97) 100%);
+z-index: 100;
+transition: opacity 0.5s;
 }
-#healthFill {
-  height: 100%;
-  width: 100%;
-  background: linear-gradient(180deg, #8b0000 0%, #5c0000 50%, #3a0000 100%);
-  transition: width 0.3s ease;
-  box-shadow: inset 0 -3px 6px rgba(0,0,0,0.4), inset 0 3px 6px rgba(255,100,100,0.15);
+#menuOverlay.hidden { opacity: 0; pointer-events: none; }
+#gameTitle {
+font-size: 72px;
+color: #c41e1e;
+text-shadow: 0 0 20px #ff0000, 0 0 40px #8b0000, 0 0 80px #4a0000, 0 4px 0 #2a0000;
+letter-spacing: 8px;
+margin-bottom: 10px;
+font-variant: small-caps;
 }
-#healthText {
-  position: absolute;
-  top: 20px; left: 310px;
-  color: #cc4444;
-  font-size: 14px;
-  text-shadow: 0 0 8px rgba(139,0,0,0.6);
-  letter-spacing: 1px;
+#gameSubtitle {
+font-size: 18px;
+color: #886666;
+letter-spacing: 12px;
+margin-bottom: 60px;
+text-transform: uppercase;
 }
-#manaBar {
-  position: absolute;
-  top: 52px; left: 20px;
-  width: 280px; height: 18px;
-  border: 2px solid #1a1a5a;
-  background: rgba(5,5,15,0.85);
-  border-radius: 3px;
-  overflow: hidden;
-  box-shadow: 0 0 15px rgba(0,0,139,0.3), inset 0 0 10px rgba(0,0,0,0.5);
+.menuBtn {
+background: linear-gradient(180deg, #3a0a0a, #1a0505);
+border: 1px solid #6b1a1a;
+color: #cc8888;
+padding: 15px 50px;
+font-size: 20px;
+font-family: 'Georgia', serif;
+letter-spacing: 4px;
+cursor: pointer;
+margin: 8px;
+transition: all 0.3s;
+text-transform: uppercase;
+position: relative;
 }
-#manaFill {
-  height: 100%;
-  width: 100%;
-  background: linear-gradient(180deg, #2244aa 0%, #112266 50%, #0a0a33 100%);
-  transition: width 0.3s ease;
-  box-shadow: inset 0 -3px 6px rgba(0,0,0,0.4), inset 0 3px 6px rgba(100,100,255,0.15);
+.menuBtn:hover {
+background: linear-gradient(180deg, #5a1a1a, #2a0a0a);
+color: #ffaaaa;
+border-color: #aa3333;
+box-shadow: 0 0 20px rgba(170,50,50,0.4), inset 0 0 20px rgba(170,50,50,0.1);
+text-shadow: 0 0 10px #ff4444;
 }
-#manaText {
-  position: absolute;
-  top: 52px; left: 310px;
-  color: #6688cc;
-  font-size: 14px;
-  text-shadow: 0 0 8px rgba(0,0,139,0.5);
-  letter-spacing: 1px;
+#wsStatus {
+position: absolute;
+top: 10px; right: 10px;
+color: #444;
+font-size: 12px;
+z-index: 50;
 }
-#xpBar {
-  position: absolute;
-  top: 78px; left: 20px;
-  width: 280px; height: 12px;
-  border: 1px solid #4a3a0a;
-  background: rgba(15,12,5,0.85);
-  border-radius: 2px;
-  overflow: hidden;
-  box-shadow: 0 0 10px rgba(139,100,0,0.2);
+#wsStatus.connected { color: #4a4; }
+#wsStatus.disconnected { color: #a44; }
+#deathScreen {
+position: absolute;
+top: 0; left: 0;
+width: 100%; height: 100%;
+display: none;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+background: radial-gradient(ellipse at center, rgba(40,0,0,0.95) 0%, rgba(10,0,0,0.99) 100%);
+z-index: 200;
 }
-#xpFill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(180deg, #886600 0%, #554400 100%);
-  transition: width 0.5s ease;
+#deathScreen.active { display: flex; }
+#deathTitle {
+font-size: 96px;
+color: #8b0000;
+text-shadow: 0 0 30px #ff0000, 0 0 60px #8b0000;
+letter-spacing: 15px;
+margin-bottom: 20px;
 }
-#levelText {
-  position: absolute;
-  top: 78px; left: 310px;
-  color: #aa8833;
-  font-size: 13px;
-  text-shadow: 0 0 6px rgba(139,100,0,0.4);
+#deathScore {
+font-size: 24px;
+color: #aa7777;
+margin-bottom: 40px;
 }
-#minimap {
-  position: absolute;
-  top: 20px; right: 20px;
-  width: 180px; height: 180px;
-  border: 2px solid #3a2a1a;
-  background: rgba(5,3,0,0.9);
-  border-radius: 50%;
-  overflow: hidden;
-  box-shadow: 0 0 20px rgba(0,0,0,0.8), inset 0 0 30px rgba(0,0,0,0.5);
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+<canvas id="uiCanvas"></canvas>
+
+<div id="wsStatus">WebSocket: Disconnected</div>
+
+<div id="menuOverlay">
+<div id="gameTitle">Shadows of Eternity</div>
+<div id="gameSubtitle">A Dark Fantasy</div>
+<button class="menuBtn" id="btnPlay">Enter Darkness</button>
+<button class="menuBtn" id="btnSettings">Settings</button>
+</div>
+
+<div id="deathScreen">
+<div id="deathTitle">DEATH</div>
+<div id="deathScore">Soul claimed...</div>
+<button class="menuBtn" id="btnRevive">Rise Again</button>
+</div>
+
+<script>
+// ─── CANVAS SETUP ───
+const gameCanvas = document.getElementById('gameCanvas');
+const uiCanvas = document.getElementById('uiCanvas');
+const ctx = gameCanvas.getContext('2d');
+const uctx = uiCanvas.getContext('2d');
+
+let W, H;
+function resize() {
+    W = gameCanvas.width = uiCanvas.width = window.innerWidth;
+    H = gameCanvas.height = uiCanvas.height = window.innerHeight;
 }
-#minimapCanvas {
-  width: 100%; height: 100%;
-  border-radius: 50%;
+resize();
+window.addEventListener('resize', resize);
+
+// ─── WEBSOCKET ───
+let ws = null;
+const wsStatusEl = document.getElementById('wsStatus');
+
+function connectWebSocket() {
+    try {
+        ws = new WebSocket('ws://localhost:8080');
+        ws.onopen = () => {
+            wsStatusEl.textContent = 'WebSocket: Connected';
+            wsStatusEl.className = 'connected';
+        };
+        ws.onclose = () => {
+            wsStatusEl.textContent = 'WebSocket: Disconnected';
+            wsStatusEl.className = 'disconnected';
+            setTimeout(connectWebSocket, 3000);
+        };
+        ws.onerror = () => { wsStatusEl.className = 'disconnected'; };
+        ws.onmessage = (e) => {
+            try {
+                const data = JSON.parse(e.data);
+                onWSMessage(data);
+            } catch(err) {}
+        };
+    } catch(e) {
+        setTimeout(connectWebSocket, 3000);
+    }
 }
-#inventory {
-  position: absolute;
-  bottom: 20px; left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 6px;
+connectWebSocket();
+
+function wsSend(data) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(data));
+    }
 }
-.inv-slot {
-  width: 56px; height: 56px;
-  border: 2px solid #4a3a2a;
-  background: rgba(15,10,5,0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  box-shadow: 0 0 10px rgba(0,0,0,0.6), inset 0 0 8px rgba(0,0,0,0.4);
-  border-radius: 4px;
-}
-.inv-slot:hover { border-color: #8a6a3a; }
-.inv-slot .key-hint {
-  position: absolute;
-  top: 2px; left: 4px;
-  font-size: 9px;
-  color: #665533;
-}
-.inv-slot .item-icon {
-  font-size: 22px;
-  filter: drop-shadow(0 0 4px rgba(255,200,100,0.3));
-}
-#chatBox {
-  position: absolute;
-  bottom: 90px; left: 20px;
-  width: 350px; height: 180px;
-  background: rgba(5,3,0,0.8);
-  border: 1px solid #3a2a1a;
-  border-radius: 4px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-#chatMessages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px;
-  scrollbar-width: thin;
-  scrollbar-color:
+
+function onWSMessage(data) {
+    if (data.type === 'player_join') {
+        networkPlayers[data.id] = {
+            x: data.x, y: data.y,
+            name: data.name, color: data.color,
+            hp: data.hp, maxHp: data.maxHp,
+            dir: 1, animFrame: 0, animTimer: 0
+        };
+    } else if (data.type === 'player_move') {
+        if (networkPlayers[data.id]) {
+            networkPlayers[data.id].x = data.x;
+            networkPlayers[data.id].y = data.y;
+            networkPlayers[data.id].dir = data.dir;
+            networkPlayers
 </script>
 </body>
 </html>
