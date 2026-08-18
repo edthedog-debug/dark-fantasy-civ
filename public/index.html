@@ -188,27 +188,30 @@ html
 
     <script>
 <think>
-The user wants me to improve the canvas graphics of a dark fantasy game while preserving all IDs and WebSocket functionality. Since no code was provided, I need to create a complete dark fantasy game with enhanced canvas graphics. Let me create a visually impressive dark fantasy game with:
+The user wants me to improve the canvas graphics of a dark fantasy game while preserving all IDs and WebSocket functionality. Since they didn't provide the original code, I'll create a comprehensive dark fantasy game with excellent canvas graphics including:
 
-1. Rich, atmospheric graphics with particle effects
-2. Dark color palette with dramatic lighting
-3. Smooth animations
-4. All proper IDs for HTML elements
-5. WebSocket functionality for multiplayer connectivity
+1. Atmospheric particle systems (embers, dust, fog)
+2. Dynamic lighting with glow effects
+3. Detailed sprite rendering using canvas primitives
+4. Parallax scrolling backgrounds
+5. Skull/castle/dungeon themed visuals
+6. Blood/damage effects
+7. Shadow and vignette effects
+8. Animated backgrounds
 
-Let me build a comprehensive dark fantasy game with:
-- Atmospheric background with fog/mist effects
-- Character rendering with glow effects
-- Particle systems for magic effects
-- Dynamic lighting
-- Enemy creatures
-- Health/mana bars
-- Minimap
-- WebSocket connection handling
-- Proper game loop with requestAnimationFrame
-- Canvas-based rendering with layered effects
+I'll build a complete dark fantasy game with rich canvas graphics, proper IDs, and WebSocket connectivity.
 
-I'll create a full HTML file with embedded CSS and JavaScript.
+Let me create a full dark fantasy game with:
+- A character (dark knight/wizard) with detailed pixel-art style rendering
+- Enemies (skeletons, demons, bats)
+- Atmospheric effects (particles, fog, rain, embers)
+- Dynamic lighting system
+- Health/magic bars with styled rendering
+- A crumbling castle/dungeon environment
+- WebSocket integration for multiplayer
+- All elements with proper IDs
+
+Let me write this as a single HTML file with embedded CSS and JavaScript.
 </think>
 
 html
@@ -217,163 +220,191 @@ html
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dark Fantasy Realm</title>
+<title>Realm of Ashes</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: #0a0a0f;
-    overflow: hidden;
-    font-family: 'Segoe UI', serif;
-    color: #c9b99a;
-    cursor: crosshair;
-  }
-  #gameCanvas {
-    display: block;
-    position: absolute;
-    top: 0; left: 0;
-  }
-  #uiOverlay {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    pointer-events: none;
-    z-index: 10;
-  }
-  #hud {
-    position: absolute;
-    top: 15px; left: 15px;
-    z-index: 20;
-    pointer-events: none;
-  }
-  .bar-container {
-    width: 220px;
-    height: 18px;
-    background: rgba(10, 5, 15, 0.85);
-    border: 1px solid #3a2a1a;
-    border-radius: 3px;
-    margin-bottom: 6px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.8), 0 0 4px rgba(0,0,0,0.5);
-  }
-  .bar-fill {
-    height: 100%;
-    transition: width 0.3s ease;
-    position: relative;
-  }
-  .bar-fill::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 40%;
-    background: linear-gradient(to bottom, rgba(255,255,255,0.25), transparent);
-    border-radius: 2px 2px 0 0;
-  }
-  #healthBar { background: linear-gradient(90deg, #8b0000, #dc143c, #ff4444); width: 100%; }
-  #manaBar { background: linear-gradient(90deg, #1a1a6e, #4169e1, #6699ff); width: 100%; }
-  #xpBar { background: linear-gradient(90deg, #4a0080, #9932cc, #cc66ff); width: 0%; }
-  .bar-label {
-    position: absolute;
-    top: 50%; left: 8px;
-    transform: translateY(-50%);
-    font-size: 10px;
-    color: #fff;
-    text-shadow: 1px 1px 2px #000;
-    z-index: 2;
-    letter-spacing: 1px;
-    font-weight: bold;
-  }
-  #statsPanel {
-    position: absolute;
-    top: 15px; right: 15px;
-    text-align: right;
-    z-index: 20;
-    pointer-events: none;
-  }
-  #statsPanel div {
-    font-size: 13px;
-    margin-bottom: 4px;
-    text-shadow: 0 0 8px rgba(100, 50, 150, 0.5);
-  }
-  #minimap {
-    position: absolute;
-    bottom: 15px; right: 15px;
-    width: 160px; height: 160px;
-    border: 2px solid #3a2a1a;
-    border-radius: 50%;
-    overflow: hidden;
-    z-index: 20;
-    box-shadow: 0 0 15px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.6);
-    pointer-events: none;
-  }
-  #minimapCanvas { width: 100%; height: 100%; }
-  #chatBox {
-    position: absolute;
-    bottom: 15px; left: 15px;
-    width: 320px;
-    max-height: 200px;
-    z-index: 20;
-    pointer-events: auto;
-  }
-  #chatMessages {
-    max-height: 140px;
-    overflow-y: auto;
-    padding: 8px;
-    background: rgba(5, 2, 10, 0.8);
-    border: 1px solid #2a1a0a;
-    border-bottom: none;
-    border-radius: 5px 5px 0 0;
-    font-size: 12px;
-  }
-  #chatMessages::-webkit-scrollbar { width: 4px; }
-  #chatMessages::-webkit-scrollbar-thumb { background: #3a2a1a; border-radius: 2px; }
-  .chat-msg { margin-bottom: 3px; text-shadow: 0 0 4px rgba(0,0,0,0.8); }
-  .chat-msg .player-name { color: #e8a040; font-weight: bold; }
-  .chat-msg .system-msg { color: #8888aa; font-style: italic; }
-  #chatInput {
-    width: 100%;
-    padding: 8px;
-    background: rgba(5, 2, 10, 0.9);
-    border: 1px solid #2a1a0a;
-    border-radius: 0 0 5px 5px;
-    color: #c9b99a;
-    font-size: 12px;
-    outline: none;
-  }
-  #chatInput::placeholder { color: #554433; }
-  #inventoryPanel {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(10, 5, 15, 0.95);
-    border: 2px solid #4a3a2a;
-    border-radius: 8px;
-    padding: 20px;
-    z-index: 100;
-    display: none;
-    pointer-events: auto;
-    box-shadow: 0 0 40px rgba(0,0,0,0.9), 0 0 8px rgba(100, 50, 0, 0.3);
-    min-width: 350px;
-  }
-  #inventoryPanel h3 {
-    text-align: center;
-    margin-bottom: 15px;
-    color: #d4a050;
-    text-shadow: 0 0 10px rgba(200, 150, 50, 0.4);
-    font-size: 18px;
-    letter-spacing: 3px;
-  }
-  .inventory-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 50px);
-    gap: 5px;
-    justify-content: center;
-  }
-  .inv-slot {
-    width: 50px; height: 50px;
-    background: rgba(20, 15, 25, 0.8);
-    border: 1px solid #2a2015;
-    border-radius: 4px
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0a0a;
+  overflow: hidden;
+  font-family: 'Georgia', serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  cursor: none;
+}
+#gameContainer {
+  position: relative;
+  width: 960px;
+  height: 640px;
+}
+#gameCanvas {
+  position: absolute;
+  top: 0; left: 0;
+  border: 2px solid #2a1a0a;
+  box-shadow: 0 0 40px rgba(180, 50, 0, 0.3), inset 0 0 60px rgba(0,0,0,0.5);
+  border-radius: 4px;
+}
+#uiCanvas {
+  position: absolute;
+  top: 0; left: 0;
+  pointer-events: none;
+}
+#chatOverlay {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  color: #c8a87a;
+  font-size: 13px;
+  pointer-events: none;
+  text-shadow: 1px 1px 3px #000;
+  z-index: 10;
+}
+#chatInput {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  background: rgba(20,10,5,0.85);
+  border: 1px solid #5a3a1a;
+  color: #c8a87a;
+  padding: 6px 12px;
+  font-family: 'Georgia', serif;
+  font-size: 13px;
+  width: 220px;
+  border-radius: 3px;
+  outline: none;
+  z-index: 20;
+}
+#chatInput::placeholder { color: #5a4a3a; }
+#chatInput:focus { border-color: #8a5a2a; box-shadow: 0 0 8px rgba(180,80,20,0.4); }
+#tooltip {
+  position: absolute;
+  background: rgba(10,5,2,0.92);
+  border: 1px solid #5a3a1a;
+  color: #c8a87a;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-radius: 3px;
+  pointer-events: none;
+  display: none;
+  z-index: 30;
+  max-width: 200px;
+}
+#minimap {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: 1px solid #3a2a1a;
+  border-radius: 3px;
+  z-index: 10;
+}
+#loadingScreen {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: #0a0808;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  transition: opacity 1s;
+}
+#loadingScreen h1 {
+  color: #8b2500;
+  font-size: 42px;
+  text-shadow: 0 0 20px rgba(180,50,0,0.6), 0 0 60px rgba(180,50,0,0.2);
+  letter-spacing: 6px;
+  margin-bottom: 8px;
+}
+#loadingScreen p {
+  color: #6a4a2a;
+  font-size: 14px;
+  letter-spacing: 3px;
+}
+#loadingBar {
+  width: 300px;
+  height: 4px;
+  background: #1a0a05;
+  border-radius: 2px;
+  margin-top: 30px;
+  overflow: hidden;
+}
+#loadingFill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #8b2500, #c85020, #8b2500);
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+</style>
+</head>
+<body>
+<div id="gameContainer">
+  <canvas id="gameCanvas" width="960" height="640"></canvas>
+  <canvas id="uiCanvas" width="960" height="640"></canvas>
+  <canvas id="minimap" width="120" height="120"></canvas>
+  <div id="chatOverlay"></div>
+  <input type="text" id="chatInput" placeholder="Press Enter to chat..." />
+  <div id="tooltip"></div>
+  <div id="loadingScreen">
+    <h1>REALM OF ASHES</h1>
+    <p>Entering the abyss...</p>
+    <div id="loadingBar"><div id="loadingFill"></div></div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG & STATE ────────────────────────────────────────────
+const W = 960, H = 640;
+const gameCanvas = document.getElementById('gameCanvas');
+const ctx = gameCanvas.getContext('2d');
+const uiCanvas = document.getElementById('uiCanvas');
+const uiCtx = uiCanvas.getContext('2d');
+const minimapCanvas = document.getElementById('minimap');
+const mmCtx = minimapCanvas.getContext('2d');
+
+const state = {
+  player: {
+    id: 'player',
+    x: 480, y: 320,
+    vx: 0, vy: 0,
+    hp: 100, maxHp: 100,
+    mp: 60, maxMp: 60,
+    level: 1, xp: 0,
+    facing: 1,
+    animFrame: 0,
+    animTimer: 0,
+    attacking: false,
+    attackTimer: 0,
+    attackCooldown: 0,
+    invincible: 0,
+    trail: [],
+    speed: 3.2,
+    className: 'Dark Knight'
+  },
+  enemies: [],
+  particles: [],
+  projectiles: [],
+  items: [],
+  chatMessages: [],
+  camera: { x: 0, y: 0 },
+  time: 0,
+  keys: {},
+  mouse: { x: W/2, y: H/2, down: false },
+  ws: null,
+  gameStarted: false,
+  bgStars: [],
+  rainDrops: [],
+  fogLayers: [],
+  terrainTiles: [],
+  torches: [],
+  skulls: [],
+  ambientParticles: [],
+  screenShake: { x: 0, y: 0, intensity: 0 },
+  damageNumbers: [],
+  comboCount: 0,
+  comboTimer: 0
 </script>
 </body>
 </html>
