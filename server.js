@@ -61,6 +61,7 @@ let worldState = {
     buildingsCount: 3,
     abandonedBuildings: 0,
     demolitionTimer: 0,
+    successfulImprovements: 0,
     logs: [
         "[" + new Date().toLocaleTimeString() + "] Autonomous Cloud Engine Initialized."
     ]
@@ -143,7 +144,7 @@ async function queryAI(prompt, taskType) {
                     model: 'groq/compound',
                     messages: [{ role: 'user', content: prompt }],
                     temperature: 0.3,
-                    max_tokens: 1024,
+                    max_tokens: 4096,
                 }),
                 signal: controller.signal
             });
@@ -298,24 +299,20 @@ function runSimulationTick() {
     worldState.day += 1;
 
     // ============ HAPPINESS RECOVERY SYSTEM ============
-    // Emergency intervention for critical happiness
     if (worldState.happiness < 20 && worldState.treasury > 100000) {
         worldState.treasury -= 100000;
         worldState.happiness = Math.min(100, worldState.happiness + 15);
         addLog("[WELFARE] Invested 100,000 Gold in public welfare. Happiness +15");
     }
-    // Moderate intervention for low happiness
     else if (worldState.happiness < 40 && worldState.treasury > 50000 && worldState.day % 10 === 0) {
         worldState.treasury -= 50000;
         worldState.happiness = Math.min(100, worldState.happiness + 8);
         addLog("[WELFARE] Invested 50,000 Gold in public welfare. Happiness +8");
     }
-    // Gradual natural recovery when happiness is moderate
     else if (worldState.happiness >= 40 && worldState.happiness < 70 && worldState.day % 20 === 0) {
         worldState.happiness = Math.min(100, worldState.happiness + 2);
         addLog("[WELFARE] Natural happiness recovery +2");
     }
-    // Emergency reserve when treasury is empty
     if (worldState.treasury <= 0 && worldState.happiness < 30) {
         worldState.treasury += 3000;
         worldState.happiness = Math.min(100, worldState.happiness + 10);
@@ -352,39 +349,31 @@ function runSimulationTick() {
     worldState.techPower += 0.008;
 
     // ============ POPULATION SYSTEM ============
-    // Immigration: Only when happiness is good and treasury is sufficient
     if (worldState.happiness > 60 && worldState.treasury > 20000 && worldState.day % 8 === 0) {
         worldState.population += 1;
         addLog("[DEMOGRAPHICS] +1 immigrant. Pop: " + worldState.population);
     }
-    // Emigration: Only when happiness is critically low
     else if (worldState.happiness < 15 && worldState.population > 10 && worldState.day % 8 === 0) {
         worldState.population -= 1;
         addLog("[DEMOGRAPHICS] -1 emigrated. Pop: " + worldState.population);
     }
-    // Natural growth: Small chance when happiness is decent
     else if (worldState.happiness >= 50 && worldState.population > 10 && worldState.day % 25 === 0) {
         worldState.population += 1;
         addLog("[DEMOGRAPHICS] +1 natural growth. Pop: " + worldState.population);
     }
 
     // ============ BUILDINGS SYSTEM (DEPENDENT ON POPULATION) ============
-    // Calculate expected buildings based on population
     const expectedBuildings = Math.floor(worldState.population / 100) + 2;
     
-    // If population grows, build new buildings
     if (worldState.buildingsCount < expectedBuildings && worldState.treasury > 10000 && worldState.day % 20 === 0) {
         worldState.treasury -= 10000;
         worldState.buildingsCount += 1;
         addLog("[BUILDING] Built new structure. Total: " + worldState.buildingsCount);
     }
     
-    // If population drops, buildings become abandoned
     if (worldState.buildingsCount > expectedBuildings) {
-        // Start demolition timer
         worldState.demolitionTimer = (worldState.demolitionTimer || 0) + 1;
         
-        // After 10 days of abandonment, demolish
         if (worldState.demolitionTimer >= 10) {
             worldState.buildingsCount -= 1;
             worldState.demolitionTimer = 0;
@@ -392,7 +381,6 @@ function runSimulationTick() {
             addLog("[BUILDING] Abandoned structure demolished. Total: " + worldState.buildingsCount);
         }
     } else {
-        // Reset timer if population recovered
         worldState.demolitionTimer = 0;
     }
 
@@ -438,7 +426,7 @@ WSS.on('connection', (ws) => {
 });
 
 /**
- * AI CODE IMPROVEMENT
+ * AI CODE IMPROVEMENT - ENHANCED PROMPT
  */
 async function autoImproveGameCode() {
     const types = ["CSS STYLING", "MAP GRAPHICS & MECHANICS", "HTML STRUCTURE"];
@@ -461,6 +449,7 @@ async function autoImproveGameCode() {
             fs.writeFileSync(htmlPath, currentHtml);
         }
         
+        // ENHANCED PROMPT - More specific with examples
         const prompt = `You are improving the ${improvementType} of this dark fantasy civilization game.
 
 HERE IS THE CURRENT HTML CODE:
@@ -468,32 +457,55 @@ HERE IS THE CURRENT HTML CODE:
 ${currentHtml}
 \`\`\`
 
-IMPROVEMENT GOALS:
+IMPROVEMENT GOALS FOR ${improvementType}:
 ${
     improvementType === "MAP GRAPHICS & MECHANICS" 
-    ? `- ENHANCE Canvas rendering with detailed pixel art, animations, particles
-- IMPROVE unit animations and types
-- ADD atmospheric effects`
+    ? `- ADD new building types (temple, market, wall, farm)
+- ADD particle effects (rain, snow, embers, magic sparkles)
+- ADD day/night cycle with changing sky colors
+- ADD unit animations (walking, working, fighting)
+- ADD new terrain types (desert, mountain, swamp)
+- ADD building construction animations
+- ADD resource gathering animations
+- IMPROVE river with animated water flow
+- ADD birds or wildlife animations
+- ADD weather effects (rain, fog, lightning)`
     : improvementType === "CSS STYLING"
-    ? `- ENHANCE dark fantasy aesthetic
-- IMPROVE panel designs
-- ADD transitions and hover effects`
-    : `- IMPROVE layout structure
-- ADD semantic HTML
-- ENHANCE responsive design`
+    ? `- ADD animated gradient backgrounds to panels
+- ADD hover effects on stat cards (scale, glow, shadow)
+- ADD smooth transitions (0.3s ease) on all interactive elements
+- ADD pulsing glow effects on important numbers
+- ADD progress bars with animated fill
+- ADD tooltip styles for hover information
+- ADD modal/popup styles for building details
+- ADD achievement badge styles
+- IMPROVE scrollbar styling
+- ADD responsive design for mobile devices`
+    : `- ADD semantic HTML5 elements (header, nav, main, section, article)
+- ADD aria-labels for accessibility
+- ADD data-attributes for buildings and units
+- ADD meta tags for SEO
+- IMPROVE form elements if any
+- ADD favicon link
+- ADD loading screen
+- ADD error handling display
+- ADD settings panel structure
+- IMPROVE overall document structure`
 }
 
 CRITICAL RULES:
-1. PRESERVE WebSocket code EXACTLY (keep the entire IIFE with WebSocket connection)
-2. PRESERVE all element IDs (stat-day, stat-era, stat-pop, stat-gold, stat-tech, stat-tanks, stat-status, stat-building-count, gameCanvas, event-panel, log-stream, connection-dot, connection-text)
-3. KEEP dark background #070913
+1. PRESERVE WebSocket code EXACTLY - DO NOT MODIFY the connectWebSocket function
+2. PRESERVE all element IDs: stat-day, stat-era, stat-pop, stat-gold, stat-tech, stat-tanks, stat-status, stat-building-count, gameCanvas, event-panel, log-stream, connection-dot, connection-text
+3. KEEP dark background #070913 on body
 4. KEEP overflow: hidden, position: fixed on body
-5. KEEP the updateUI() function exactly as is
-6. KEEP the drawCastle, drawHouse, drawBarracks, drawTower functions
-7. KEEP the generateObjects, resizeCanvas, connectWebSocket functions
-8. Return COMPLETE modified HTML
-9. ONLY modify the ${improvementType} section
-10. DO NOT remove or alter the WebSocket logic or canvas rendering logic`;
+5. KEEP the updateUI() function - only ADD to it, don't remove
+6. KEEP all drawing functions: drawCastle, drawHouse, drawBarracks, drawTower
+7. KEEP the render() function structure
+8. You MAY ADD new functions, new CSS classes, new HTML elements
+9. You MAY MODIFY existing CSS styles
+10. You MAY ADD new canvas drawing code
+11. Return COMPLETE modified HTML
+12. Be creative but keep the core functionality intact`;
 
         const aiResponse = await queryAI(prompt, "CODE IMPROVEMENT - " + improvementType);
         
@@ -503,27 +515,38 @@ CRITICAL RULES:
             if (htmlMatch) {
                 let newHtml = htmlMatch[0].replace(/```html/g, '').replace(/```/g, '').trim();
                 
+                // MORE FLEXIBLE VALIDATION
                 const hasWebSocket = /new WebSocket|ws\.onopen|ws\.onmessage/i.test(newHtml);
                 const hasWhiteBg = /background:\s*(white|#fff|#ffffff)/i.test(newHtml);
                 const hasScroll = /overflow:\s*(auto|scroll)/i.test(newHtml);
-                const hasIDs = /stat-day|stat-era|stat-pop|stat-building-count/i.test(newHtml);
+                const hasIDs = /stat-day|stat-era|stat-pop/i.test(newHtml);
                 const hasUpdateUI = /function\s+updateUI/i.test(newHtml);
-                const hasCanvas = /gameCanvas|drawCastle|drawHouse/i.test(newHtml);
-                const hasConnectWS = /connectWebSocket|function\s+connect/i.test(newHtml);
+                const hasCanvas = /gameCanvas|getContext/i.test(newHtml);
                 
-                if (!hasWebSocket || hasWhiteBg || hasScroll || !hasIDs || !hasUpdateUI || !hasCanvas || !hasConnectWS) {
+                if (!hasWebSocket || !hasIDs || !hasUpdateUI || !hasCanvas) {
                     console.log("⚠️ AI generated invalid HTML - REJECTED");
-                    addLog("[AI] Invalid HTML rejected");
+                    addLog("[AI] Invalid HTML rejected - missing essential functions");
+                } else if (hasWhiteBg || hasScroll) {
+                    console.log("⚠️ AI generated HTML with white bg or scroll - REJECTED");
+                    addLog("[AI] Invalid HTML rejected - wrong styling");
                 } else {
                     fs.writeFileSync(htmlPath, newHtml);
                     console.log("✅ AI HTML applied");
-                    addLog("[AI] HTML successfully updated");
+                    addLog("[AI] HTML successfully updated - " + improvementType);
+                    
+                    worldState.successfulImprovements = (worldState.successfulImprovements || 0) + 1;
                 }
+            } else {
+                console.log("⚠️ No HTML found in AI response");
+                addLog("[AI] No HTML found in response");
             }
+        } else {
+            console.log("⚠️ AI response too short");
+            addLog("[AI] Response too short - skipped");
         }
         
         worldState.aiImprovements += 1;
-        addLog("[AI COMMIT SUCCESS] " + improvementType + " | Total: " + worldState.aiImprovements);
+        addLog("[AI COMMIT] " + improvementType + " attempt #" + worldState.aiImprovements);
         
         pushToGitHub(htmlPath, improvementType, worldState.day).catch(() => {});
         
@@ -660,54 +683,4 @@ function getCleanHTML() {
             document.getElementById('stat-tech').innerText = Number(worldState.techPower).toFixed(1);
             document.getElementById('stat-tanks').innerText = worldState.tanks;
             document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
-            document.getElementById('stat-status').style.color = worldState.inWar ? '#e74c3c' : '#2ecc71';
-            document.getElementById('stat-building-count').innerText = worldState.buildingsCount || Math.floor(worldState.population / 100) + 2;
-            const ep = document.getElementById('event-panel');
-            if (worldState.activeEvents && worldState.activeEvents.length > 0) { ep.innerHTML = worldState.activeEvents.map(e => '⚡ ' + e.description).join(' | '); ep.style.borderColor = '#ff4444'; ep.style.color = '#ff6666'; } else { ep.innerHTML = 'No active events'; ep.style.borderColor = '#00ff88'; ep.style.color = '#00ff88'; }
-            const logBox = document.getElementById('log-stream');
-            if (worldState.logs && worldState.logs.length > 0) { logBox.innerHTML = worldState.logs.map(l => '<div class="log-entry">' + l + '</div>').join(''); logBox.scrollTop = logBox.scrollHeight; }
-        }
-        function generateObjects() {
-            if (!worldState) return;
-            buildings = [];
-            units = [];
-            const bCount = clamp(Math.floor(worldState.population / 100) + 2, 5, 80);
-            const uCount = clamp(Math.floor(worldState.population / 10) + 2, 3, 50);
-            for (let i = 0; i < bCount; i++) { buildings.push({ xPercent: 5 + ((i * 7) % 90), yPercent: 10 + ((i * 5) % 80), type: i % 4, heightPercent: 8 + (i % 5) * 3 }); }
-            for (let u = 0; u < uCount; u++) { units.push({ xPercent: 5 + Math.random() * 90, yPercent: 10 + Math.random() * 80, color: ['#ff6666', '#6666ff', '#66ff66', '#ffff66', '#ff66ff'][u % 5] }); }
-        }
-        canvas.addEventListener('mousedown', (e) => { isDragging = true; startX = e.clientX - camera.x; startY = e.clientY - camera.y; });
-        window.addEventListener('mouseup', () => isDragging = false);
-        canvas.addEventListener('mousemove', (e) => { if (isDragging) { camera.x = e.clientX - startX; camera.y = e.clientY - startY; } });
-        canvas.addEventListener('wheel', (e) => { e.preventDefault(); camera.zoom = clamp(camera.zoom * (e.deltaY < 0 ? 1.1 : 0.9), 0.5, 2.5); }, { passive: false });
-        let lastTouchDist = 0;
-        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); if (e.touches.length === 1) { isDragging = true; startX = e.touches[0].clientX - camera.x; startY = e.touches[0].clientY - camera.y; } else if (e.touches.length === 2) { isDragging = false; lastTouchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); } });
-        canvas.addEventListener('touchend', () => isDragging = false);
-        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (e.touches.length === 1 && isDragging) { camera.x = e.touches[0].clientX - startX; camera.y = e.touches[0].clientY - startY; } else if (e.touches.length === 2) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); camera.zoom = clamp(camera.zoom * (d / lastTouchDist), 0.5, 2.5); lastTouchDist = d; } }, { passive: false });
-        function drawCastle(x, y, h) { ctx.fillStyle = '#8a8a8a'; ctx.fillRect(x - h * 0.3, y - h, h * 0.6, h); for (let i = -2; i <= 2; i++) { ctx.fillRect(x + i * h * 0.12, y - h - 4, 4, 4); } ctx.fillStyle = '#ffff88'; for (let w = 0; w < 3; w++) { ctx.fillRect(x - 3, y - h + 6 + w * 10, 6, 5); } ctx.fillStyle = '#3a1a0a'; ctx.fillRect(x - 4, y - 8, 8, 8); }
-        function drawHouse(x, y, h) { ctx.fillStyle = '#c4a060'; ctx.fillRect(x - h * 0.35, y - h, h * 0.7, h); ctx.fillStyle = '#8a3a1a'; ctx.fillRect(x - h * 0.45, y - h - 3, h * 0.9, 4); ctx.fillStyle = '#ffff88'; ctx.fillRect(x - 3, y - h + 5, 5, 4); ctx.fillStyle = '#3a1a0a'; ctx.fillRect(x - 3, y - 5, 6, 5); }
-        function drawBarracks(x, y, h) { ctx.fillStyle = '#6a6a6a'; ctx.fillRect(x - h * 0.4, y - h, h * 0.8, h); ctx.fillStyle = '#4a4a4a'; ctx.fillRect(x - h * 0.5, y - h - 2, h, 3); }
-        function drawTower(x, y, h) { ctx.fillStyle = '#7a7a7a'; ctx.fillRect(x - h * 0.2, y - h, h * 0.4, h); ctx.fillStyle = '#5a5a5a'; ctx.fillRect(x - h * 0.3, y - h - 3, h * 0.6, 3); }
-        function render() {
-            frameCount++;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.save();
-            ctx.translate(camera.x, camera.y);
-            ctx.scale(camera.zoom, camera.zoom);
-            for (let x = 0; x < canvas.width + 20; x += 20) { for (let y = 0; y < canvas.height + 20; y += 20) { ctx.fillStyle = ((x + y) % 40 === 0) ? '#1a3a1a' : '#1a2a1a'; ctx.fillRect(x, y, 20, 20); } }
-            for (let y = 0; y < canvas.height; y += 4) { const wave = Math.sin((y * 0.04) + frameCount * 0.03) * 8; ctx.fillStyle = '#1a4a6a'; ctx.fillRect(canvas.width * 0.4 + wave, y, 16, 4); }
-            const treePositions = [[8,15],[22,25],[45,12],[60,30],[75,18],[15,50],[38,45],[65,55],[85,40]];
-            treePositions.forEach(t => { const tx = px(t[0], canvas.width); const ty = px(t[1], canvas.height); ctx.fillStyle = '#5a3a1a'; ctx.fillRect(tx, ty, 4, 12); ctx.fillStyle = '#1a5a1a'; ctx.fillRect(tx - 7, ty - 12, 18, 12); ctx.fillStyle = '#2a6a2a'; ctx.fillRect(tx - 4, ty - 16, 12, 5); });
-            buildings.forEach(b => { const bx = px(b.xPercent, canvas.width); const by = px(b.yPercent, canvas.height); const bh = px(b.heightPercent, canvas.height); switch(b.type) { case 0: drawCastle(bx, by, bh); break; case 1: drawHouse(bx, by, bh * 0.6); break; case 2: drawBarracks(bx, by, bh * 0.7); break; case 3: drawTower(bx, by, bh * 1.2); break; } });
-            units.forEach(u => { const ux = px(u.xPercent, canvas.width); const uy = px(u.yPercent, canvas.height); const legOffset = Math.sin(frameCount * 0.1 + ux) > 0 ? 0 : 3; ctx.fillStyle = u.color; ctx.fillRect(Math.round(ux), Math.round(uy - 6), 3, 6); ctx.fillStyle = '#ffcc99'; ctx.fillRect(Math.round(ux), Math.round(uy - 9), 3, 3); ctx.fillStyle = '#333'; ctx.fillRect(Math.round(ux), Math.round(uy), 1, 3 + legOffset); ctx.fillRect(Math.round(ux + 2), Math.round(uy), 1, 3 - legOffset); });
-            if (worldState && worldState.activeEvents) { worldState.activeEvents.forEach(evt => { if (evt.type === 'blood_moon') { ctx.fillStyle = 'rgba(150,0,0,0.3)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } if (evt.type === 'fire') { ctx.fillStyle = 'rgba(255,100,0,0.2)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } if (evt.type === 'storm') { ctx.fillStyle = 'rgba(30,30,60,0.5)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } if (evt.type === 'plague') { ctx.fillStyle = 'rgba(0,150,0,0.2)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } if (evt.type === 'prosperity') { ctx.fillStyle = 'rgba(255,215,0,0.15)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } }); }
-            ctx.restore();
-            requestAnimationFrame(render);
-        }
-        connectWebSocket();
-        requestAnimationFrame(render);
-    })();
-    </script>
-</body>
-</html>`;
-}
+            document.getElementById('stat-status').
