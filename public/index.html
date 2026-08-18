@@ -3,33 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Sovereign AI Engine - World Map</title>
+    <title>Sovereign AI Engine</title>
     <style>
-        :root {
-            --bg-primary: #070913;
-            --bg-panel: rgba(16, 22, 36, 0.95);
-            --bg-card: rgba(25, 33, 52, 0.7);
-            --border-glow: rgba(0, 210, 255, 0.25);
-            --text-primary: #e0e6ed;
-            --accent-gold: #ffd700;
-            --accent-green: #2ecc71;
-            --accent-red: #e74c3c;
-            --accent-cyan: #00d2ff;
-            --accent-purple: #9b59b6;
-            --accent-blue: #3498db;
-        }
-
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', sans-serif;
         }
-
+        
         body {
             background: #070913 !important;
             color: #e0e6ed;
-            min-height: 100vh;
             min-height: 100dvh;
             display: flex;
             flex-direction: column;
@@ -37,29 +22,24 @@
             gap: 8px;
             overflow: hidden !important;
             position: fixed !important;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            width: 100%;
-            height: 100%;
+            inset: 0;
         }
-
+        
         .dashboard {
-            background: rgba(16, 22, 36, 0.95);
-            border: 1px solid rgba(0, 210, 255, 0.3);
+            background: rgba(16, 22, 36, 0.9);
+            border: 1px solid rgba(0, 210, 255, 0.25);
             border-radius: 10px;
             padding: 10px;
             flex-shrink: 0;
         }
-
+        
         .dash-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
         }
-
+        
         .status-badge {
             color: #00ff88;
             font-size: 11px;
@@ -67,7 +47,7 @@
             align-items: center;
             gap: 5px;
         }
-
+        
         .status-dot {
             width: 8px;
             height: 8px;
@@ -75,195 +55,178 @@
             border-radius: 50%;
             animation: pulse 2s infinite;
         }
-
+        
         @keyframes pulse {
             0%, 100% { box-shadow: 0 0 5px #00ff88; }
             50% { box-shadow: 0 0 15px #00ff88; }
         }
-
+        
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 6px;
         }
-
+        
         .stat-card {
-            background: rgba(25, 33, 52, 0.7);
+            background: rgba(25, 33, 52, 0.6);
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 6px;
             padding: 6px 8px;
         }
-
+        
         .stat-label {
-            font-size: 8px;
+            font-size: 9px;
             color: #6b7c93;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-
+        
         .stat-value {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
             color: #fff;
         }
-
+        
         #map-container {
             flex: 1;
             background: #04060d;
             border: 1px solid rgba(0, 210, 255, 0.25);
             border-radius: 10px;
-            position: relative;
             overflow: hidden;
             min-height: 0;
         }
-
+        
         canvas {
             display: block;
             width: 100%;
             height: 100%;
-            touch-action: none;
         }
-
+        
         .event-panel {
             background: rgba(12, 17, 29, 0.95);
-            border: 1px solid #00ff88;
-            border-radius: 8px;
-            padding: 6px 10px;
-            font-size: 10px;
-            color: #00ff88;
-            max-height: 40px;
-            overflow-y: auto;
-            flex-shrink: 0;
-        }
-
-        .log-container {
-            height: 100px;
-            background: rgba(12, 17, 29, 0.98);
-            border: 1px solid rgba(0, 210, 255, 0.2);
+            border: 1px solid #ff4444;
             border-radius: 8px;
             padding: 8px;
+            font-size: 10px;
+            color: #ff6666;
+            max-height: 60px;
             overflow-y: auto;
-            font-family: 'Courier New', monospace;
+            flex-shrink: 0;
+        }
+        
+        .log-container {
+            height: 80px;
+            background: rgba(12, 17, 29, 0.95);
+            border: 1px solid rgba(0, 210, 255, 0.2);
+            border-radius: 10px;
+            padding: 8px;
+            overflow-y: auto;
+            font-family: monospace;
             font-size: 10px;
             flex-shrink: 0;
         }
-
-        .log-entry {
-            color: #a0aec0;
-            margin-bottom: 2px;
-            line-height: 1.4;
-        }
-
-        .log-entry:last-child {
-            color: #00d2ff;
-        }
-
+        
         @media (max-width: 768px) {
-            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 4px; }
-            .stat-value { font-size: 11px; }
-            .log-container { height: 70px; }
-            body { padding: 6px; gap: 6px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
 <body>
-<think>
-The user wants me to improve the HTML structure of a dark fantasy game. They've given me critical rules about what NOT to change, but they haven't provided the actual HTML code to work with. Since no code was provided, I need to create a complete, well-structured dark fantasy game HTML that follows all their rules. Let me build a comprehensive HTML structure that:
-
-1. Has proper WebSocket connection code with 'ws' variable
-2. Includes auto-reconnect logic
-3. Has WORLD_UPDATE handling
-4. Uses dark backgrounds (no white)
-5. No body scroll
-6. Dark fantasy theme
-7. All necessary element IDs preserved/created
-
-Let me create a polished, well-structured dark fantasy game HTML with proper semantic structure, accessibility, and visual enhancements.
-</think>
-
-html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dark Fantasy Game</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
-
-        :root {
-            --bg-primary: #0a0a0f;
-            --bg-secondary: #12121a;
-            --bg-tertiary: #1a1a2e;
-            --bg-panel: rgba(18, 18, 26, 0.92);
-            --border-glow: #2a1a3e;
-            --border-accent: #3d2a5c;
-            --text-primary: #c8b8d8;
-            --text-secondary: #8a7a9a;
-            --text-muted: #5a4a6a;
-            --accent-blood: #8b0000;
-            --accent-blood-bright: #c41e3a;
-            --accent-gold: #8b7355;
-            --accent-gold-bright: #c9a84c;
-            --accent-mana: #1a3a5c;
-            --accent-mana-bright: #2a5a8c;
-            --accent-soul: #4a1a6a;
-            --accent-soul-bright: #7a2aaa;
-            --shadow-deep: rgba(0, 0, 0, 0.8);
-            --shadow-glow: rgba(139, 0, 0, 0.15);
-            --font-heading: 'Cinzel', serif;
-            --font-body: 'Crimson Text', serif;
-            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    <div class="dashboard">
+        <div class="dash-header">
+            <span style="color:#8a99ad; font-weight:bold;">SOVEREIGN AI ENGINE</span>
+            <div class="status-badge">
+                <div class="status-dot" id="connection-dot"></div>
+                <span id="connection-text">CONNECTING...</span>
+            </div>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-label">DAY</div><div class="stat-value" id="stat-day">-</div></div>
+            <div class="stat-card"><div class="stat-label">ERA</div><div class="stat-value" id="stat-era">-</div></div>
+            <div class="stat-card"><div class="stat-label">POP</div><div class="stat-value" id="stat-pop">-</div></div>
+            <div class="stat-card"><div class="stat-label">GOLD</div><div class="stat-value" id="stat-gold">-</div></div>
+            <div class="stat-card"><div class="stat-label">TECH</div><div class="stat-value" id="stat-tech">-</div></div>
+            <div class="stat-card"><div class="stat-label">DEF</div><div class="stat-value" id="stat-tanks">-</div></div>
+            <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value" id="stat-status">-</div></div>
+            <div class="stat-card"><div class="stat-label">BUILD</div><div class="stat-value" id="stat-build">-</div></div>
+        </div>
+    </div>
+    
+    <div id="map-container">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+    
+    <div class="event-panel" id="event-panel">No active events</div>
+    
+    <div class="log-container">
+        <div id="log-stream">Connecting...</div>
+    </div>
+    
+    <script>
+        let ws;
+        let worldState = null;
+        
+        function connect() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(protocol + '//' + window.location.host);
+            
+            ws.onopen = () => {
+                document.getElementById('log-stream').innerHTML = '<span style="color:#00ff88;">Connected</span>';
+                document.getElementById('connection-dot').style.background = '#00ff88';
+                document.getElementById('connection-text').innerText = 'CONNECTED';
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'WORLD_UPDATE') {
+                        worldState = msg.data;
+                        updateUI();
+                    }
+                } catch (e) {}
+            };
+            
+            ws.onerror = () => {
+                document.getElementById('connection-dot').style.background = '#e74c3c';
+                document.getElementById('connection-text').innerText = 'ERROR';
+            };
+            
+            ws.onclose = () => {
+                document.getElementById('log-stream').innerHTML = '<span style="color:#ffcc00;">Reconnecting...</span>';
+                document.getElementById('connection-dot').style.background = '#ffcc00';
+                document.getElementById('connection-text').innerText = 'RECONNECTING';
+                setTimeout(connect, 2000);
+            };
         }
-
-        *, *::before, *::after {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        
+        function updateUI() {
+            if (!worldState) return;
+            document.getElementById('stat-day').innerText = worldState.day;
+            document.getElementById('stat-era').innerText = worldState.era;
+            document.getElementById('stat-pop').innerText = worldState.population;
+            document.getElementById('stat-gold').innerText = Math.floor(worldState.treasury).toLocaleString();
+            document.getElementById('stat-tech').innerText = Number(worldState.techPower).toFixed(1);
+            document.getElementById('stat-tanks').innerText = worldState.tanks;
+            document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
+            document.getElementById('stat-build').innerText = worldState.engineBuild || 'v2.0';
+            
+            const ep = document.getElementById('event-panel');
+            if (worldState.activeEvents && worldState.activeEvents.length > 0) {
+                ep.innerHTML = worldState.activeEvents.map(e => '⚡ ' + e.description).join(' | ');
+                ep.style.borderColor = '#ff4444';
+            } else {
+                ep.innerHTML = 'No active events';
+                ep.style.borderColor = '#00ff88';
+            }
+            
+            const logBox = document.getElementById('log-stream');
+            if (worldState.logs && worldState.logs.length > 0) {
+                logBox.innerHTML = worldState.logs.map(l => '<div>' + l + '</div>').join('');
+                logBox.scrollTop = logBox.scrollHeight;
+            }
         }
-
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            font-family: var(--font-body);
-            font-size: 16px;
-            line-height: 1.6;
-        }
-
-        body {
-            display: grid;
-            grid-template-rows: auto 1fr auto;
-            grid-template-columns: 1fr;
-            grid-template-areas:
-                "header"
-                "main"
-                "footer";
-        }
-
-        /* ===== AMBIENT BACKGROUND ===== */
-        #ambient-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-            pointer-events: none;
-            opacity: 0.3;
-        }
-
-        /* ===== VIGNETTE OVERLAY ===== */
-        #vignette-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            pointer-events: none;
-            background: radial-gradient(ellipse at center, transparent 40%, var(--shadow-deep) 100
+        
+        connect();
+    </script>
 </body>
 </html>
