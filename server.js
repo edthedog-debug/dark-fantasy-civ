@@ -98,7 +98,7 @@ function addLog(msg) {
 }
 
 /**
- * GROQ API - qwen/qwen3.6-27b (RESTORED)
+ * GROQ API - qwen/qwen3.6-27b
  */
 async function queryAI(prompt, taskType) {
     if (!GROQ_API_KEY) {
@@ -210,7 +210,7 @@ async function pushToGitHub(htmlPath, type, day) {
 }
 
 /**
- * AI Events - REDUCED FREQUENCY
+ * AI Events
  */
 async function generateAIEvents() {
     const treasury = worldState.treasury;
@@ -259,7 +259,7 @@ async function generateAIEvents() {
 }
 
 /**
- * SIMULATION TICK - REALISTIC ECONOMY
+ * SIMULATION TICK
  */
 function runSimulationTick() {
     worldState.day += 1;
@@ -325,12 +325,10 @@ function runSimulationTick() {
         worldState.activeEvents = worldState.activeEvents.filter(e => e.endDay > worldState.day);
     }
 
-    // REDUCED FREQUENCY: Events every 200 days (~13 min)
     if (worldState.day % 200 === 0) {
         generateAIEvents();
     }
 
-    // REDUCED FREQUENCY: Code improvement every 400 days (~27 min)
     if (worldState.day % 400 === 0) {
         autoImproveGameCode().catch(err => console.error(err.message));
     }
@@ -341,13 +339,13 @@ function runSimulationTick() {
 
 setInterval(runSimulationTick, 4000);
 
-// WebSocket
+// WebSocket - IMMEDIATE send
 WSS.on('connection', (ws) => {
     console.log('🔗 Client connected');
     ws.send(JSON.stringify({ type: 'WORLD_UPDATE', data: worldState }));
 });
 
-// AI CODE IMPROVEMENT
+// AI CODE IMPROVEMENT - WITH EXPLICIT WEBSOCKET PROTECTION
 async function autoImproveGameCode() {
     const types = ["CSS STYLING", "CANVAS GRAPHICS", "HTML STRUCTURE"];
     const improvementType = types[worldState.aiImprovements % 3];
@@ -369,23 +367,52 @@ async function autoImproveGameCode() {
             fs.writeFileSync(htmlPath, currentHtml);
         }
         
-        const prompt = `Improve ${improvementType}. Preserve all IDs and WebSocket. Return only code.`;
+        // EXPLICIT WEBSOCKET PROTECTION IN PROMPT
+        const prompt = `You are improving the ${improvementType} of a dark fantasy game.
+
+        CRITICAL RULES - DO NOT BREAK THESE:
+        1. DO NOT modify, remove, or alter the WebSocket connection code (the connect() function, ws.onopen, ws.onmessage, ws.onclose, ws.onerror)
+        2. DO NOT change the WebSocket URL construction (protocol + '//' + window.location.host)
+        3. DO NOT remove the auto-reconnect logic (setTimeout(connect, 2000))
+        4. DO NOT rename or remove the 'ws' variable
+        5. DO NOT break the WORLD_UPDATE message handling
+        6. DO NOT remove any element IDs: stat-day, stat-era, stat-pop, stat-gold, stat-tech, stat-tanks, stat-status, stat-build, event-panel, log-stream, gameCanvas
+        7. DO NOT use white backgrounds (keep #070913 dark theme)
+        8. DO NOT add scroll to body (keep overflow: hidden, position: fixed)
+        9. ONLY enhance colors, borders, shadows, animations, and visual effects
+        10. Keep the dark fantasy theme
+
+        The WebSocket connection is CRITICAL and must remain EXACTLY as is.
+        Return ONLY the ${improvementType} improvements.`;
+        
         const aiResponse = await queryAI(prompt, "CODE IMPROVEMENT - " + improvementType);
         
         if (aiResponse && aiResponse.length > 50) {
             const codeToAdd = aiResponse.replace(/```/g, '').trim();
-            let improvedHtml = currentHtml;
             
-            if (worldState.aiImprovements % 3 === 0) {
-                improvedHtml = improvedHtml.replace(/<style>[\s\S]*?<\/style>/g, `<style>\n${codeToAdd}\n</style>`);
-            } else if (worldState.aiImprovements % 3 === 1) {
-                improvedHtml = improvedHtml.replace(/<script>[\s\S]*?<\/script>/g, `<script>\n${codeToAdd}\n</script>`);
+            // VALIDATE: Reject if WebSocket code is broken
+            const hasWebSocket = /WebSocket|ws\.onopen|ws\.onmessage/i.test(codeToAdd);
+            const hasWhiteBg = /background:\s*(white|#fff|#ffffff)/i.test(codeToAdd);
+            const hasScroll = /overflow:\s*(auto|scroll)/i.test(codeToAdd);
+            const breaksConnection = /ws\s*=\s*null|ws\.close\(\)|delete\s+ws/i.test(codeToAdd);
+            
+            if (hasWhiteBg || hasScroll || breaksConnection) {
+                console.log("⚠️ AI generated problematic code - REJECTED");
+                addLog("[AI] Problematic code rejected - keeping current");
             } else {
-                improvedHtml = improvedHtml.replace(/<body>[\s\S]*?<\/body>/g, `<body>\n${codeToAdd}\n</body>`);
+                let improvedHtml = currentHtml;
+                
+                if (worldState.aiImprovements % 3 === 0) {
+                    improvedHtml = improvedHtml.replace(/<style>[\s\S]*?<\/style>/g, `<style>\n${codeToAdd}\n</style>`);
+                } else if (worldState.aiImprovements % 3 === 1) {
+                    improvedHtml = improvedHtml.replace(/<script>[\s\S]*?<\/script>/g, `<script>\n${codeToAdd}\n</script>`);
+                } else {
+                    improvedHtml = improvedHtml.replace(/<body>[\s\S]*?<\/body>/g, `<body>\n${codeToAdd}\n</body>`);
+                }
+                
+                fs.writeFileSync(htmlPath, improvedHtml);
+                console.log("✅ AI code applied (WebSocket preserved)");
             }
-            
-            fs.writeFileSync(htmlPath, improvedHtml);
-            console.log("✅ AI code applied");
         }
         
         worldState.aiImprovements += 1;
@@ -404,6 +431,7 @@ SERVER.listen(PORT, () => {
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
     console.log("🤖 AI Model: qwen/qwen3.6-27b");
     console.log("⏱️ Events: every 200 days | Code: every 400 days | Rate: 30s");
+    console.log("🔌 WebSocket: PROTECTED from AI modifications");
     
     addLog("[SYSTEM] Simulation started.");
     broadcastState();
@@ -422,7 +450,7 @@ SERVER.listen(PORT, () => {
 });
 
 /**
- * Clean HTML
+ * Clean HTML - PROTECTED
  */
 function getCleanHTML() {
     return `<!DOCTYPE html>
