@@ -98,7 +98,7 @@ function addLog(msg) {
 }
 
 /**
- * GROQ API - openai/gpt-oss-20b
+ * GROQ API - qwen/qwen3.6-27b (RESTORED)
  */
 async function queryAI(prompt, taskType) {
     if (!GROQ_API_KEY) {
@@ -109,7 +109,7 @@ async function queryAI(prompt, taskType) {
     console.log("┌─────────────────────────────────────");
     console.log("│ 🤖 GROQ AI CONNECTION");
     console.log("│ 📋 Task: " + taskType);
-    console.log("│ 🧠 Model: openai/gpt-oss-20b");
+    console.log("│ 🧠 Model: qwen/qwen3.6-27b");
     console.log("└─────────────────────────────────────");
     
     try {
@@ -127,7 +127,7 @@ async function queryAI(prompt, taskType) {
                 'Authorization': `Bearer ${GROQ_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'openai/gpt-oss-20b',
+                model: 'qwen/qwen3.6-27b',
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.7,
                 max_tokens: 1024
@@ -402,7 +402,7 @@ async function autoImproveGameCode() {
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
-    console.log("🤖 AI Model: openai/gpt-oss-20b");
+    console.log("🤖 AI Model: qwen/qwen3.6-27b");
     console.log("⏱️ Events: every 200 days | Code: every 400 days | Rate: 30s");
     
     addLog("[SYSTEM] Simulation started.");
@@ -412,7 +412,7 @@ SERVER.listen(PORT, () => {
     queryAI("Say OK", "CONNECTION TEST").then(response => {
         if (response) {
             console.log("✅ AI CONNECTION ESTABLISHED");
-            addLog("[SYSTEM] AI System ready (gpt-oss-20b).");
+            addLog("[SYSTEM] AI System ready (qwen3.6-27b).");
         } else {
             console.log("⚠️ AI connection failed");
             addLog("[SYSTEM] AI unavailable.");
