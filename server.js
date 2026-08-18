@@ -109,13 +109,11 @@ async function queryAI(prompt, taskType) {
         return null;
     }
 
-    // WAIT if another AI request is in progress - 5 MINUTES
     while (isAIRequestInProgress) {
         console.log("⏳ Another AI request in progress - waiting 300s...");
-        await new Promise(resolve => setTimeout(resolve, 300000)); // 300 seconds = 5 minutes
+        await new Promise(resolve => setTimeout(resolve, 300000));
     }
     
-    // SET the lock
     isAIRequestInProgress = true;
 
     console.log("┌─────────────────────────────────────");
@@ -128,7 +126,6 @@ async function queryAI(prompt, taskType) {
         
         const url = 'https://api.groq.com/openai/v1/chat/completions';
         
-        // Function to make the request
         const makeRequest = async () => {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -143,7 +140,7 @@ async function queryAI(prompt, taskType) {
                     model: 'groq/compound',
                     messages: [{ role: 'user', content: prompt }],
                     temperature: 0.3,
-                    max_tokens: 1024, // Reduced to save tokens
+                    max_tokens: 1024,
                 }),
                 signal: controller.signal
             });
@@ -154,7 +151,6 @@ async function queryAI(prompt, taskType) {
         
         let response = await makeRequest();
         
-        // Handle rate limiting (429)
         if (response.status === 429) {
             console.log("│ ⚠️ RATE LIMITED (429) - Waiting 60s...");
             await new Promise(resolve => setTimeout(resolve, 60000));
@@ -167,11 +163,9 @@ async function queryAI(prompt, taskType) {
             const data = await response.json();
             const text = data.choices?.[0]?.message?.content;
             
-            // Debug
             console.log("│ 📝 Text length:", text?.length);
             console.log("│ 📝 Text preview:", text ? text.substring(0, 100) : 'NULL');
             
-            // CORRECCIÓN: Aceptar cualquier texto no vacío
             if (text && text.trim().length > 0) {
                 console.log("│ ✅ SUCCESS");
                 console.log("└─────────────────────────────────────");
@@ -188,7 +182,6 @@ async function queryAI(prompt, taskType) {
     } catch (e) {
         console.log("│ ❌ FAILED: " + e.message);
     } finally {
-        // RELEASE the lock
         isAIRequestInProgress = false;
     }
     
@@ -255,8 +248,9 @@ async function generateAIEvents() {
     console.log("\n🎲 GENERATING AI EVENT...");
     
     const prompt = `Generate dark fantasy event JSON.
-Day ${worldState.day}, Pop ${worldState.population}, Gold ${treasury}.
-Format: {"event":"text","goldImpact":-0.1,"happinessImpact":5,"techImpact":0.2,"visualEffect":"storm","duration":30}`;
+Day ${worldState.day}, Pop ${worldState.population}, Gold ${treasury}, Happiness ${worldState.happiness}.
+Format: {"event":"text","goldImpact":-0.1,"happinessImpact":5,"techImpact":0.2,"visualEffect":"storm","duration":30}
+IMPORTANT: happinessImpact should be POSITIVE (5-20) to help recover from low happiness.`;
     
     const aiResult = await queryAI(prompt, "EVENT GENERATION");
     
@@ -300,6 +294,13 @@ Format: {"event":"text","goldImpact":-0.1,"happinessImpact":5,"techImpact":0.2,"
 function runSimulationTick() {
     worldState.day += 1;
 
+    // RECOVERY: Emergency happiness intervention
+    if (worldState.happiness < 20 && worldState.treasury > 100000) {
+        worldState.treasury -= 100000;
+        worldState.happiness = Math.min(100, worldState.happiness + 15);
+        addLog("[WELFARE] Invested 100,000 Gold in public welfare. Happiness +15");
+    }
+
     if (worldState.treasury <= 0 && worldState.happiness < 30) {
         worldState.treasury += 3000;
         worldState.happiness = Math.min(100, worldState.happiness + 10);
@@ -339,8 +340,10 @@ function runSimulationTick() {
         worldState.population += 1;
         addLog("[DEMOGRAPHICS] +1 immigrant. Pop: " + worldState.population);
     } else if (worldState.happiness < 30 && worldState.population > 1 && worldState.day % 8 === 0) {
-        worldState.population -= 1;
-        addLog("[DEMOGRAPHICS] -1 emigrated. Pop: " + worldState.population);
+        if (worldState.happiness < 10) {
+            worldState.population -= 1;
+            addLog("[DEMOGRAPHICS] -1 emigrated. Pop: " + worldState.population);
+        }
     }
 
     if (worldState.treasury > 30000 && worldState.day % 25 === 0) {
@@ -364,12 +367,10 @@ function runSimulationTick() {
         worldState.activeEvents = worldState.activeEvents.filter(e => e.endDay > worldState.day);
     }
 
-    // Changed from 250 to 300 days to reduce API calls
     if (worldState.day % 300 === 0) {
         generateAIEvents();
     }
 
-    // Changed from 400 to 500 days to reduce API calls
     if (worldState.day % 500 === 0) {
         autoImproveGameCode().catch(err => console.error(err.message));
     }
@@ -410,8 +411,40 @@ async function autoImproveGameCode() {
             fs.writeFileSync(htmlPath, currentHtml);
         }
         
-        const prompt = `Improve ${improvementType} in this HTML. Keep WebSocket, IDs, #070913 background, hidden overflow. Return full HTML.`;
-        
+        const prompt = `You are improving the ${improvementType} of this dark fantasy civilization game.
+
+HERE IS THE CURRENT HTML CODE:
+\`\`\`html
+${currentHtml}
+\`\`\`
+
+IMPROVEMENT GOALS:
+${
+    improvementType === "MAP GRAPHICS & MECHANICS" 
+    ? `- ENHANCE Canvas rendering with detailed pixel art, animations, particles
+- IMPROVE unit animations and types
+- ADD atmospheric effects`
+    : improvementType === "CSS STYLING"
+    ? `- ENHANCE dark fantasy aesthetic
+- IMPROVE panel designs
+- ADD transitions and hover effects`
+    : `- IMPROVE layout structure
+- ADD semantic HTML
+- ENHANCE responsive design`
+}
+
+CRITICAL RULES:
+1. PRESERVE WebSocket code EXACTLY (keep the entire IIFE with WebSocket connection)
+2. PRESERVE all element IDs (stat-day, stat-era, stat-pop, stat-gold, stat-tech, stat-tanks, stat-status, stat-building-count, gameCanvas, event-panel, log-stream, connection-dot, connection-text)
+3. KEEP dark background #070913
+4. KEEP overflow: hidden, position: fixed on body
+5. KEEP the updateUI() function exactly as is
+6. KEEP the drawCastle, drawHouse, drawBarracks, drawTower functions
+7. KEEP the generateObjects, resizeCanvas, connectWebSocket functions
+8. Return COMPLETE modified HTML
+9. ONLY modify the ${improvementType} section
+10. DO NOT remove or alter the WebSocket logic or canvas rendering logic`;
+
         const aiResponse = await queryAI(prompt, "CODE IMPROVEMENT - " + improvementType);
         
         if (aiResponse && aiResponse.length > 100) {
@@ -423,14 +456,18 @@ async function autoImproveGameCode() {
                 const hasWebSocket = /new WebSocket|ws\.onopen|ws\.onmessage/i.test(newHtml);
                 const hasWhiteBg = /background:\s*(white|#fff|#ffffff)/i.test(newHtml);
                 const hasScroll = /overflow:\s*(auto|scroll)/i.test(newHtml);
-                const hasIDs = /stat-day|stat-era|stat-pop/i.test(newHtml);
+                const hasIDs = /stat-day|stat-era|stat-pop|stat-building-count/i.test(newHtml);
+                const hasUpdateUI = /function\s+updateUI/i.test(newHtml);
+                const hasCanvas = /gameCanvas|drawCastle|drawHouse/i.test(newHtml);
+                const hasConnectWS = /connectWebSocket|function\s+connect/i.test(newHtml);
                 
-                if (!hasWebSocket || hasWhiteBg || hasScroll || !hasIDs) {
+                if (!hasWebSocket || hasWhiteBg || hasScroll || !hasIDs || !hasUpdateUI || !hasCanvas || !hasConnectWS) {
                     console.log("⚠️ AI generated invalid HTML - REJECTED");
                     addLog("[AI] Invalid HTML rejected");
                 } else {
                     fs.writeFileSync(htmlPath, newHtml);
                     console.log("✅ AI HTML applied");
+                    addLog("[AI] HTML successfully updated");
                 }
             }
         }
@@ -471,6 +508,7 @@ SERVER.listen(PORT, () => {
 
 /**
  * Clean HTML - PROTECTED
+ * This is the fallback HTML with full canvas rendering
  */
 function getCleanHTML() {
     return `<!DOCTYPE html>
@@ -478,79 +516,121 @@ function getCleanHTML() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Sovereign AI Engine</title>
+    <title>Sovereign AI Engine - World Map</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background: #070913 !important; color: #e0e6ed; min-height: 100dvh; display: flex; flex-direction: column; padding: 10px; gap: 8px; overflow: hidden !important; position: fixed !important; inset: 0; }
-        .dashboard { background: rgba(16,22,36,0.9); border: 1px solid rgba(0,210,255,0.25); border-radius: 10px; padding: 10px; flex-shrink: 0; }
+        :root {
+            --bg-primary: #070913;
+            --bg-panel: rgba(16, 22, 36, 0.95);
+            --bg-card: rgba(25, 33, 52, 0.7);
+            --border-glow: rgba(0, 210, 255, 0.25);
+            --text-primary: #e0e6ed;
+            --accent-gold: #ffd700;
+            --accent-green: #2ecc71;
+            --accent-red: #e74c3c;
+            --accent-cyan: #00d2ff;
+            --accent-purple: #9b59b6;
+            --accent-blue: #3498db;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #070913 !important; color: #e0e6ed; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; padding: 10px; gap: 8px; overflow: hidden !important; position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; }
+        .dashboard { background: rgba(16, 22, 36, 0.95); border: 1px solid rgba(0, 210, 255, 0.3); border-radius: 10px; padding: 10px; flex-shrink: 0; }
+        .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .status-badge { color: #00ff88; font-size: 11px; display: flex; align-items: center; gap: 5px; }
+        .status-dot { width: 8px; height: 8px; background: #00ff88; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { box-shadow: 0 0 5px #00ff88; } 50% { box-shadow: 0 0 15px #00ff88; } }
         .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-        .stat-card { background: rgba(25,33,52,0.6); border-radius: 6px; padding: 6px; }
-        .stat-label { font-size: 9px; color: #6b7c93; text-transform: uppercase; }
-        .stat-value { font-size: 12px; font-weight: bold; color: #fff; }
-        #map-container { flex: 1; background: #04060d; border: 1px solid rgba(0,210,255,0.25); border-radius: 10px; overflow: hidden; min-height: 0; }
-        canvas { display: block; width: 100%; height: 100%; }
-        .event-panel { background: rgba(12,17,29,0.95); border: 1px solid #ff4444; border-radius: 8px; padding: 8px; font-size: 10px; color: #ff6666; max-height: 60px; overflow-y: auto; flex-shrink: 0; }
-        .log-container { height: 80px; background: rgba(12,17,29,0.95); border: 1px solid rgba(0,210,255,0.2); border-radius: 10px; padding: 8px; overflow-y: auto; font-family: monospace; font-size: 10px; flex-shrink: 0; }
-        @media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+        .stat-card { background: rgba(25, 33, 52, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 6px 8px; }
+        .stat-label { font-size: 8px; color: #6b7c93; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-value { font-size: 13px; font-weight: bold; color: #fff; }
+        #map-container { flex: 1; background: #04060d; border: 1px solid rgba(0, 210, 255, 0.25); border-radius: 10px; position: relative; overflow: hidden; min-height: 0; }
+        canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+        .event-panel { background: rgba(12, 17, 29, 0.95); border: 1px solid #00ff88; border-radius: 8px; padding: 6px 10px; font-size: 10px; color: #00ff88; max-height: 40px; overflow-y: auto; flex-shrink: 0; }
+        .log-container { height: 100px; background: rgba(12, 17, 29, 0.98); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 8px; padding: 8px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 10px; flex-shrink: 0; }
+        .log-entry { color: #a0aec0; margin-bottom: 2px; line-height: 1.4; }
+        .log-entry:last-child { color: #00d2ff; }
+        @media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 4px; } .stat-value { font-size: 11px; } .log-container { height: 70px; } body { padding: 6px; gap: 6px; } }
     </style>
 </head>
 <body>
     <div class="dashboard">
+        <div class="dash-header">
+            <span style="color:#8a99ad;font-weight:bold;">SOVEREIGN AI ENGINE</span>
+            <div class="status-badge">
+                <div class="status-dot" id="connection-dot"></div>
+                <span id="connection-text">CONNECTING...</span>
+            </div>
+        </div>
         <div class="stats-grid">
             <div class="stat-card"><div class="stat-label">DAY</div><div class="stat-value" id="stat-day">-</div></div>
-            <div class="stat-card"><div class="stat-label">ERA</div><div class="stat-value" id="stat-era">-</div></div>
-            <div class="stat-card"><div class="stat-label">POP</div><div class="stat-value" id="stat-pop">-</div></div>
-            <div class="stat-card"><div class="stat-label">GOLD</div><div class="stat-value" id="stat-gold">-</div></div>
-            <div class="stat-card"><div class="stat-label">TECH</div><div class="stat-value" id="stat-tech">-</div></div>
-            <div class="stat-card"><div class="stat-label">DEF</div><div class="stat-value" id="stat-tanks">-</div></div>
-            <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value" id="stat-status">-</div></div>
-            <div class="stat-card"><div class="stat-label">BUILD</div><div class="stat-value" id="stat-build">-</div></div>
+            <div class="stat-card"><div class="stat-label">ERA</div><div class="stat-value" id="stat-era" style="color:#9b59b6;">-</div></div>
+            <div class="stat-card"><div class="stat-label">POPULATION</div><div class="stat-value" id="stat-pop" style="color:#2ecc71;">-</div></div>
+            <div class="stat-card"><div class="stat-label">TREASURY</div><div class="stat-value" id="stat-gold" style="color:#ffd700;">-</div></div>
+            <div class="stat-card"><div class="stat-label">TECH</div><div class="stat-value" id="stat-tech" style="color:#3498db;">-</div></div>
+            <div class="stat-card"><div class="stat-label">DEFENSES</div><div class="stat-value" id="stat-tanks">-</div></div>
+            <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value" id="stat-status" style="color:#2ecc71;">-</div></div>
+            <div class="stat-card"><div class="stat-label">BUILDINGS</div><div class="stat-value" id="stat-building-count">-</div></div>
         </div>
     </div>
     <div id="map-container"><canvas id="gameCanvas"></canvas></div>
     <div class="event-panel" id="event-panel">No active events</div>
-    <div class="log-container"><div id="log-stream">Connecting...</div></div>
+    <div class="log-container"><div id="log-stream" style="color:#6b7c93;">Connecting to server...</div></div>
     <script>
-        let ws;
+    (() => {
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
         let worldState = null;
-        function connect() {
+        let ws = null;
+        let buildings = [];
+        let units = [];
+        let frameCount = 0;
+        let camera = { x: 0, y: 0, zoom: 1 };
+        let isDragging = false;
+        let startX = 0, startY = 0;
+        let lastRegeneration = 0;
+        const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+        const px = (p, d) => (p / 100) * d;
+        function resizeCanvas() { const container = document.getElementById('map-container'); canvas.width = container.clientWidth; canvas.height = container.clientHeight; }
+        window.addEventListener('resize', () => setTimeout(resizeCanvas, 150));
+        resizeCanvas();
+        function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             ws = new WebSocket(protocol + '//' + window.location.host);
-            ws.onopen = () => { document.getElementById('log-stream').innerHTML = '<span style="color:#00ff88;">Connected</span>'; };
-            ws.onmessage = (event) => {
-                try {
-                    const msg = JSON.parse(event.data);
-                    if (msg.type === 'WORLD_UPDATE') { worldState = msg.data; updateUI(); }
-                } catch (e) {}
-            };
-            ws.onclose = () => { setTimeout(connect, 2000); };
+            ws.onopen = () => { console.log('✅ WebSocket connected'); document.getElementById('log-stream').innerHTML = '<span style="color:#00ff88;">✅ Connected</span>'; document.getElementById('connection-dot').style.background = '#00ff88'; document.getElementById('connection-text').innerText = 'CONNECTED'; };
+            ws.onmessage = (event) => { try { const msg = JSON.parse(event.data); if (msg.type === 'WORLD_UPDATE') { worldState = msg.data; updateUI(); const now = Date.now(); if (now - lastRegeneration > 5000) { lastRegeneration = now; generateObjects(); } } } catch (e) { console.error('❌ Parse error:', e); } };
+            ws.onerror = () => { document.getElementById('log-stream').innerHTML = '<span style="color:#ff4444;">❌ Error</span>'; document.getElementById('connection-dot').style.background = '#e74c3c'; document.getElementById('connection-text').innerText = 'ERROR'; };
+            ws.onclose = () => { document.getElementById('log-stream').innerHTML = '<span style="color:#ffcc00;">🔄 Reconnecting...</span>'; document.getElementById('connection-dot').style.background = '#ffcc00'; document.getElementById('connection-text').innerText = 'RECONNECTING'; setTimeout(connectWebSocket, 2000); };
         }
         function updateUI() {
             if (!worldState) return;
             document.getElementById('stat-day').innerText = worldState.day;
             document.getElementById('stat-era').innerText = worldState.era;
             document.getElementById('stat-pop').innerText = worldState.population;
-            document.getElementById('stat-gold').innerText = Math.floor(worldState.treasury).toLocaleString();
+            document.getElementById('stat-gold').innerText = Math.floor(worldState.treasury).toLocaleString() + ' G';
             document.getElementById('stat-tech').innerText = Number(worldState.techPower).toFixed(1);
             document.getElementById('stat-tanks').innerText = worldState.tanks;
             document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
-            document.getElementById('stat-build').innerText = worldState.engineBuild || 'v2.0';
+            document.getElementById('stat-status').style.color = worldState.inWar ? '#e74c3c' : '#2ecc71';
+            document.getElementById('stat-building-count').innerText = Math.floor(worldState.population / 5) + 2;
             const ep = document.getElementById('event-panel');
-            if (worldState.activeEvents && worldState.activeEvents.length > 0) {
-                ep.innerHTML = worldState.activeEvents.map(e => '⚡ ' + e.description).join(' | ');
-                ep.style.borderColor = '#ff4444';
-            } else {
-                ep.innerHTML = 'No active events';
-                ep.style.borderColor = '#00ff88';
-            }
+            if (worldState.activeEvents && worldState.activeEvents.length > 0) { ep.innerHTML = worldState.activeEvents.map(e => '⚡ ' + e.description).join(' | '); ep.style.borderColor = '#ff4444'; ep.style.color = '#ff6666'; } else { ep.innerHTML = 'No active events'; ep.style.borderColor = '#00ff88'; ep.style.color = '#00ff88'; }
             const logBox = document.getElementById('log-stream');
-            if (worldState.logs && worldState.logs.length > 0) {
-                logBox.innerHTML = worldState.logs.map(l => '<div>' + l + '</div>').join('');
-                logBox.scrollTop = logBox.scrollHeight;
-            }
+            if (worldState.logs && worldState.logs.length > 0) { logBox.innerHTML = worldState.logs.map(l => '<div class="log-entry">' + l + '</div>').join(''); logBox.scrollTop = logBox.scrollHeight; }
         }
-        connect();
-    </script>
-</body>
-</html>`;
-}
+        function generateObjects() {
+            if (!worldState) return;
+            buildings = [];
+            units = [];
+            const bCount = clamp(Math.floor(worldState.population / 5) + 2, 5, 80);
+            const uCount = clamp(Math.floor(worldState.population / 10) + 2, 3, 50);
+            for (let i = 0; i < bCount; i++) { buildings.push({ xPercent: 5 + ((i * 7) % 90), yPercent: 10 + ((i * 5) % 80), type: i % 4, heightPercent: 8 + (i % 5) * 3 }); }
+            for (let u = 0; u < uCount; u++) { units.push({ xPercent: 5 + Math.random() * 90, yPercent: 10 + Math.random() * 80, color: ['#ff6666', '#6666ff', '#66ff66', '#ffff66', '#ff66ff'][u % 5] }); }
+        }
+        canvas.addEventListener('mousedown', (e) => { isDragging = true; startX = e.clientX - camera.x; startY = e.clientY - camera.y; });
+        window.addEventListener('mouseup', () => isDragging = false);
+        canvas.addEventListener('mousemove', (e) => { if (isDragging) { camera.x = e.clientX - startX; camera.y = e.clientY - startY; } });
+        canvas.addEventListener('wheel', (e) => { e.preventDefault(); camera.zoom = clamp(camera.zoom * (e.deltaY < 0 ? 1.1 : 0.9), 0.5, 2.5); }, { passive: false });
+        let lastTouchDist = 0;
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); if (e.touches.length === 1) { isDragging = true; startX = e.touches[0].clientX - camera.x; startY = e.touches[0].clientY - camera.y; } else if (e.touches.length === 2) { isDragging = false; lastTouchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); } });
+        canvas.addEventListener('touchend', () => isDragging = false);
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (e.touches.length === 1 && isDragging) { camera.x = e.touches[0].clientX - startX; camera.y = e.touches[0].clientY - startY; } else if (e.touches.length === 2) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[
