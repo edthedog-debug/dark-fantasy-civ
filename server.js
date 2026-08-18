@@ -426,7 +426,7 @@ WSS.on('connection', (ws) => {
 });
 
 /**
- * AI CODE IMPROVEMENT - ENHANCED PROMPT
+ * AI CODE IMPROVEMENT - TWO-STEP WITH PRE-VALIDATION
  */
 async function autoImproveGameCode() {
     const types = ["CSS STYLING", "MAP GRAPHICS & MECHANICS", "HTML STRUCTURE"];
@@ -449,65 +449,46 @@ async function autoImproveGameCode() {
             fs.writeFileSync(htmlPath, currentHtml);
         }
         
-        // ENHANCED PROMPT - More specific with examples
-        const prompt = `You are improving the ${improvementType} of this dark fantasy civilization game.
+        // STEP 1: Ask AI to ANALYZE current HTML
+        const analysisPrompt = `Analyze this HTML code and identify the ${improvementType} section that can be improved. List specific elements, classes, or functions that need improvement.
 
-HERE IS THE CURRENT HTML CODE:
+CURRENT HTML:
+\`\`\`html
+${currentHtml.substring(0, 50000)}
+\`\`\`
+
+Return ONLY a JSON list of improvements needed:
+{"improvements": ["improvement1", "improvement2", "improvement3"]}`;
+
+        const analysisResult = await queryAI(analysisPrompt, "ANALYSIS - " + improvementType);
+        
+        if (!analysisResult) {
+            addLog("[AI] Analysis failed - keeping current HTML");
+            worldState.aiImprovements += 1;
+            return;
+        }
+        
+        // STEP 2: Ask AI to make SPECIFIC improvements
+        const improvementPrompt = `MODIFY the following HTML by making these SPECIFIC improvements to the ${improvementType}:
+
+IMPROVEMENTS NEEDED:
+${analysisResult}
+
+CURRENT HTML (MODIFY THIS EXACT CODE):
 \`\`\`html
 ${currentHtml}
 \`\`\`
 
-IMPROVEMENT GOALS FOR ${improvementType}:
-${
-    improvementType === "MAP GRAPHICS & MECHANICS" 
-    ? `- ADD new building types (temple, market, wall, farm)
-- ADD particle effects (rain, snow, embers, magic sparkles)
-- ADD day/night cycle with changing sky colors
-- ADD unit animations (walking, working, fighting)
-- ADD new terrain types (desert, mountain, swamp)
-- ADD building construction animations
-- ADD resource gathering animations
-- IMPROVE river with animated water flow
-- ADD birds or wildlife animations
-- ADD weather effects (rain, fog, lightning)`
-    : improvementType === "CSS STYLING"
-    ? `- ADD animated gradient backgrounds to panels
-- ADD hover effects on stat cards (scale, glow, shadow)
-- ADD smooth transitions (0.3s ease) on all interactive elements
-- ADD pulsing glow effects on important numbers
-- ADD progress bars with animated fill
-- ADD tooltip styles for hover information
-- ADD modal/popup styles for building details
-- ADD achievement badge styles
-- IMPROVE scrollbar styling
-- ADD responsive design for mobile devices`
-    : `- ADD semantic HTML5 elements (header, nav, main, section, article)
-- ADD aria-labels for accessibility
-- ADD data-attributes for buildings and units
-- ADD meta tags for SEO
-- IMPROVE form elements if any
-- ADD favicon link
-- ADD loading screen
-- ADD error handling display
-- ADD settings panel structure
-- IMPROVE overall document structure`
-}
+RULES:
+1. MODIFY the existing code - DO NOT rewrite from scratch
+2. KEEP all existing functions: connectWebSocket, updateUI, drawCastle, drawHouse, drawBarracks, drawTower, render, generateObjects
+3. KEEP all element IDs unchanged
+4. KEEP WebSocket connection exactly as is
+5. KEEP dark background #070913
+6. ONLY change the ${improvementType} parts
+7. Return the COMPLETE modified HTML`;
 
-CRITICAL RULES:
-1. PRESERVE WebSocket code EXACTLY - DO NOT MODIFY the connectWebSocket function
-2. PRESERVE all element IDs: stat-day, stat-era, stat-pop, stat-gold, stat-tech, stat-tanks, stat-status, stat-building-count, gameCanvas, event-panel, log-stream, connection-dot, connection-text
-3. KEEP dark background #070913 on body
-4. KEEP overflow: hidden, position: fixed on body
-5. KEEP the updateUI() function - only ADD to it, don't remove
-6. KEEP all drawing functions: drawCastle, drawHouse, drawBarracks, drawTower
-7. KEEP the render() function structure
-8. You MAY ADD new functions, new CSS classes, new HTML elements
-9. You MAY MODIFY existing CSS styles
-10. You MAY ADD new canvas drawing code
-11. Return COMPLETE modified HTML
-12. Be creative but keep the core functionality intact`;
-
-        const aiResponse = await queryAI(prompt, "CODE IMPROVEMENT - " + improvementType);
+        const aiResponse = await queryAI(improvementPrompt, "IMPROVEMENT - " + improvementType);
         
         if (aiResponse && aiResponse.length > 100) {
             const htmlMatch = aiResponse.match(/```html[\s\S]*?```/) || aiResponse.match(/<!DOCTYPE html>[\s\S]*?<\/html>/);
@@ -515,26 +496,24 @@ CRITICAL RULES:
             if (htmlMatch) {
                 let newHtml = htmlMatch[0].replace(/```html/g, '').replace(/```/g, '').trim();
                 
-                // MORE FLEXIBLE VALIDATION
-                const hasWebSocket = /new WebSocket|ws\.onopen|ws\.onmessage/i.test(newHtml);
-                const hasWhiteBg = /background:\s*(white|#fff|#ffffff)/i.test(newHtml);
-                const hasScroll = /overflow:\s*(auto|scroll)/i.test(newHtml);
-                const hasIDs = /stat-day|stat-era|stat-pop/i.test(newHtml);
-                const hasUpdateUI = /function\s+updateUI/i.test(newHtml);
-                const hasCanvas = /gameCanvas|getContext/i.test(newHtml);
+                // PRE-VALIDATION BEFORE SAVING
+                const validationResults = validateHTML(newHtml);
                 
-                if (!hasWebSocket || !hasIDs || !hasUpdateUI || !hasCanvas) {
-                    console.log("⚠️ AI generated invalid HTML - REJECTED");
-                    addLog("[AI] Invalid HTML rejected - missing essential functions");
-                } else if (hasWhiteBg || hasScroll) {
-                    console.log("⚠️ AI generated HTML with white bg or scroll - REJECTED");
-                    addLog("[AI] Invalid HTML rejected - wrong styling");
-                } else {
+                if (validationResults.isValid) {
+                    // BACKUP current HTML first
+                    const backupPath = htmlPath + '.backup';
+                    fs.writeFileSync(backupPath, currentHtml);
+                    
+                    // Save new HTML
                     fs.writeFileSync(htmlPath, newHtml);
-                    console.log("✅ AI HTML applied");
-                    addLog("[AI] HTML successfully updated - " + improvementType);
+                    console.log("✅ AI HTML applied successfully");
+                    addLog("[AI] HTML updated - " + improvementType);
                     
                     worldState.successfulImprovements = (worldState.successfulImprovements || 0) + 1;
+                } else {
+                    console.log("⚠️ HTML validation failed:", validationResults.errors);
+                    addLog("[AI] HTML rejected - " + validationResults.errors.join(', '));
+                    // Keep current HTML
                 }
             } else {
                 console.log("⚠️ No HTML found in AI response");
@@ -552,7 +531,61 @@ CRITICAL RULES:
         
     } catch (err) {
         console.error("Error:", err.message);
+        addLog("[AI] Error - keeping current HTML");
     }
+}
+
+/**
+ * VALIDATE HTML BEFORE SAVING
+ */
+function validateHTML(html) {
+    const errors = [];
+    
+    // Check 1: WebSocket
+    if (!/new WebSocket|ws\.onopen|ws\.onmessage/i.test(html)) {
+        errors.push("Missing WebSocket");
+    }
+    
+    // Check 2: Essential IDs
+    const requiredIds = ['stat-day', 'stat-era', 'stat-pop', 'stat-gold', 'stat-tech', 'stat-tanks', 'stat-status', 'stat-building-count', 'gameCanvas', 'event-panel', 'log-stream', 'connection-dot', 'connection-text'];
+    requiredIds.forEach(id => {
+        if (!html.includes('id="' + id + '"')) {
+            errors.push("Missing ID: " + id);
+        }
+    });
+    
+    // Check 3: Essential functions
+    const requiredFunctions = ['connectWebSocket', 'updateUI', 'drawCastle', 'drawHouse', 'drawBarracks', 'drawTower', 'render', 'generateObjects'];
+    requiredFunctions.forEach(func => {
+        if (!html.includes('function ' + func) && !html.includes(func + ' =')) {
+            errors.push("Missing function: " + func);
+        }
+    });
+    
+    // Check 4: No white background
+    if (/background:\s*(white|#fff|#ffffff)/i.test(html)) {
+        errors.push("White background detected");
+    }
+    
+    // Check 5: No scroll on body
+    if (/body\s*{[^}]*overflow:\s*(auto|scroll)/i.test(html)) {
+        errors.push("Scroll on body detected");
+    }
+    
+    // Check 6: Has canvas rendering
+    if (!/getContext\('2d'\)|getContext\("2d"\)/i.test(html)) {
+        errors.push("Missing canvas context");
+    }
+    
+    // Check 7: Has requestAnimationFrame
+    if (!/requestAnimationFrame/i.test(html)) {
+        errors.push("Missing requestAnimationFrame");
+    }
+    
+    return {
+        isValid: errors.length === 0,
+        errors: errors
+    };
 }
 
 // START SERVER
