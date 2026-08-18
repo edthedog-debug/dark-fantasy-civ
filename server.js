@@ -21,10 +21,10 @@ const SERVER = http.createServer(APP);
 const WSS = new WebSocket.Server({ server: SERVER, perMessageDeflate: false });
 const STATE_FILE = path.join(__dirname, 'worldState.json');
 
-// Rate limiter
+// Rate limiter - 30 seconds between calls (more conservative)
 const rateLimiter = {
     lastCallTime: 0,
-    minInterval: 20000,
+    minInterval: 30000,
     
     async waitForSlot() {
         const now = Date.now();
@@ -98,7 +98,7 @@ function addLog(msg) {
 }
 
 /**
- * GROQ API
+ * GROQ API - groq/compound-mini
  */
 async function queryAI(prompt, taskType) {
     if (!GROQ_API_KEY) {
@@ -109,7 +109,7 @@ async function queryAI(prompt, taskType) {
     console.log("┌─────────────────────────────────────");
     console.log("│ 🤖 GROQ AI CONNECTION");
     console.log("│ 📋 Task: " + taskType);
-    console.log("│ 🧠 Model: qwen/qwen3.6-27b");
+    console.log("│ 🧠 Model: groq/compound-mini");
     console.log("└─────────────────────────────────────");
     
     try {
@@ -127,10 +127,10 @@ async function queryAI(prompt, taskType) {
                 'Authorization': `Bearer ${GROQ_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'qwen/qwen3.6-27b',
+                model: 'groq/compound-mini',
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.7,
-                max_tokens: 2048
+                max_tokens: 1024
             }),
             signal: controller.signal
         });
@@ -210,7 +210,7 @@ async function pushToGitHub(htmlPath, type, day) {
 }
 
 /**
- * AI Events
+ * AI Events - REDUCED FREQUENCY
  */
 async function generateAIEvents() {
     const treasury = worldState.treasury;
@@ -264,45 +264,38 @@ async function generateAIEvents() {
 function runSimulationTick() {
     worldState.day += 1;
 
-    // Recovery - only when truly desperate
     if (worldState.treasury <= 0 && worldState.happiness < 30) {
         worldState.treasury += 3000;
         worldState.happiness = Math.min(100, worldState.happiness + 10);
         addLog("[RECOVERY] Emergency reserve injected 3,000 Gold!");
     }
 
-    // Morale productivity
     let moraleProductivity = 1.0;
     if (worldState.happiness >= 80) moraleProductivity = 1.2;
     else if (worldState.happiness >= 50) moraleProductivity = 1.0;
     else if (worldState.happiness >= 30) moraleProductivity = 0.8;
     else moraleProductivity = 0.5;
 
-    // REALISTIC INCOME - Moderate taxes
-    const baseTaxPerCitizen = 5; // 5 gold per citizen
-    const techMultiplier = 1 + (worldState.techPower * 0.05); // Tech adds 5% per level
-    const tradeBonus = 1 + (worldState.population * 0.001); // More people = more trade
+    const baseTaxPerCitizen = 5;
+    const techMultiplier = 1 + (worldState.techPower * 0.05);
+    const tradeBonus = 1 + (worldState.population * 0.001);
     const grossIncome = Math.floor(worldState.population * baseTaxPerCitizen * moraleProductivity * techMultiplier * tradeBonus);
     
-    // REALISTIC EXPENSES - Balanced
-    const citizenServices = Math.floor(worldState.population * 4); // 4 per person
-    const militaryMaintenance = worldState.tanks * 200; // 200 per tank
-    const infrastructureRepairs = Math.floor(worldState.treasury * 0.005); // 0.5% of treasury
+    const citizenServices = Math.floor(worldState.population * 4);
+    const militaryMaintenance = worldState.tanks * 200;
+    const infrastructureRepairs = Math.floor(worldState.treasury * 0.005);
     const totalExpenses = citizenServices + militaryMaintenance + infrastructureRepairs;
     
     const netProfit = grossIncome - totalExpenses;
     worldState.treasury = Math.max(0, worldState.treasury + netProfit);
 
-    // Log economy only on significant changes
     if (Math.abs(netProfit) > 1000 && worldState.day % 10 === 0) {
         const status = netProfit > 0 ? "PROFIT" : "LOSS";
         addLog("[ECONOMY] " + status + ": " + netProfit.toLocaleString() + " Gold (Day " + worldState.day + ")");
     }
 
-    // Tech growth - moderate
     worldState.techPower += 0.008;
 
-    // Demographics - balanced
     if (worldState.happiness > 70 && worldState.treasury > 20000 && worldState.day % 8 === 0) {
         worldState.population += 1;
         addLog("[DEMOGRAPHICS] +1 immigrant. Pop: " + worldState.population);
@@ -311,21 +304,18 @@ function runSimulationTick() {
         addLog("[DEMOGRAPHICS] -1 emigrated. Pop: " + worldState.population);
     }
 
-    // R&D Investment - optional
     if (worldState.treasury > 30000 && worldState.day % 25 === 0) {
         worldState.treasury -= 3000;
         worldState.techPower += 0.3;
         addLog("[ECONOMY] Invested 3,000 Gold into R&D.");
     }
 
-    // DEFENSE - Meaningful
     if (worldState.treasury > 50000 && worldState.tanks < 15 && worldState.day % 40 === 0) {
         worldState.treasury -= 8000;
         worldState.tanks += 1;
         addLog("[DEFENSE] Built 1 Defense Unit for 8,000 Gold.");
     }
 
-    // Defense upkeep
     if (worldState.tanks > 0) {
         const defenseUpkeep = worldState.tanks * 150;
         worldState.treasury = Math.max(0, worldState.treasury - defenseUpkeep);
@@ -335,11 +325,13 @@ function runSimulationTick() {
         worldState.activeEvents = worldState.activeEvents.filter(e => e.endDay > worldState.day);
     }
 
-    if (worldState.day % 150 === 0) {
+    // REDUCED FREQUENCY: Events every 200 days (~13 min)
+    if (worldState.day % 200 === 0) {
         generateAIEvents();
     }
 
-    if (worldState.day % 250 === 0) {
+    // REDUCED FREQUENCY: Code improvement every 400 days (~27 min)
+    if (worldState.day % 400 === 0) {
         autoImproveGameCode().catch(err => console.error(err.message));
     }
 
@@ -355,7 +347,7 @@ WSS.on('connection', (ws) => {
     ws.send(JSON.stringify({ type: 'WORLD_UPDATE', data: worldState }));
 });
 
-// AI CODE IMPROVEMENT - PROTECTED
+// AI CODE IMPROVEMENT
 async function autoImproveGameCode() {
     const types = ["CSS STYLING", "CANVAS GRAPHICS", "HTML STRUCTURE"];
     const improvementType = types[worldState.aiImprovements % 3];
@@ -363,7 +355,6 @@ async function autoImproveGameCode() {
     console.log("\n┌─────────────────────────────────────");
     console.log("│ 🤖 AI CODE IMPROVEMENT");
     console.log("│ 📋 Type: " + improvementType);
-    console.log("│ 📅 Day: " + worldState.day);
     console.log("└─────────────────────────────────────");
     
     addLog("[AI AUTO-CODING] " + improvementType + " improvement...");
@@ -378,42 +369,23 @@ async function autoImproveGameCode() {
             fs.writeFileSync(htmlPath, currentHtml);
         }
         
-        const prompt = `You are improving the ${improvementType} of a dark fantasy game.
-        
-        CRITICAL RULES:
-        - PRESERVE the WebSocket connection code EXACTLY as is
-        - PRESERVE dark background (#070913) - NEVER use white backgrounds
-        - PRESERVE overflow: hidden on body - NEVER add scroll
-        - PRESERVE all element IDs
-        - ONLY enhance colors, borders, shadows, animations
-        - Keep the dark fantasy theme
-        - Return ONLY the ${improvementType} code`;
-        
+        const prompt = `Improve ${improvementType}. Preserve all IDs and WebSocket. Return only code.`;
         const aiResponse = await queryAI(prompt, "CODE IMPROVEMENT - " + improvementType);
         
         if (aiResponse && aiResponse.length > 50) {
             const codeToAdd = aiResponse.replace(/```/g, '').trim();
+            let improvedHtml = currentHtml;
             
-            const hasWhiteBg = /background:\s*(white|#fff|#ffffff)/i.test(codeToAdd);
-            const hasScroll = /overflow:\s*(auto|scroll)/i.test(codeToAdd);
-            
-            if (hasWhiteBg || hasScroll) {
-                console.log("⚠️ AI generated problematic CSS - REJECTED");
-                addLog("[AI] Problematic code rejected");
+            if (worldState.aiImprovements % 3 === 0) {
+                improvedHtml = improvedHtml.replace(/<style>[\s\S]*?<\/style>/g, `<style>\n${codeToAdd}\n</style>`);
+            } else if (worldState.aiImprovements % 3 === 1) {
+                improvedHtml = improvedHtml.replace(/<script>[\s\S]*?<\/script>/g, `<script>\n${codeToAdd}\n</script>`);
             } else {
-                let improvedHtml = currentHtml;
-                
-                if (worldState.aiImprovements % 3 === 0) {
-                    improvedHtml = improvedHtml.replace(/<style>[\s\S]*?<\/style>/g, `<style>\n${codeToAdd}\n</style>`);
-                } else if (worldState.aiImprovements % 3 === 1) {
-                    improvedHtml = improvedHtml.replace(/<script>[\s\S]*?<\/script>/g, `<script>\n${codeToAdd}\n</script>`);
-                } else {
-                    improvedHtml = improvedHtml.replace(/<body>[\s\S]*?<\/body>/g, `<body>\n${codeToAdd}\n</body>`);
-                }
-                
-                fs.writeFileSync(htmlPath, improvedHtml);
-                console.log("✅ AI code applied");
+                improvedHtml = improvedHtml.replace(/<body>[\s\S]*?<\/body>/g, `<body>\n${codeToAdd}\n</body>`);
             }
+            
+            fs.writeFileSync(htmlPath, improvedHtml);
+            console.log("✅ AI code applied");
         }
         
         worldState.aiImprovements += 1;
@@ -430,8 +402,8 @@ async function autoImproveGameCode() {
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
-    console.log("💰 Treasury:", worldState.treasury.toLocaleString());
-    console.log("⚖️ Realistic Economy: income > expenses with balanced growth");
+    console.log("🤖 AI Model: groq/compound-mini");
+    console.log("⏱️ Events: every 200 days | Code: every 400 days | Rate: 30s");
     
     addLog("[SYSTEM] Simulation started.");
     broadcastState();
@@ -440,7 +412,7 @@ SERVER.listen(PORT, () => {
     queryAI("Say OK", "CONNECTION TEST").then(response => {
         if (response) {
             console.log("✅ AI CONNECTION ESTABLISHED");
-            addLog("[SYSTEM] AI System ready.");
+            addLog("[SYSTEM] AI System ready (compound-mini).");
         } else {
             console.log("⚠️ AI connection failed");
             addLog("[SYSTEM] AI unavailable.");
@@ -450,7 +422,7 @@ SERVER.listen(PORT, () => {
 });
 
 /**
- * Clean HTML - PROTECTED
+ * Clean HTML
  */
 function getCleanHTML() {
     return `<!DOCTYPE html>
