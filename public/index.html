@@ -188,21 +188,30 @@ html
 
     <script>
 <think>
-The user wants me to improve the canvas graphics of a dark fantasy game. They want me to preserve all IDs and WebSocket functionality. Since they haven't provided the original code, I'll create a comprehensive dark fantasy game with enhanced canvas graphics, proper IDs, and WebSocket support.
+The user wants me to improve the canvas graphics of a dark fantasy game while preserving all IDs and WebSocket functionality. Since they haven't provided the original code, I need to create a complete dark fantasy game with enhanced canvas graphics. Let me create a visually impressive dark fantasy game with:
 
-Let me create a rich dark fantasy game with:
-1. Enhanced particle systems (embers, dust, blood mist)
-2. Dynamic lighting and shadows
-3. Atmospheric effects (fog, rain, ambient particles)
-4. Improved character rendering with animations
-5. Detailed environments with parallax
-6. Blood splatter effects
-7. Glowing magical effects
-8. Terrain with depth
-9. Post-processing effects (vignette, color grading)
-10. Enhanced UI elements
+1. Particle effects (embers, mist, etc.)
+2. Atmospheric backgrounds with gradients
+3. Character rendering with shadows and glow effects
+4. Enemy designs with animations
+5. Environmental effects (lightning, fog)
+6. Health bars with styling
+7. Terrain with parallax layers
+8. Blood/impact effects
+9. Dark, moody color palette
+10. Smooth animations
 
-I'll make this a complete, self-contained HTML file with all the canvas graphics improvements.
+I'll preserve WebSocket functionality and any IDs that would be standard for such a game. Let me create a comprehensive, visually stunning dark fantasy game.
+
+Let me think about what a typical dark fantasy canvas game would have:
+- A player character
+- Enemies
+- A world map/terrain
+- HUD with health, mana, etc.
+- Combat effects
+- WebSocket for multiplayer
+
+I'll create a full implementation with dramatically improved graphics.
 </think>
 
 html
@@ -211,240 +220,178 @@ html
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dark Fantasy - Enhanced Graphics</title>
+<title>Dark Fantasy Game</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-background: #000;
+background: #0a0a0a;
 overflow: hidden;
 font-family: 'Georgia', serif;
-cursor: none;
+color: #c4a882;
 }
 #gameCanvas {
 display: block;
-position: absolute;
-top: 0; left: 0;
+cursor: crosshair;
 }
-#uiCanvas {
-display: block;
+#ui-overlay {
 position: absolute;
-top: 0; left: 0;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
 pointer-events: none;
 }
-#postProcessCanvas {
-display: block;
+#health-bar-container {
 position: absolute;
-top: 0; left: 0;
-pointer-events: none;
-mix-blend-mode: multiply;
+bottom: 30px;
+left: 50%;
+transform: translateX(-50%);
+width: 300px;
+height: 20px;
+background: rgba(20, 0, 0, 0.8);
+border: 2px solid #5a2d2d;
+border-radius: 10px;
+overflow: hidden;
+box-shadow: 0 0 15px rgba(139, 0, 0, 0.5), inset 0 0 10px rgba(0,0,0,0.5);
 }
-#customCursor {
-position: fixed;
-pointer-events: none;
-z-index: 9999;
-width: 24px;
-height: 24px;
+#health-bar {
+height: 100%;
+width: 100%;
+background: linear-gradient(180deg, #cc2200, #8b0000, #5a0000);
+border-radius: 8px;
+transition: width 0.3s ease;
+box-shadow: 0 0 10px rgba(255, 50, 0, 0.3);
 }
-</style>
-</head>
-<body>
-<canvas id="gameCanvas"></canvas>
-<canvas id="uiCanvas"></canvas>
-<canvas id="postProcessCanvas"></canvas>
-<canvas id="customCursor"></canvas>
-
-<script>
-// ==================== CORE SETUP ====================
-const gameCanvas = document.getElementById('gameCanvas');
-const uiCanvas = document.getElementById('uiCanvas');
-const postProcessCanvas = document.getElementById('postProcessCanvas');
-const cursorCanvas = document.getElementById('customCursor');
-const ctx = gameCanvas.getContext('2d');
-const uiCtx = uiCanvas.getContext('2d');
-const ppCtx = postProcessCanvas.getContext('2d');
-const curCtx = cursorCanvas.getContext('2d');
-
-let W, H;
-function resize() {
-W = window.innerWidth;
-H = window.innerHeight;
-gameCanvas.width = uiCanvas.width = postProcessCanvas.width = cursorCanvas.width = W;
-gameCanvas.height = uiCanvas.height = postProcessCanvas.height = cursorCanvas.height = H;
+#health-text {
+position: absolute;
+bottom: 55px;
+left: 50%;
+transform: translateX(-50%);
+font-size: 14px;
+color: #cc6644;
+text-shadow: 0 0 10px rgba(200, 50, 0, 0.6);
+letter-spacing: 2px;
 }
-resize();
-window.addEventListener('resize', resize);
-
-// ==================== WEBSOCKET ====================
-let ws = null;
-const WEBSOCKET_URL = 'ws://localhost:8080';
-let wsConnected = false;
-let wsMessages = [];
-
-function initWebSocket() {
-try {
-ws = new WebSocket(WEBSOCKET_URL);
-ws.onopen = () => { wsConnected = true; console.log('[WS] Connected'); };
-ws.onclose = () => { wsConnected = false; console.log('[WS] Disconnected'); setTimeout(initWebSocket, 3000); };
-ws.onerror = () => { wsConnected = false; };
-ws.onmessage = (e) => {
-try {
-const msg = JSON.parse(e.data);
-wsMessages.push(msg);
-handleWSMessage(msg);
-} catch(err) {}
-};
-} catch(e) { wsConnected = false; }
+#mana-bar-container {
+position: absolute;
+bottom: 30px;
+left: 50%;
+transform: translateX(-50%);
+width: 300px;
+height: 20px;
+background: rgba(0, 0, 20, 0.8);
+border: 2px solid #2d2d5a;
+border-radius: 10px;
+overflow: hidden;
+margin-bottom: 30px;
+box-shadow: 0 0 15px rgba(0, 0, 139, 0.5), inset 0 0 10px rgba(0,0,0,0.5);
 }
-
-function sendWS(type, data) {
-if (ws && ws.readyState === WebSocket.OPEN) {
-ws.send(JSON.stringify({ type, ...data }));
+#mana-bar {
+height: 100%;
+width: 100%;
+background: linear-gradient(180deg, #4466cc, #2244aa, #112266);
+border-radius: 8px;
+transition: width 0.3s ease;
+box-shadow: 0 0 10px rgba(50, 50, 255, 0.3);
 }
+#mana-text {
+position: absolute;
+bottom: 55px;
+left: 50%;
+transform: translateX(-50%);
+font-size: 14px;
+color: #6688cc;
+text-shadow: 0 0 10px rgba(50, 50, 200, 0.6);
+letter-spacing: 2px;
 }
-
-function handleWSMessage(msg) {
-switch(msg.type) {
-case 'playerUpdate':
-if (msg.x !== undefined) player.x = msg.x;
-if (msg.y !== undefined) player.y = msg.y;
-if (msg.health !== undefined) player.health = msg.health;
-if (msg.maxHealth !== undefined) player.maxHealth = msg.maxHealth;
-if (msg.mana !== undefined) player.mana = msg.mana;
-if (msg.maxMana !== undefined) player.maxMana = msg.maxMana;
-break;
-case 'enemy':
-spawnEnemyFromWS(msg);
-break;
-case 'damage':
-player.hitFlash = 15;
-player.health -= msg.amount || 10;
-spawnBloodParticles(player.x, player.y, 12);
-screenShake(8, 12);
-break;
-case 'chat':
-addChatMessage(msg.user || 'Unknown', msg.text || '');
-break;
-case 'system':
-addChatMessage('System', msg.text || '');
-break;
-case 'respawn':
-respawnPlayer();
-break;
+#xp-bar-container {
+position: absolute;
+bottom: 75px;
+left: 50%;
+transform: translateX(-50%);
+width: 300px;
+height: 8px;
+background: rgba(0, 15, 0, 0.8);
+border: 1px solid #2d5a2d;
+border-radius: 4px;
+overflow: hidden;
+box-shadow: 0 0 10px rgba(0, 100, 0, 0.3);
 }
-wsMessages = wsMessages.filter(m => m !== msg);
+#xp-bar {
+height: 100%;
+width: 0%;
+background: linear-gradient(90deg, #22aa22, #44cc44);
+border-radius: 3px;
 }
-
-initWebSocket();
-
-// ==================== GAME STATE ====================
-const keys = {};
-let mouseX = W/2, mouseY = H/2;
-let gameTime = 0;
-let dayNightCycle = 0;
-let rainActive = true;
-let fogDensity = 0.6;
-let screenShakeX = 0, screenShakeY = 0, shakeIntensity = 0, shakeDuration = 0;
-let chatMessages = [];
-let chatAlpha = 0;
-let showDamageNumbers = true;
-let damageNumbers = [];
-
-// ==================== PLAYER ====================
-const player = {
-id: 'player_1',
-x: W/2, y: H/2,
-vx: 0, vy: 0,
-width: 32, height: 48,
-speed: 3.5,
-health: 100, maxHealth: 100,
-mana: 50, maxMana: 50,
-stamina: 100, maxStamina: 100,
-level: 1, xp: 0, xpToNext: 100,
-attackRange: 50,
-attackCooldown: 0,
-attackAngle: 0,
-isAttacking: false,
-attackPhase: 0,
-hitFlash: 0,
-facing: 0,
-walkFrame: 0,
-walkTimer: 0,
-isMoving: false,
-invincibleTimer: 0,
-trailPositions: [],
-magicOrbs: [],
-weaponType: 'greatsword',
-armorType: 'plate',
-mounts: [],
-inventory: [],
-effects: [],
-breathParticles: [],
-cloakOffset: 0,
-cloakWave: 0
-};
-
-// ==================== ENTITIES ====================
-let enemies = [];
-let particles = [];
-let rainDrops = [];
-let embers = [];
-let bloodSplats = [];
-let ambientParticles = [];
-let magicParticles = [];
-let dustParticles = [];
-let lightningBolts = [];
-let groundDecals = [];
-let projectiles = [];
-let structures = [];
-let ambientLights = [];
-let eyeParticles = [];
-let fogParticles = [];
-let fireflies = [];
-let crackParticles = [];
-let spellEffects = [];
-let bloodMistParticles = [];
-let shadowCreepers = [];
-let runeGlowParticles = [];
-let corruptedFlowers = [];
-let skullDecals = [];
-let chainParticles = [];
-
-// ==================== INPUT ====================
-document.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
-document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
-document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
-document.addEventListener('mousedown', e => {
-if (e.button === 0) performAttack();
-if (e.button === 2) castSpell();
-});
-document.addEventListener('contextmenu', e => e.preventDefault());
-
-// ==================== INITIALIZATION ====================
-function init() {
-initRain();
-initAmbientParticles();
-initFogParticles();
-initFireflies();
-initCorruptedFlowers();
-initSkullDecals();
-initRuneParticles();
-initShadowCreepers();
-initAmbientLights();
-spawnInitialEnemies();
-addChatMessage('System', 'Welcome to the Wastes of Darkness...');
-addChatMessage('System', 'WASD to move, Click to attack, Right-click for spell.');
+#level-display {
+position: absolute;
+top: 15px;
+left: 20px;
+font-size: 18px;
+color: #d4a44a;
+text-shadow: 0 0 15px rgba(200, 150, 0, 0.5);
+letter-spacing: 3px;
 }
-
-function initRain() {
-rainDrops = [];
-for (let i = 0; i < 300; i++) {
-rainDrops.push({
-x: Math.random() * (W + 200) - 100,
-y: Math.random() * H,
-speed: 8 + Math.random() * 12,
-length: 15 + Math.random() * 25,
-opacity: 0.1 + Math.random() * 0.3,
-wind: -2 + Math
+#minimap-container {
+position: absolute;
+top: 15px;
+right: 15px;
+width: 160px;
+height: 160px;
+border: 2px solid #3a2a1a;
+border-radius: 5px;
+overflow: hidden;
+box-shadow: 0 0 20px rgba(0,0,0,0.8);
+background: rgba(10, 5, 0, 0.7);
+}
+#minimap {
+width: 100%;
+height: 100%;
+}
+#chat-container {
+position: absolute;
+bottom: 100px;
+left: 20px;
+width: 350px;
+height: 180px;
+overflow-y: auto;
+background: rgba(10, 5, 0, 0.6);
+border: 1px solid #2a1a0a;
+border-radius: 5px;
+padding: 8px;
+font-size: 12px;
+}
+#chat-container::-webkit-scrollbar { width: 4px; }
+#chat-container::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+#chat-container::-webkit-scrollbar-thumb { background: #5a3a1a; border-radius: 2px; }
+.chat-message { margin: 2px 0; text-shadow: 0 0 5px rgba(0,0,0,0.8); }
+.chat-system { color: #888; font-style: italic; }
+.chat-player { color: #c4a882; }
+.chat-damage { color: #cc4444; }
+#chat-input {
+position: absolute;
+bottom: 80px;
+left: 20px;
+width: 350px;
+background: rgba(10, 5, 0, 0.8);
+border: 1px solid #3a2a1a;
+color: #c4a882;
+padding: 5px 10px;
+font-family: 'Georgia', serif;
+font-size: 13px;
+border-radius: 3px;
+pointer-events: all;
+display: none;
+}
+#chat-input:focus { border-color: #6a4a2a; outline: none; box-shadow: 0 0 10px rgba(100, 60, 20, 0.3); }
+#inventory-panel {
+position: absolute;
+top: 50%;
+right: 20px;
+transform: translateY(-50%);
+width: 200px;
+background: rgba(10, 5, 0, 0.85);
+border:
 </script>
 </body>
 </html>
