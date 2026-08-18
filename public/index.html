@@ -188,30 +188,20 @@ html
 
     <script>
 <think>
-The user wants me to improve the canvas graphics of a dark fantasy game while preserving all IDs and WebSocket functionality. Since they haven't provided the original code, I need to create a complete dark fantasy game with enhanced canvas graphics. Let me create a visually impressive dark fantasy game with:
+The user wants me to improve the canvas graphics of a dark fantasy game while preserving all IDs and WebSocket functionality. However, they haven't provided any code to work with. I need to create a dark fantasy game with improved canvas graphics that includes WebSocket functionality and proper IDs.
 
-1. Particle effects (embers, mist, etc.)
-2. Atmospheric backgrounds with gradients
-3. Character rendering with shadows and glow effects
-4. Enemy designs with animations
-5. Environmental effects (lightning, fog)
-6. Health bars with styling
-7. Terrain with parallax layers
-8. Blood/impact effects
-9. Dark, moody color palette
-10. Smooth animations
+Since no code was provided, I'll create a complete dark fantasy game with rich canvas graphics including:
+- Atmospheric particle effects (fog, embers, dust)
+- Parallax scrolling backgrounds
+- Character sprites with animations
+- Enemy designs
+- Health/Magic bars
+- Dark fantasy color palette
+- Post-processing effects (vignette, bloom-like glow)
+- Terrain with details
+- WebSocket integration for multiplayer
 
-I'll preserve WebSocket functionality and any IDs that would be standard for such a game. Let me create a comprehensive, visually stunning dark fantasy game.
-
-Let me think about what a typical dark fantasy canvas game would have:
-- A player character
-- Enemies
-- A world map/terrain
-- HUD with health, mana, etc.
-- Combat effects
-- WebSocket for multiplayer
-
-I'll create a full implementation with dramatically improved graphics.
+Let me build a comprehensive dark fantasy game with stunning canvas graphics.
 </think>
 
 html
@@ -219,179 +209,204 @@ html
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dark Fantasy Game</title>
+<title>Abyssal Realms - Dark Fantasy</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-background: #0a0a0a;
+background: #0a0a0f;
 overflow: hidden;
-font-family: 'Georgia', serif;
-color: #c4a882;
+display: flex;
+justify-content: center;
+align-items: center;
+height: 100vh;
+font-family: 'Segoe UI', serif;
 }
 #gameCanvas {
-display: block;
+border: 2px solid #1a0a2e;
+box-shadow: 0 0 60px rgba(100, 0, 150, 0.3), 0 0 120px rgba(50, 0, 80, 0.15);
 cursor: crosshair;
 }
 #ui-overlay {
 position: absolute;
-top: 0;
-left: 0;
-width: 100%;
-height: 100%;
+top: 20px;
+left: 50%;
+transform: translateX(-50%);
 pointer-events: none;
+z-index: 10;
 }
 #health-bar-container {
-position: absolute;
-bottom: 30px;
-left: 50%;
-transform: translateX(-50%);
-width: 300px;
-height: 20px;
+width: 280px;
+height: 22px;
 background: rgba(20, 0, 0, 0.8);
-border: 2px solid #5a2d2d;
-border-radius: 10px;
+border: 1px solid #4a1a1a;
+border-radius: 3px;
 overflow: hidden;
-box-shadow: 0 0 15px rgba(139, 0, 0, 0.5), inset 0 0 10px rgba(0,0,0,0.5);
+margin-bottom: 6px;
+box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
 }
 #health-bar {
-height: 100%;
 width: 100%;
-background: linear-gradient(180deg, #cc2200, #8b0000, #5a0000);
-border-radius: 8px;
-transition: width 0.3s ease;
-box-shadow: 0 0 10px rgba(255, 50, 0, 0.3);
-}
-#health-text {
-position: absolute;
-bottom: 55px;
-left: 50%;
-transform: translateX(-50%);
-font-size: 14px;
-color: #cc6644;
-text-shadow: 0 0 10px rgba(200, 50, 0, 0.6);
-letter-spacing: 2px;
+height: 100%;
+background: linear-gradient(180deg, #cc2222, #881111, #550000);
+transition: width 0.3s;
+box-shadow: 0 0 10px rgba(200, 30, 30, 0.5);
 }
 #mana-bar-container {
-position: absolute;
-bottom: 30px;
-left: 50%;
-transform: translateX(-50%);
-width: 300px;
-height: 20px;
+width: 280px;
+height: 14px;
 background: rgba(0, 0, 20, 0.8);
-border: 2px solid #2d2d5a;
-border-radius: 10px;
+border: 1px solid #1a1a4a;
+border-radius: 3px;
 overflow: hidden;
-margin-bottom: 30px;
-box-shadow: 0 0 15px rgba(0, 0, 139, 0.5), inset 0 0 10px rgba(0,0,0,0.5);
+box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
 }
 #mana-bar {
-height: 100%;
 width: 100%;
-background: linear-gradient(180deg, #4466cc, #2244aa, #112266);
-border-radius: 8px;
-transition: width 0.3s ease;
-box-shadow: 0 0 10px rgba(50, 50, 255, 0.3);
-}
-#mana-text {
-position: absolute;
-bottom: 55px;
-left: 50%;
-transform: translateX(-50%);
-font-size: 14px;
-color: #6688cc;
-text-shadow: 0 0 10px rgba(50, 50, 200, 0.6);
-letter-spacing: 2px;
+height: 100%;
+background: linear-gradient(180deg, #2244cc, #112288, #000055);
+transition: width 0.3s;
+box-shadow: 0 0 10px rgba(30, 60, 200, 0.5);
 }
 #xp-bar-container {
-position: absolute;
-bottom: 75px;
-left: 50%;
-transform: translateX(-50%);
-width: 300px;
+width: 280px;
 height: 8px;
-background: rgba(0, 15, 0, 0.8);
-border: 1px solid #2d5a2d;
-border-radius: 4px;
+background: rgba(10, 10, 0, 0.8);
+border: 1px solid #3a3a1a;
+border-radius: 2px;
 overflow: hidden;
-box-shadow: 0 0 10px rgba(0, 100, 0, 0.3);
+box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
 }
 #xp-bar {
-height: 100%;
 width: 0%;
-background: linear-gradient(90deg, #22aa22, #44cc44);
-border-radius: 3px;
+height: 100%;
+background: linear-gradient(180deg, #ccaa22, #886611, #554400);
+transition: width 0.3s;
+box-shadow: 0 0 8px rgba(200, 170, 30, 0.4);
 }
-#level-display {
+#stats-panel {
 position: absolute;
-top: 15px;
-left: 20px;
-font-size: 18px;
-color: #d4a44a;
-text-shadow: 0 0 15px rgba(200, 150, 0, 0.5);
-letter-spacing: 3px;
+bottom: 20px;
+left: 50%;
+transform: translateX(-50%);
+color: #8a7a6a;
+font-size: 13px;
+text-align: center;
+pointer-events: none;
+z-index: 10;
+text-shadow: 0 0 10px rgba(100, 80, 60, 0.5);
 }
 #minimap-container {
 position: absolute;
-top: 15px;
-right: 15px;
-width: 160px;
-height: 160px;
-border: 2px solid #3a2a1a;
-border-radius: 5px;
-overflow: hidden;
-box-shadow: 0 0 20px rgba(0,0,0,0.8);
-background: rgba(10, 5, 0, 0.7);
+bottom: 20px;
+right: 20px;
+border: 2px solid #2a1a3a;
+border-radius: 4px;
+z-index: 10;
+box-shadow: 0 0 20px rgba(80, 0, 120, 0.3);
 }
-#minimap {
-width: 100%;
-height: 100%;
-}
+#minimap { display: block; }
 #chat-container {
 position: absolute;
-bottom: 100px;
+bottom: 20px;
 left: 20px;
-width: 350px;
-height: 180px;
-overflow-y: auto;
-background: rgba(10, 5, 0, 0.6);
-border: 1px solid #2a1a0a;
-border-radius: 5px;
-padding: 8px;
+width: 300px;
+max-height: 200px;
+z-index: 10;
+pointer-events: none;
+}
+#chat-messages {
+color: #aaa;
 font-size: 12px;
+overflow: hidden;
+text-shadow: 1px 1px 2px #000;
 }
-#chat-container::-webkit-scrollbar { width: 4px; }
-#chat-container::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
-#chat-container::-webkit-scrollbar-thumb { background: #5a3a1a; border-radius: 2px; }
-.chat-message { margin: 2px 0; text-shadow: 0 0 5px rgba(0,0,0,0.8); }
-.chat-system { color: #888; font-style: italic; }
-.chat-player { color: #c4a882; }
-.chat-damage { color: #cc4444; }
-#chat-input {
+#connection-status {
 position: absolute;
-bottom: 80px;
-left: 20px;
-width: 350px;
-background: rgba(10, 5, 0, 0.8);
-border: 1px solid #3a2a1a;
-color: #c4a882;
-padding: 5px 10px;
-font-family: 'Georgia', serif;
-font-size: 13px;
-border-radius: 3px;
-pointer-events: all;
-display: none;
+top: 10px;
+right: 10px;
+color: #4a4;
+font-size: 11px;
+z-index: 10;
+text-shadow: 0 0 5px rgba(0, 200, 0, 0.3);
 }
-#chat-input:focus { border-color: #6a4a2a; outline: none; box-shadow: 0 0 10px rgba(100, 60, 20, 0.3); }
-#inventory-panel {
-position: absolute;
-top: 50%;
-right: 20px;
-transform: translateY(-50%);
-width: 200px;
-background: rgba(10, 5, 0, 0.85);
-border:
+#connection-status.disconnected { color: #a44; }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas" width="960" height="640"></canvas>
+<div id="ui-overlay">
+<div id="health-bar-container"><div id="health-bar"></div></div>
+<div id="mana-bar-container"><div id="mana-bar"></div></div>
+<div id="xp-bar-container"><div id="xp-bar"></div></div>
+</div>
+<div id="stats-panel">
+<span id="player-level">Level 1</span> |
+<span id="player-class">Shadow Walker</span> |
+<span id="player-kills">0</span> Souls Claimed
+</div>
+<div id="minimap-container">
+<canvas id="minimap" width="160" height="160"></canvas>
+</div>
+<div id="chat-container">
+<div id="chat-messages"></div>
+</div>
+<div id="connection-status">● Connected</div>
+
+<script>
+// ============ CORE ENGINE ============
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const minimapCanvas = document.getElementById('minimap');
+const minimapCtx = minimapCanvas.getContext('2d');
+
+const W = canvas.width;
+const H = canvas.height;
+
+// ============ WEBSOCKET ============
+let ws = null;
+const WS_URL = 'ws://localhost:8080';
+
+function initWebSocket() {
+    try {
+        ws = new WebSocket(WS_URL);
+        ws.onopen = () => {
+            document.getElementById('connection-status').textContent = '● Connected';
+            document.getElementById('connection-status').className = '';
+            addChatMessage('System: Connected to the Abyssal Realm');
+        };
+        ws.onclose = () => {
+            document.getElementById('connection-status').textContent = '● Disconnected';
+            document.getElementById('connection-status').className = 'disconnected';
+            addChatMessage('System: Lost connection to the realm');
+            setTimeout(initWebSocket, 3000);
+        };
+        ws.onerror = () => {
+            document.getElementById('connection-status').className = 'disconnected';
+        };
+        ws.onmessage = (e) => {
+            try {
+                const data = JSON.parse(e.data);
+                handleWebSocketMessage(data);
+            } catch(err) {}
+        };
+    } catch(e) {
+        document.getElementById('connection-status').className = 'disconnected';
+        setTimeout(initWebSocket, 5000);
+    }
+}
+
+function sendWebSocketMessage(data) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(data));
+    }
+}
+
+function handleWebSocketMessage(data) {
+    switch(data.type) {
+        case 'player_update':
+            otherPlayers[data.id] = data.player;
+            break;
+        case
 </script>
 </body>
 </html>
