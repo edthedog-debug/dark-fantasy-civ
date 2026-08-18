@@ -188,26 +188,19 @@ html
 
     <script>
 <think>
-The user wants me to improve the canvas graphics of a dark fantasy game. They want me to preserve all IDs and WebSocket functionality. They want only code returned.
+The user wants me to improve the canvas graphics of a dark fantasy game. They want me to preserve all IDs and WebSocket functionality. Since no code was provided, I'll create a comprehensive dark fantasy game with impressive canvas graphics including:
 
-Since no existing code was provided, I need to create a dark fantasy game with canvas graphics that includes WebSocket functionality. Let me create an impressive dark fantasy game with:
+1. Atmospheric particle effects (embers, smoke, dust)
+2. Dynamic lighting and shadows
+3. Character rendering with animations
+4. Environmental effects (fog, rain, lightning)
+5. Particle systems for combat effects
+6. Parallax backgrounds
+7. Post-processing effects (bloom, vignette)
+8. Terrain rendering
+9. Enemy AI with visual effects
 
-1. Rich atmospheric visuals - fog, particles, dynamic lighting
-2. A dark fantasy themed canvas game
-3. WebSocket integration for multiplayer/networking
-4. All proper IDs preserved
-5. Stunning visual effects - bloom, particle systems, procedural backgrounds
-
-Let me create a complete, polished dark fantasy game with excellent canvas graphics. I'll make it a dungeon crawler / action RPG style game with:
-
-- Procedurally generated dungeon with atmospheric lighting
-- Particle systems for magic, blood, torches
-- Dynamic shadows and fog of war
-- Animated sprites and effects
-- WebSocket communication layer
-- Rich color palette fitting dark fantasy
-
-Let me write this as a single HTML file with embedded CSS and JavaScript.
+Let me create a full, self-contained HTML file with all the graphics improvements.
 </think>
 
 html
@@ -216,177 +209,204 @@ html
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shadows of the Forgotten Realm</title>
+<title>Dark Fantasy Realm</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  background: #0a0a0f;
+  background: #000;
   overflow: hidden;
-  font-family: 'Georgia', serif;
   cursor: none;
+  font-family: 'Georgia', serif;
 }
 #gameCanvas {
   display: block;
   position: absolute;
   top: 0; left: 0;
 }
-#uiOverlay {
+#uiCanvas {
+  position: absolute;
+  top: 0; left: 0;
+  pointer-events: none;
+}
+#effectCanvas {
+  position: absolute;
+  top: 0; left: 0;
+  pointer-events: none;
+}
+#hud {
   position: absolute;
   top: 0; left: 0;
   width: 100%; height: 100%;
   pointer-events: none;
   z-index: 10;
 }
-#hud {
+#tooltip {
   position: absolute;
-  top: 20px; left: 20px;
-  color: #c4a46a;
-  font-size: 14px;
-  text-shadow: 0 0 10px rgba(196,164,106,0.5);
-  z-index: 11;
+  background: rgba(10,5,2,0.92);
+  border: 1px solid #8b6914;
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: #d4a843;
+  font-size: 13px;
   pointer-events: none;
+  display: none;
+  z-index: 20;
+  max-width: 220px;
+  box-shadow: 0 0 15px rgba(139,105,20,0.3);
 }
-#hud .bar-container {
-  width: 220px;
-  height: 14px;
-  background: rgba(20,10,5,0.85);
-  border: 1px solid #3a2a1a;
-  margin: 4px 0;
-  position: relative;
-  overflow: hidden;
-}
-#hud .bar-fill {
-  height: 100%;
-  transition: width 0.3s ease;
-  position: relative;
-}
-#hud .bar-fill::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 50%;
-  background: linear-gradient(to bottom, rgba(255,255,255,0.2), transparent);
-}
-#healthFill { background: linear-gradient(90deg, #6b1a1a, #c0392b, #e74c3c); }
-#manaFill { background: linear-gradient(90deg, #1a2a6b, #2980b9, #3498db); }
-#xpFill { background: linear-gradient(90deg, #4a6b1a, #27ae60, #2ecc71); }
 #minimap {
   position: absolute;
-  top: 20px; right: 20px;
-  border: 2px solid #3a2a1a;
-  box-shadow: 0 0 20px rgba(0,0,0,0.8);
-  z-index: 11;
+  bottom: 20px;
+  right: 20px;
+  width: 160px;
+  height: 160px;
+  border: 2px solid #5a3a1a;
+  border-radius: 4px;
+  z-index: 15;
+  background: rgba(0,0,0,0.6);
+}
+#inventory {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(10,5,2,0.95);
+  border: 2px solid #8b6914;
+  border-radius: 8px;
+  padding: 30px;
+  display: none;
+  z-index: 25;
+  min-width: 400px;
+  box-shadow: 0 0 40px rgba(0,0,0,0.8), inset 0 0 30px rgba(139,105,20,0.1);
+}
+#inventory h2 {
+  color: #d4a843;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 22px;
+  text-shadow: 0 0 10px rgba(212,168,67,0.5);
+  letter-spacing: 3px;
+}
+#inventory .slots {
+  display: grid;
+  grid-template-columns: repeat(5, 60px);
+  gap: 8px;
+  justify-content: center;
+}
+#inventory .slot {
+  width: 60px;
+  height: 60px;
+  background: rgba(30,20,10,0.8);
+  border: 1px solid #5a3a1a;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  transition: all 0.2s;
+  pointer-events: auto;
+  cursor: pointer;
+}
+#inventory .slot:hover {
+  border-color: #8b6914;
+  background: rgba(60,40,20,0.8);
+  box-shadow: 0 0 10px rgba(139,105,20,0.3);
+}
+#inventory .slot.active {
+  border-color: #d4a843;
+  box-shadow: 0 0 15px rgba(212,168,67,0.4);
 }
 #dialogBox {
   position: absolute;
-  bottom: 40px;
+  bottom: 80px;
   left: 50%;
   transform: translateX(-50%);
-  width: 700px;
-  background: rgba(10,8,15,0.95);
-  border: 1px solid #4a3a2a;
-  border-radius: 4px;
+  background: rgba(10,5,2,0.92);
+  border: 2px solid #5a3a1a;
+  border-radius: 8px;
   padding: 20px 30px;
-  color: #c4a46a;
+  color: #c8b88a;
   font-size: 16px;
   display: none;
-  z-index: 12;
-  box-shadow: 0 0 40px rgba(0,0,0,0.9), inset 0 0 30px rgba(0,0,0,0.5);
+  z-index: 20;
+  max-width: 600px;
+  text-align: center;
+  box-shadow: 0 0 30px rgba(0,0,0,0.7);
 }
 #dialogBox .speaker {
-  color: #e74c3c;
-  font-weight: bold;
+  color: #d4a843;
+  font-size: 14px;
   margin-bottom: 8px;
-  text-transform: uppercase;
   letter-spacing: 2px;
-  font-size: 12px;
 }
-#inventory {
+#skillBar {
   position: absolute;
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 4px;
-  z-index: 11;
+  gap: 6px;
+  z-index: 15;
 }
-.inv-slot {
-  width: 52px; height: 52px;
-  background: rgba(20,15,10,0.9);
-  border: 1px solid #3a2a1a;
+.skill-slot {
+  width: 52px;
+  height: 52px;
+  background: rgba(15,10,5,0.85);
+  border: 2px solid #5a3a1a;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6a5a4a;
-  font-size: 10px;
+  font-size: 22px;
   position: relative;
+  transition: all 0.15s;
 }
-.inv-slot.active { border-color: #c4a46a; box-shadow: 0 0 10px rgba(196,164,106,0.3); }
-.inv-slot .key {
+.skill-slot .key {
   position: absolute;
-  top: 2px; left: 4px;
-  font-size: 9px;
-  color: #5a4a3a;
-}
-#wsStatus {
-  position: absolute;
-  top: 20px;
+  top: -10px;
   left: 50%;
   transform: translateX(-50%);
-  color: #5a5a5a;
-  font-size: 11px;
-  z-index: 11;
+  font-size: 10px;
+  color: #8b7355;
+  font-family: monospace;
+}
+.skill-slot .cooldown-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(0,0,0,0.7);
+  border-radius: 0 0 4px 4px;
+  transition: height 0.1s;
+}
+.skill-slot.ready {
+  border-color: #8b6914;
+  box-shadow: 0 0 8px rgba(139,105,20,0.3);
+}
+.skill-slot.on-cooldown {
+  opacity: 0.6;
+  border-color: #3a2a1a;
+}
+#notification {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #d4a843;
+  font-size: 16px;
+  z-index: 20;
+  text-shadow: 0 0 10px rgba(212,168,67,0.5);
+  opacity: 0;
+  transition: opacity 0.3s;
   letter-spacing: 1px;
 }
-#wsStatus.connected { color: #27ae60; }
-#wsStatus.disconnected { color: #c0392b; }
-#titleScreen {
+#deathScreen {
   position: absolute;
   top: 0; left: 0;
   width: 100%; height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 20;
-  background: radial-gradient(ellipse at center, rgba(20,10,5,0.8) 0%, rgba(5,5,10,0.98) 70%);
-}
-#titleScreen h1 {
-  color: #c4a46a;
-  font-size: 52px;
-  letter-spacing: 8px;
-  text-transform: uppercase;
-  text-shadow: 0 0 40px rgba(196,164,106,0.4), 0 4px 8px rgba(0,0,0,0.8);
-  margin-bottom: 10px;
-}
-#titleScreen .subtitle {
-  color: #6a4a3a;
-  font-size: 16px;
-  letter-spacing: 6px;
-  text-transform: uppercase;
-  margin-bottom: 60px;
-}
-#titleScreen .start-btn {
-  color: #c4a46a;
-  font-size: 18px;
-  letter-spacing: 4px;
-  text-transform: uppercase;
-  cursor: pointer;
-  pointer-events: all;
-  animation: pulse 2s ease-in-out infinite;
-  padding: 12px 40px;
-  border: 1px solid #3a2a1a;
-  background: rgba(20,15,10,0.8);
-}
-#titleScreen .start-btn:hover {
-  border-color: #c4a46a;
-  box-shadow: 0 0 30px rgba(196,164,106,0.2);
-}
-@keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-#deathScreen {
+  background: rgba(20,0,0,0.85);
+  display: none;
+  z-index: 30;
 </script>
 </body>
 </html>
