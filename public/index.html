@@ -188,20 +188,35 @@ html
 
     <script>
 <think>
-The user wants me to improve the canvas graphics of a dark fantasy game while preserving all IDs and WebSocket functionality. However, they haven't provided any code to work with. I need to create a dark fantasy game with improved canvas graphics that includes WebSocket functionality and proper IDs.
+The user is asking me to improve the canvas graphics of a dark fantasy game while preserving IDs and WebSocket functionality. However, they haven't provided any existing code. I need to ask them to share the code, OR I can create a comprehensive dark fantasy canvas game with excellent graphics from scratch.
 
-Since no code was provided, I'll create a complete dark fantasy game with rich canvas graphics including:
-- Atmospheric particle effects (fog, embers, dust)
-- Parallax scrolling backgrounds
-- Character sprites with animations
-- Enemy designs
-- Health/Magic bars
-- Dark fantasy color palette
-- Post-processing effects (vignette, bloom-like glow)
-- Terrain with details
-- WebSocket integration for multiplayer
+Since no code was provided, I'll create a visually stunning dark fantasy game with canvas graphics that includes:
+- Rich atmospheric visuals (dark moody color palette, particle effects, fog, lighting)
+- A player character (dark knight/warrior)
+- Enemies (undead, demons)
+- Health/mana systems
+- WebSocket-ready architecture with preserved IDs
+- Smooth animations, bloom effects, screen shake
+- Atmospheric particles (embers, dust, mist)
+- Particle trails, hit effects
+- Procedural terrain/background
+- Dynamic lighting/shadows
 
-Let me build a comprehensive dark fantasy game with stunning canvas graphics.
+Let me create a complete, polished dark fantasy canvas game with all the bells and whistles for graphics.
+
+I'll make it a complete HTML file with embedded CSS and JavaScript that features:
+1. Parallax scrolling dark gothic background
+2. Atmospheric fog and particle systems
+3. A dark knight player with sword combat
+4. Enemy spawning (skeletons, demons)
+5. Dynamic lighting with radial gradients
+6. Screen shake on impacts
+7. Blood particle effects on hits
+8. Bloom/glow effects
+9. Rich color palette (deep purples, dark reds, blacks)
+10. WebSocket integration points preserved
+
+Let me build this comprehensively.
 </think>
 
 html
@@ -209,204 +224,37 @@ html
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Abyssal Realms - Dark Fantasy</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shadows of the Abyss</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-background: #0a0a0f;
-overflow: hidden;
-display: flex;
-justify-content: center;
-align-items: center;
-height: 100vh;
-font-family: 'Segoe UI', serif;
-}
-#gameCanvas {
-border: 2px solid #1a0a2e;
-box-shadow: 0 0 60px rgba(100, 0, 150, 0.3), 0 0 120px rgba(50, 0, 80, 0.15);
-cursor: crosshair;
-}
-#ui-overlay {
-position: absolute;
-top: 20px;
-left: 50%;
-transform: translateX(-50%);
-pointer-events: none;
-z-index: 10;
-}
-#health-bar-container {
-width: 280px;
-height: 22px;
-background: rgba(20, 0, 0, 0.8);
-border: 1px solid #4a1a1a;
-border-radius: 3px;
-overflow: hidden;
-margin-bottom: 6px;
-box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
-}
-#health-bar {
-width: 100%;
-height: 100%;
-background: linear-gradient(180deg, #cc2222, #881111, #550000);
-transition: width 0.3s;
-box-shadow: 0 0 10px rgba(200, 30, 30, 0.5);
-}
-#mana-bar-container {
-width: 280px;
-height: 14px;
-background: rgba(0, 0, 20, 0.8);
-border: 1px solid #1a1a4a;
-border-radius: 3px;
-overflow: hidden;
-box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
-}
-#mana-bar {
-width: 100%;
-height: 100%;
-background: linear-gradient(180deg, #2244cc, #112288, #000055);
-transition: width 0.3s;
-box-shadow: 0 0 10px rgba(30, 60, 200, 0.5);
-}
-#xp-bar-container {
-width: 280px;
-height: 8px;
-background: rgba(10, 10, 0, 0.8);
-border: 1px solid #3a3a1a;
-border-radius: 2px;
-overflow: hidden;
-box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
-}
-#xp-bar {
-width: 0%;
-height: 100%;
-background: linear-gradient(180deg, #ccaa22, #886611, #554400);
-transition: width 0.3s;
-box-shadow: 0 0 8px rgba(200, 170, 30, 0.4);
-}
-#stats-panel {
-position: absolute;
-bottom: 20px;
-left: 50%;
-transform: translateX(-50%);
-color: #8a7a6a;
-font-size: 13px;
-text-align: center;
-pointer-events: none;
-z-index: 10;
-text-shadow: 0 0 10px rgba(100, 80, 60, 0.5);
-}
-#minimap-container {
-position: absolute;
-bottom: 20px;
-right: 20px;
-border: 2px solid #2a1a3a;
-border-radius: 4px;
-z-index: 10;
-box-shadow: 0 0 20px rgba(80, 0, 120, 0.3);
-}
-#minimap { display: block; }
-#chat-container {
-position: absolute;
-bottom: 20px;
-left: 20px;
-width: 300px;
-max-height: 200px;
-z-index: 10;
-pointer-events: none;
-}
-#chat-messages {
-color: #aaa;
-font-size: 12px;
-overflow: hidden;
-text-shadow: 1px 1px 2px #000;
-}
-#connection-status {
-position: absolute;
-top: 10px;
-right: 10px;
-color: #4a4;
-font-size: 11px;
-z-index: 10;
-text-shadow: 0 0 5px rgba(0, 200, 0, 0.3);
-}
-#connection-status.disconnected { color: #a44; }
-</style>
-</head>
-<body>
-<canvas id="gameCanvas" width="960" height="640"></canvas>
-<div id="ui-overlay">
-<div id="health-bar-container"><div id="health-bar"></div></div>
-<div id="mana-bar-container"><div id="mana-bar"></div></div>
-<div id="xp-bar-container"><div id="xp-bar"></div></div>
-</div>
-<div id="stats-panel">
-<span id="player-level">Level 1</span> |
-<span id="player-class">Shadow Walker</span> |
-<span id="player-kills">0</span> Souls Claimed
-</div>
-<div id="minimap-container">
-<canvas id="minimap" width="160" height="160"></canvas>
-</div>
-<div id="chat-container">
-<div id="chat-messages"></div>
-</div>
-<div id="connection-status">● Connected</div>
-
-<script>
-// ============ CORE ENGINE ============
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const minimapCanvas = document.getElementById('minimap');
-const minimapCtx = minimapCanvas.getContext('2d');
-
-const W = canvas.width;
-const H = canvas.height;
-
-// ============ WEBSOCKET ============
-let ws = null;
-const WS_URL = 'ws://localhost:8080';
-
-function initWebSocket() {
-    try {
-        ws = new WebSocket(WS_URL);
-        ws.onopen = () => {
-            document.getElementById('connection-status').textContent = '● Connected';
-            document.getElementById('connection-status').className = '';
-            addChatMessage('System: Connected to the Abyssal Realm');
-        };
-        ws.onclose = () => {
-            document.getElementById('connection-status').textContent = '● Disconnected';
-            document.getElementById('connection-status').className = 'disconnected';
-            addChatMessage('System: Lost connection to the realm');
-            setTimeout(initWebSocket, 3000);
-        };
-        ws.onerror = () => {
-            document.getElementById('connection-status').className = 'disconnected';
-        };
-        ws.onmessage = (e) => {
-            try {
-                const data = JSON.parse(e.data);
-                handleWebSocketMessage(data);
-            } catch(err) {}
-        };
-    } catch(e) {
-        document.getElementById('connection-status').className = 'disconnected';
-        setTimeout(initWebSocket, 5000);
-    }
-}
-
-function sendWebSocketMessage(data) {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(data));
-    }
-}
-
-function handleWebSocketMessage(data) {
-    switch(data.type) {
-        case 'player_update':
-            otherPlayers[data.id] = data.player;
-            break;
-        case
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;overflow:hidden;font-family:'Georgia',serif;cursor:none}
+#gameCanvas{display:block;position:absolute;top:0;left:0}
+#uiCanvas{display:block;position:absolute;top:0;left:0;pointer-events:none}
+#particleCanvas{display:block;position:absolute;top:0;left;0;pointer-events:none}
+#lightCanvas{display:block;position:absolute;top:0;left:0;pointer-events:none}
+#cursor{position:fixed;width:32px;height:32px;pointer-events:none;z-index:9999;transform:translate(-50%,-50%)}
+#cursor::before{content:'⚔';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:24px;color:#c4a265;text-shadow:0 0 10px #ff6600,0 0 20px #ff3300}
+#hud{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100}
+#healthBar{position:fixed;bottom:30px;left:30px;width:280px;height:22px;background:rgba(10,0,0,0.7);border:2px solid #8b0000;border-radius:3px;overflow:hidden;box-shadow:0 0 15px rgba(139,0,0,0.5),inset 0 0 10px rgba(0,0,0,0.5)}
+#healthFill{height:100%;width:100%;background:linear-gradient(90deg,#8b0000,#dc143c,#ff4444);border-radius:1px;transition:width 0.3s ease;box-shadow:0 0 10px rgba(220,20,60,0.8)}
+#healthText{position:fixed;bottom:56px;left:30px;color:#c4a265;font-size:13px;letter-spacing:3px;text-shadow:0 0 10px rgba(196,162,101,0.5)}
+#manaBar{position:fixed;bottom:30px;left:330px;width:180px;height:14px;background:rgba(0,0,20,0.7);border:2px solid #1a1a6e;border-radius:3px;overflow:hidden}
+#manaFill{height:100%;width:100%;background:linear-gradient(90deg,#1a1a6e,#4169e1,#6495ed);border-radius:1px;transition:width 0.3s ease}
+#manaText{position:fixed;bottom:48px;left:330px;color:#6495ed;font-size:11px;letter-spacing:3px;text-shadow:0 0 10px rgba(100,149,237,0.5)}
+#scoreDisplay{position:fixed;top:20px;right:30px;color:#c4a265;font-size:18px;letter-spacing:4px;text-shadow:0 0 15px rgba(196,162,101,0.6)}
+#waveDisplay{position:fixed;top:50px;right:30px;color:#8b0000;font-size:14px;letter-spacing:3px;text-shadow:0 0 10px rgba(139,0,0,0.5)}
+#titleScreen{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;background:radial-gradient(ellipse at center,rgba(20,5,10,0.9)0%,rgba(5,2,5,0.98)100%)}
+#gameTitle{font-size:72px;color:#8b0000;letter-spacing:12px;text-shadow:0 0 40px rgba(139,0,0,0.8),0 0 80px rgba(139,0,0,0.4),0 4px 0 #3a0000,0 5px 0 #200000;margin-bottom:10px}
+#gameSubtitle{font-size:18px;color:#c4a265;letter-spacing:8px;text-shadow:0 0 20px rgba(196,162,101,0.4);margin-bottom:60px}
+#startBtn{padding:15px 50px;font-family:'Georgia',serif;font-size:18px;color:#c4a265;background:rgba(20,5,10,0.8);border:2px solid #8b0000;letter-spacing:6px;cursor:pointer;transition:all 0.3s;pointer-events:all}
+#startBtn:hover{background:rgba(139,0,0,0.3);box-shadow:0 0 30px rgba(139,0,0,0.5);text-shadow:0 0 20px rgba(196,162,101,0.8)}
+#deathScreen{position:fixed;top:0;left:0;width:100%;height:100%;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:200;background:radial-gradient(ellipse at center,rgba(40,0,0,0.95)0%,rgba(10,0,0,0.99)100%)}
+#deathTitle{font-size:64px;color:#ff0000;letter-spacing:10px;text-shadow:0 0 60px rgba(255,0,0,0.6),0 0 120px rgba(255,0,0,0.3);margin-bottom:20px}
+#finalScore{font-size:24px;color:#c4a265;letter-spacing:5px;margin-bottom:40px}
+#restartBtn{padding:15px 50px;font-family:'Georgia',serif;font-size:18px;color:#c4a265;background:rgba(20,5,10,0.8);border:2px solid #ff0000;letter-spacing:6px;cursor:pointer;transition:all 0.3s;pointer-events:all}
+#restartBtn:hover{background:rgba(255,0,0,0.2);box-shadow:0 0 30px rgba(255,0,0,0.4)}
+#minimap{position:fixed;bottom:30px;right:30px;width:150px;height:150px;border:2px solid rgba(139,0,0,0.5);background
 </script>
 </body>
 </html>
