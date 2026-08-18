@@ -169,8 +169,10 @@ async function queryAI(prompt, taskType) {
             
             // Debug
             console.log("│ 📝 Text length:", text?.length);
+            console.log("│ 📝 Text preview:", text ? text.substring(0, 100) : 'NULL');
             
-            if (text && text.length > 10) {
+            // CORRECCIÓN: Aceptar cualquier texto no vacío
+            if (text && text.trim().length > 0) {
                 console.log("│ ✅ SUCCESS");
                 console.log("└─────────────────────────────────────");
                 return text;
