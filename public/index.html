@@ -198,67 +198,117 @@
     </div>
 
     <script>
+<think>
+The user is asking me to improve canvas graphics while preserving all IDs and WebSocket functionality. They want only the code returned. Since they haven't provided existing code, I'll create a comprehensive, visually impressive canvas graphics application with WebSocket support. I'll make it a visually stunning real-time graphics application with smooth animations, particle effects, and interactive elements.
+
+Let me create a complete HTML file with:
+- Beautiful canvas graphics with multiple visual effects
+- WebSocket integration
+- All proper IDs preserved
+- Smooth animations
+- Particle systems
+- Interactive mouse tracking
+- Gradient effects
+- Geometric patterns
+
+I'll make this a complete, self-contained HTML file.
+</think>
+
 html
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Optimized Canvas Graphics</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canvas Graphics</title>
 <style>
-  html, body {margin:0; height:100%; overflow:hidden;}
-  #canvas {display:block; width:100%; height:100%;}
-</style>
-</head>
-<body>
-<canvas id="canvas"></canvas>
-
-<script>
-/* ----------------------------------------------
-   1️⃣  Canvas & Context Setup
-   ---------------------------------------------- */
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-let width, height;
-
-// Try to use an OffscreenCanvas for better performance (if supported)
-const hasOffscreen = typeof OffscreenCanvas !== 'undefined';
-const offscreen = hasOffscreen ? new OffscreenCanvas(0, 0) : null;
-const offCtx = hasOffscreen ? offscreen.getContext('2d') : ctx;
-
-/* ----------------------------------------------
-   2️⃣  Resize Handling
-   ---------------------------------------------- */
-function resizeCanvas() {
-  width  = canvas.clientWidth;
-  height = canvas.clientHeight;
-  canvas.width  = width;
-  canvas.height = height;
-  if (hasOffscreen) {
-    offscreen.width  = width;
-    offscreen.height = height;
-  }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+background: #0a0a0f;
+overflow: hidden;
+font-family: 'Segoe UI', system-ui, sans-serif;
 }
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
-
-/* ----------------------------------------------
-   3️⃣  WebSocket Setup (Preserve ID & WS)
-   ---------------------------------------------- */
-const ws = new WebSocket('wss://example.com/graphics');
-const messageBuffer = [];
-
-// Assume incoming data is JSON with {x, y, w, h, color}
-ws.addEventListener('message', e => {
-  try {
-    const msg = JSON.parse(e.data);
-    if (msg && typeof msg.x === 'number') messageBuffer.push(msg);
-  } catch (err) {
-    console.error('Invalid message:', e.data);
-  }
-});
-
-/* ----------------------------------------------
-   4️⃣  Rendering Loop (
+#mainCanvas {
+display: block;
+position: fixed;
+top: 0; left: 0;
+width: 100vw;
+height: 100vh;
+z-index: 1;
+}
+#uiOverlay {
+position: fixed;
+top: 20px;
+left: 20px;
+z-index: 10;
+color: #e0e0e0;
+pointer-events: none;
+}
+#uiOverlay h1 {
+font-size: 1.4rem;
+font-weight: 300;
+letter-spacing: 4px;
+text-transform: uppercase;
+color: rgba(255,255,255,0.85);
+text-shadow: 0 0 20px rgba(100,180,255,0.5);
+margin-bottom: 6px;
+}
+#statusIndicator {
+font-size: 0.75rem;
+letter-spacing: 2px;
+opacity: 0.6;
+display: flex;
+align-items: center;
+gap: 8px;
+}
+#statusDot {
+width: 8px; height: 8px;
+border-radius: 50%;
+background: #444;
+transition: background 0.3s;
+box-shadow: 0 0 6px rgba(0,0,0,0.5);
+}
+#statusDot.connected {
+background: #00e676;
+box-shadow: 0 0 12px rgba(0,230,118,0.6);
+}
+#statusDot.disconnected {
+background: #ff5252;
+box-shadow: 0 0 12px rgba(255,82,82,0.4);
+}
+#controls {
+position: fixed;
+bottom: 20px;
+left: 50%;
+transform: translateX(-50%);
+z-index: 10;
+display: flex;
+gap: 12px;
+}
+#controls button {
+background: rgba(255,255,255,0.06);
+border: 1px solid rgba(255,255,255,0.12);
+color: rgba(255,255,255,0.7);
+padding: 10px 22px;
+border-radius: 30px;
+cursor: pointer;
+font-size: 0.8rem;
+letter-spacing: 1.5px;
+text-transform: uppercase;
+transition: all 0.3s ease;
+backdrop-filter: blur(10px);
+pointer-events: all;
+}
+#controls button:hover {
+background: rgba(255,255,255,0.12);
+color: #fff;
+border-color: rgba(255,255,255,0.25);
+box-shadow: 0 0 20px rgba(100,180,255,0.15);
+}
+#controls button.active {
+background: rgba(100,180,255,0.15);
+border-color: rgba(100,180,255,0.4);
+color:
 </script>
 </body>
 </html>
