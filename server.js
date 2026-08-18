@@ -257,7 +257,7 @@ async function generateAIEvents() {
 }
 
 /**
- * SIMULATION TICK - BALANCED ECONOMY
+ * SIMULATION TICK - ECONOMY WITH DAILY FLUCTUATION
  */
 function runSimulationTick() {
     worldState.day += 1;
@@ -274,23 +274,27 @@ function runSimulationTick() {
     else if (worldState.happiness >= 30) moraleProductivity = 0.8;
     else moraleProductivity = 0.5;
 
-    // BALANCED ECONOMY
-    const baseTaxPerCitizen = 8; // Increased from 5
+    // Daily market fluctuation (-3% to +5% random factor)
+    const marketFluctuation = (Math.random() * 0.08) - 0.03; // Random between -3% and +5%
+    
+    const baseTaxPerCitizen = 8;
     const techMultiplier = 1 + (worldState.techPower * 0.05);
     const tradeBonus = 1 + (worldState.population * 0.001);
-    const grossIncome = Math.floor(worldState.population * baseTaxPerCitizen * moraleProductivity * techMultiplier * tradeBonus);
+    const grossIncome = Math.floor(worldState.population * baseTaxPerCitizen * moraleProductivity * techMultiplier * tradeBonus * (1 + marketFluctuation));
     
-    const citizenServices = Math.floor(worldState.population * 3); // Reduced from 4
-    const militaryMaintenance = worldState.tanks * 100; // Reduced from 200
-    const infrastructureRepairs = Math.floor(worldState.treasury * 0.003); // Reduced from 0.005
+    const citizenServices = Math.floor(worldState.population * 3);
+    const militaryMaintenance = worldState.tanks * 100;
+    const infrastructureRepairs = Math.floor(worldState.treasury * 0.003);
     const totalExpenses = citizenServices + militaryMaintenance + infrastructureRepairs;
     
     const netProfit = grossIncome - totalExpenses;
     worldState.treasury = Math.max(0, worldState.treasury + netProfit);
 
-    if (Math.abs(netProfit) > 1000 && worldState.day % 10 === 0) {
-        const status = netProfit > 0 ? "PROFIT" : "LOSS";
-        addLog("[ECONOMY] " + status + ": " + netProfit.toLocaleString() + " Gold (Day " + worldState.day + ")");
+    // Log economy with fluctuation info
+    if (Math.abs(netProfit) > 1000 && worldState.day % 5 === 0) {
+        const status = netProfit > 0 ? "📈 PROFIT" : "📉 LOSS";
+        const fluctuation = marketFluctuation >= 0 ? "+" + (marketFluctuation * 100).toFixed(1) + "%" : (marketFluctuation * 100).toFixed(1) + "%";
+        addLog("[ECONOMY] " + status + ": " + netProfit.toLocaleString() + " Gold (Market: " + fluctuation + ")");
     }
 
     worldState.techPower += 0.008;
@@ -316,7 +320,7 @@ function runSimulationTick() {
     }
 
     if (worldState.tanks > 0) {
-        const defenseUpkeep = worldState.tanks * 100; // Reduced from 150
+        const defenseUpkeep = worldState.tanks * 100;
         worldState.treasury = Math.max(0, worldState.treasury - defenseUpkeep);
     }
 
@@ -345,7 +349,7 @@ WSS.on('connection', (ws) => {
 });
 
 /**
- * AI CODE IMPROVEMENT - WITH ACTUAL HTML AND GRAPHICS/MECHANICS PROMPT
+ * AI CODE IMPROVEMENT
  */
 async function autoImproveGameCode() {
     const types = ["CSS STYLING", "MAP GRAPHICS & MECHANICS", "HTML STRUCTURE"];
@@ -368,7 +372,6 @@ async function autoImproveGameCode() {
             fs.writeFileSync(htmlPath, currentHtml);
         }
         
-        // IMPROVED PROMPT - includes graphics and mechanics
         const prompt = `You are improving the ${improvementType} of this dark fantasy civilization game.
 
 HERE IS THE CURRENT HTML CODE:
@@ -379,31 +382,28 @@ ${currentHtml}
 IMPROVEMENT GOALS:
 ${
     improvementType === "MAP GRAPHICS & MECHANICS" 
-    ? `- ENHANCE the Canvas rendering: add more detailed pixel art buildings, animated water, particle effects (rain, embers, fog)
-- IMPROVE unit animations: walking cycles, idle animations, different unit types (farmers, soldiers, mages)
-- ADD atmospheric effects: day/night cycle, weather particles, ambient lighting
+    ? `- ENHANCE the Canvas rendering: add more detailed pixel art buildings, animated water, particle effects
+- IMPROVE unit animations: walking cycles, different unit types
+- ADD atmospheric effects: day/night cycle, weather particles
 - ENHANCE terrain: multiple grass types, dirt paths, stone textures
-- IMPROVE building details: windows, doors, roofs, flags, smoke from chimneys
-- ADD resource visualization: gold mines with sparkle effects, trees with swaying`
+- IMPROVE building details: windows, doors, roofs, flags, smoke`
     : improvementType === "CSS STYLING"
-    ? `- ENHANCE the dark fantasy aesthetic with richer colors, glow effects, and atmospheric shadows
-- IMPROVE the panel designs with pixel-art borders and medieval styling
-- ADD smooth transitions and hover effects to stat cards
-- ENHANCE the status indicators with pulsing glow effects
-- IMPROVE typography with fantasy-themed fonts if available`
-    : `- IMPROVE the layout structure for better visual hierarchy
-- ADD semantic HTML elements for better organization
-- ENHANCE the dashboard layout with better spacing
-- IMPROVE the event panel and log container styling
-- ADD responsive improvements for mobile`
+    ? `- ENHANCE dark fantasy aesthetic with richer colors and glow effects
+- IMPROVE panel designs with pixel-art borders
+- ADD smooth transitions and hover effects
+- ENHANCE status indicators with pulsing glow`
+    : `- IMPROVE layout structure for visual hierarchy
+- ADD semantic HTML elements
+- ENHANCE dashboard spacing
+- IMPROVE responsive design for mobile`
 }
 
 CRITICAL RULES - DO NOT BREAK:
-1. PRESERVE the WebSocket connection code EXACTLY (connect(), ws.onopen, ws.onmessage, ws.onclose)
-2. PRESERVE all element IDs: stat-day, stat-era, stat-pop, stat-gold, stat-tech, stat-tanks, stat-status, stat-build, event-panel, log-stream, gameCanvas
-3. KEEP dark background #070913 - NO white backgrounds
-4. KEEP overflow: hidden and position: fixed on body
-5. Return the COMPLETE modified HTML code`;
+1. PRESERVE WebSocket connection code EXACTLY
+2. PRESERVE all element IDs
+3. KEEP dark background #070913
+4. KEEP overflow: hidden, position: fixed
+5. Return COMPLETE modified HTML`;
 
         const aiResponse = await queryAI(prompt, "CODE IMPROVEMENT - " + improvementType);
         
@@ -420,10 +420,10 @@ CRITICAL RULES - DO NOT BREAK:
                 
                 if (!hasWebSocket || hasWhiteBg || hasScroll || !hasIDs) {
                     console.log("⚠️ AI generated invalid HTML - REJECTED");
-                    addLog("[AI] Invalid HTML rejected - keeping current");
+                    addLog("[AI] Invalid HTML rejected");
                 } else {
                     fs.writeFileSync(htmlPath, newHtml);
-                    console.log("✅ AI HTML applied successfully");
+                    console.log("✅ AI HTML applied");
                 }
             }
         }
@@ -444,8 +444,7 @@ SERVER.listen(PORT, () => {
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
     console.log("🤖 AI Model: qwen/qwen3.6-27b");
     console.log("⏱️ Events: every 250 days | Code: every 400 days | Rate: 120s");
-    console.log("⚖️ Economy: Balanced (tax 8, services 3, military 100)");
-    console.log("🎨 AI improves: CSS, Map Graphics & Mechanics, HTML");
+    console.log("📈 Economy: Daily fluctuation (-3% to +5%)");
     
     addLog("[SYSTEM] Simulation started.");
     broadcastState();
