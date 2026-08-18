@@ -188,19 +188,16 @@ html
 
     <script>
 <think>
-The user wants me to improve the canvas graphics of a dark fantasy game. They want me to preserve all IDs and WebSocket functionality. Since no code was provided, I'll create a comprehensive dark fantasy game with impressive canvas graphics including:
+The user wants me to improve the canvas graphics of a dark fantasy game while preserving all IDs and WebSocket functionality. However, they haven't provided any existing code. I need to create a dark fantasy game with enhanced canvas graphics, including proper IDs and WebSocket functionality.
 
-1. Atmospheric particle effects (embers, smoke, dust)
-2. Dynamic lighting and shadows
-3. Character rendering with animations
-4. Environmental effects (fog, rain, lightning)
-5. Particle systems for combat effects
-6. Parallax backgrounds
-7. Post-processing effects (bloom, vignette)
-8. Terrain rendering
-9. Enemy AI with visual effects
+Since no existing code was provided, I'll create a complete dark fantasy game with:
+- Rich canvas graphics with particle effects, atmospheric lighting, fog
+- Dark fantasy theme with a character, enemies, environment
+- All elements have proper IDs
+- WebSocket functionality for multiplayer/communication
+- Enhanced visual effects: glow, shadows, particle systems, animated backgrounds
 
-Let me create a full, self-contained HTML file with all the graphics improvements.
+Let me create a comprehensive, visually stunning dark fantasy game.
 </think>
 
 html
@@ -209,204 +206,184 @@ html
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dark Fantasy Realm</title>
+<title>Dark Fantasy - Canvas Game</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  background: #000;
-  overflow: hidden;
-  cursor: none;
-  font-family: 'Georgia', serif;
+background: #0a0a0a;
+display: flex;
+justify-content: center;
+align-items: center;
+min-height: 100vh;
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+overflow: hidden;
+}
+#game-container {
+position: relative;
+width: 960px;
+height: 640px;
+border: 2px solid #2a1a1a;
+box-shadow: 0 0 40px rgba(139, 0, 0, 0.3), inset 0 0 60px rgba(0,0,0,0.5);
 }
 #gameCanvas {
-  display: block;
-  position: absolute;
-  top: 0; left: 0;
+display: block;
+width: 100%;
+height: 100%;
+cursor: none;
 }
-#uiCanvas {
-  position: absolute;
-  top: 0; left: 0;
-  pointer-events: none;
+#ui-overlay {
+position: absolute;
+top: 0; left: 0;
+width: 100%; height: 100%;
+pointer-events: none;
 }
-#effectCanvas {
-  position: absolute;
-  top: 0; left: 0;
-  pointer-events: none;
+#health-bar-container {
+position: absolute;
+top: 15px; left: 15px;
+width: 220px; height: 18px;
+background: rgba(20, 0, 0, 0.8);
+border: 1px solid #5a1a1a;
+border-radius: 3px;
+overflow: hidden;
 }
-#hud {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  pointer-events: none;
-  z-index: 10;
+#health-bar {
+width: 100%; height: 100%;
+background: linear-gradient(180deg, #cc2222, #880000);
+transition: width 0.3s;
+box-shadow: 0 0 8px rgba(200, 0, 0, 0.5);
 }
-#tooltip {
-  position: absolute;
-  background: rgba(10,5,2,0.92);
-  border: 1px solid #8b6914;
-  border-radius: 4px;
-  padding: 8px 12px;
-  color: #d4a843;
-  font-size: 13px;
-  pointer-events: none;
-  display: none;
-  z-index: 20;
-  max-width: 220px;
-  box-shadow: 0 0 15px rgba(139,105,20,0.3);
+#health-text {
+position: absolute;
+top: 15px; left: 240px;
+color: #cc6666;
+font-size: 12px;
+text-shadow: 0 0 5px rgba(200,0,0,0.5);
 }
-#minimap {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  width: 160px;
-  height: 160px;
-  border: 2px solid #5a3a1a;
-  border-radius: 4px;
-  z-index: 15;
-  background: rgba(0,0,0,0.6);
+#mana-bar-container {
+position: absolute;
+top: 38px; left: 15px;
+width: 220px; height: 18px;
+background: rgba(0, 5, 20, 0.8);
+border: 1px solid #1a2a5a;
+border-radius: 3px;
+overflow: hidden;
 }
-#inventory {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(10,5,2,0.95);
-  border: 2px solid #8b6914;
-  border-radius: 8px;
-  padding: 30px;
-  display: none;
-  z-index: 25;
-  min-width: 400px;
-  box-shadow: 0 0 40px rgba(0,0,0,0.8), inset 0 0 30px rgba(139,105,20,0.1);
+#mana-bar {
+width: 100%; height: 100%;
+background: linear-gradient(180deg, #3366cc, #112266);
+transition: width 0.3s;
+box-shadow: 0 0 8px rgba(50, 100, 200, 0.5);
 }
-#inventory h2 {
-  color: #d4a843;
-  text-align: center;
-  margin-bottom: 20px;
-  font-size: 22px;
-  text-shadow: 0 0 10px rgba(212,168,67,0.5);
-  letter-spacing: 3px;
+#mana-text {
+position: absolute;
+top: 38px; left: 240px;
+color: #6688cc;
+font-size: 12px;
+text-shadow: 0 0 5px rgba(50, 100, 200, 0.5);
 }
-#inventory .slots {
-  display: grid;
-  grid-template-columns: repeat(5, 60px);
-  gap: 8px;
-  justify-content: center;
+#xp-bar-container {
+position: absolute;
+top: 61px; left: 15px;
+width: 220px; height: 10px;
+background: rgba(10, 5, 0, 0.8);
+border: 1px solid #3a3a1a;
+border-radius: 2px;
+overflow: hidden;
 }
-#inventory .slot {
-  width: 60px;
-  height: 60px;
-  background: rgba(30,20,10,0.8);
-  border: 1px solid #5a3a1a;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  transition: all 0.2s;
-  pointer-events: auto;
-  cursor: pointer;
+#xp-bar {
+width: 0%; height: 100%;
+background: linear-gradient(180deg, #aa8833, #665511);
+transition: width 0.3s;
+box-shadow: 0 0 6px rgba(170, 130, 50, 0.4);
 }
-#inventory .slot:hover {
-  border-color: #8b6914;
-  background: rgba(60,40,20,0.8);
-  box-shadow: 0 0 10px rgba(139,105,20,0.3);
+#level-text {
+position: absolute;
+top: 60px; left: 240px;
+color: #aa9955;
+font-size: 11px;
+text-shadow: 0 0 5px rgba(170, 140, 50, 0.4);
 }
-#inventory .slot.active {
-  border-color: #d4a843;
-  box-shadow: 0 0 15px rgba(212,168,67,0.4);
+#minimap-container {
+position: absolute;
+bottom: 15px; right: 15px;
+width: 140px; height: 140px;
+background: rgba(10, 5, 5, 0.85);
+border: 1px solid #3a1a1a;
+border-radius: 4px;
+overflow: hidden;
 }
-#dialogBox {
-  position: absolute;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(10,5,2,0.92);
-  border: 2px solid #5a3a1a;
-  border-radius: 8px;
-  padding: 20px 30px;
-  color: #c8b88a;
-  font-size: 16px;
-  display: none;
-  z-index: 20;
-  max-width: 600px;
-  text-align: center;
-  box-shadow: 0 0 30px rgba(0,0,0,0.7);
+#minimapCanvas {
+width: 100%; height: 100%;
 }
-#dialogBox .speaker {
-  color: #d4a843;
-  font-size: 14px;
-  margin-bottom: 8px;
-  letter-spacing: 2px;
+#chat-container {
+position: absolute;
+bottom: 15px; left: 15px;
+width: 300px;
+max-height: 200px;
+overflow-y: auto;
 }
-#skillBar {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 6px;
-  z-index: 15;
+#chat-messages {
+max-height: 160px;
+overflow-y: auto;
+padding: 5px;
 }
-.skill-slot {
-  width: 52px;
-  height: 52px;
-  background: rgba(15,10,5,0.85);
-  border: 2px solid #5a3a1a;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  position: relative;
-  transition: all 0.15s;
+#chat-messages::-webkit-scrollbar { width: 4px; }
+#chat-messages::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+#chat-messages::-webkit-scrollbar-thumb { background: #5a1a1a; border-radius: 2px; }
+.chat-msg {
+font-size: 11px;
+color: #aaa;
+margin-bottom: 3px;
+text-shadow: 0 0 3px rgba(0,0,0,0.8);
 }
-.skill-slot .key {
-  position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 10px;
-  color: #8b7355;
-  font-family: monospace;
+.chat-msg .sys { color: #cc6633; }
+.chat-msg .player { color: #6699cc; }
+.chat-msg .enemy { color: #cc4444; }
+#chat-input-container {
+display: flex;
 }
-.skill-slot .cooldown-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  background: rgba(0,0,0,0.7);
-  border-radius: 0 0 4px 4px;
-  transition: height 0.1s;
+#chat-input {
+flex: 1;
+background: rgba(10, 5, 5, 0.85);
+border: 1px solid #3a1a1a;
+border-right: none;
+color: #ccc;
+padding: 5px 8px;
+font-size: 12px;
+outline: none;
+pointer-events: all;
+border-radius: 3px 0 0 3px;
 }
-.skill-slot.ready {
-  border-color: #8b6914;
-  box-shadow: 0 0 8px rgba(139,105,20,0.3);
+#chat-input::placeholder { color: #555; }
+#chat-send-btn {
+background: linear-gradient(180deg, #5a2a2a, #3a1a1a);
+border: 1px solid #5a2a2a;
+color: #cc8866;
+padding: 5px 12px;
+cursor: pointer;
+font-size: 12px;
+pointer-events: all;
+border-radius: 0 3px 3px 0;
 }
-.skill-slot.on-cooldown {
-  opacity: 0.6;
-  border-color: #3a2a1a;
+#chat-send-btn:hover { background: linear-gradient(180deg, #6a3a3a, #4a2a2a); }
+#death-screen {
+position: absolute;
+top: 0; left: 0;
+width: 100%; height: 100%;
+background: rgba(20, 0, 0, 0.85);
+display: none;
+justify-content: center;
+align-items: center;
+flex-direction: column;
+pointer-events: all;
+z-index: 100;
 }
-#notification {
-  position: absolute;
-  top: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: #d4a843;
-  font-size: 16px;
-  z-index: 20;
-  text-shadow: 0 0 10px rgba(212,168,67,0.5);
-  opacity: 0;
-  transition: opacity 0.3s;
-  letter-spacing: 1px;
-}
-#deathScreen {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(20,0,0,0.85);
-  display: none;
-  z-index: 30;
+#death-screen h1 {
+font-size: 48px;
+color: #aa2222;
+text-shadow: 0 0 20px rgba(180, 0, 0, 0.8), 0 0 40px rgba(100, 0, 0, 0.4);
+margin-bottom: 20px;
+letter-spacing: 8
 </script>
 </body>
 </html>
