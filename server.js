@@ -47,7 +47,7 @@ let worldState = {
     population: 12,
     happiness: 85,
     tanks: 0,
-    treasury: 500,
+    treasury: 5000,
     techPower: 0.5,
     economicPower: "Emerging Market",
     engineBuild: "v2.0.0-AI-Cloud",
@@ -259,54 +259,74 @@ async function generateAIEvents() {
 }
 
 /**
- * SIMULATION TICK
+ * SIMULATION TICK - BALANCED ECONOMY
  */
 function runSimulationTick() {
     worldState.day += 1;
 
+    // Recovery
     if (worldState.treasury <= 0 && worldState.happiness < 50) {
-        worldState.treasury += 300;
-        worldState.happiness = Math.min(100, worldState.happiness + 25);
-        addLog("[RECOVERY] +300 Gold injected!");
+        worldState.treasury += 5000;
+        worldState.happiness = Math.min(100, worldState.happiness + 15);
+        addLog("[RECOVERY] Sovereign Reserve injected 5,000 Gold!");
     }
 
+    // Morale productivity
     let moraleProductivity = 1.0;
-    if (worldState.happiness >= 80) moraleProductivity = 1.5;
+    if (worldState.happiness >= 80) moraleProductivity = 1.3;
     else if (worldState.happiness >= 50) moraleProductivity = 1.0;
-    else if (worldState.happiness >= 30) moraleProductivity = 0.6;
-    else moraleProductivity = 0.35;
+    else if (worldState.happiness >= 30) moraleProductivity = 0.7;
+    else moraleProductivity = 0.4;
 
-    const baseTaxPerCitizen = 12;
-    const techMultiplier = 1 + (worldState.techPower * 0.4);
+    // BALANCED INCOME - Reduced taxes
+    const baseTaxPerCitizen = 3; // Was 12
+    const techMultiplier = 1 + (worldState.techPower * 0.1); // Was 0.4
     const grossIncome = Math.floor(worldState.population * baseTaxPerCitizen * moraleProductivity * techMultiplier);
-    const totalExpenses = Math.floor(worldState.population * 3) + worldState.tanks * 15;
+    
+    // BALANCED EXPENSES - Increased costs
+    const citizenServices = Math.floor(worldState.population * 8); // Was 3
+    const militaryMaintenance = worldState.tanks * 500; // Was 15
+    const infrastructureRepairs = Math.floor(worldState.treasury * 0.02); // 2% of treasury
+    const corruptionLoss = Math.floor(worldState.treasury * 0.01); // 1% of treasury
+    const totalExpenses = citizenServices + militaryMaintenance + infrastructureRepairs + corruptionLoss;
+    
     const netProfit = grossIncome - totalExpenses;
     worldState.treasury = Math.max(0, worldState.treasury + netProfit);
 
     if (netProfit < 0 && worldState.day % 6 === 0) {
-        addLog("[ECONOMY] Net loss: " + netProfit + " Gold.");
+        addLog("[ECONOMY] Net loss: " + netProfit.toLocaleString() + " Gold.");
     }
 
-    worldState.techPower += 0.01;
+    // Slower tech growth
+    worldState.techPower += 0.005; // Was 0.01
 
-    if (worldState.happiness > 75 && worldState.treasury > 100 && worldState.day % 4 === 0) {
+    // Demographics - slower changes
+    if (worldState.happiness > 70 && worldState.treasury > 50000 && worldState.day % 10 === 0) {
         worldState.population += 1;
         addLog("[DEMOGRAPHICS] +1 immigrant. Pop: " + worldState.population);
-    } else if (worldState.happiness < 35 && worldState.population > 1 && worldState.day % 4 === 0) {
+    } else if (worldState.happiness < 30 && worldState.population > 1 && worldState.day % 10 === 0) {
         worldState.population -= 1;
         addLog("[DEMOGRAPHICS] -1 emigrated. Pop: " + worldState.population);
     }
 
-    if (worldState.treasury > 1500 && worldState.day % 20 === 0) {
-        worldState.treasury -= 400;
-        worldState.techPower += 0.2;
-        addLog("[ECONOMY] Reinvested 400 Gold.");
+    // R&D Investment
+    if (worldState.treasury > 50000 && worldState.day % 30 === 0) {
+        worldState.treasury -= 5000;
+        worldState.techPower += 0.5;
+        addLog("[ECONOMY] Reinvested 5,000 Gold into R&D.");
     }
 
-    if (worldState.treasury > 2500 && worldState.tanks < 12 && worldState.day % 25 === 0) {
-        worldState.treasury -= 600;
+    // DEFENSE - Expensive and meaningful
+    if (worldState.treasury > 100000 && worldState.tanks < 20 && worldState.day % 50 === 0) {
+        worldState.treasury -= 10000;
         worldState.tanks += 1;
-        addLog("[DEFENSE] Built 1 Defense Unit.");
+        addLog("[DEFENSE] Built 1 Defense Unit for 10,000 Gold.");
+    }
+
+    // Defense upkeep - daily cost
+    if (worldState.tanks > 0) {
+        const defenseUpkeep = worldState.tanks * 100;
+        worldState.treasury = Math.max(0, worldState.treasury - defenseUpkeep);
     }
 
     if (worldState.activeEvents) {
@@ -356,7 +376,6 @@ async function autoImproveGameCode() {
             fs.writeFileSync(htmlPath, currentHtml);
         }
         
-        // PROTECTED PROMPT - Preserves WebSocket, dark theme, scroll
         const prompt = `You are improving the ${improvementType} of a dark fantasy game.
         
         CRITICAL RULES:
@@ -374,10 +393,8 @@ async function autoImproveGameCode() {
         if (aiResponse && aiResponse.length > 50) {
             const codeToAdd = aiResponse.replace(/```/g, '').trim();
             
-            // VALIDATE the AI response before applying
             const hasWhiteBg = /background:\s*(white|#fff|#ffffff)/i.test(codeToAdd);
             const hasScroll = /overflow:\s*(auto|scroll)/i.test(codeToAdd);
-            const hasNoFixed = !/position:\s*fixed/i.test(codeToAdd);
             
             if (hasWhiteBg || hasScroll) {
                 console.log("⚠️ AI generated problematic CSS - REJECTED");
@@ -416,6 +433,7 @@ SERVER.listen(PORT, () => {
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
     console.log("💰 Treasury:", worldState.treasury.toLocaleString());
     console.log("⏱️ Events: every 150 days | Code: every 250 days");
+    console.log("⚖️ Economy: Balanced (tax 3, services 8, military 500)");
     
     addLog("[SYSTEM] Simulation started.");
     broadcastState();
