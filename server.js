@@ -21,10 +21,10 @@ const SERVER = http.createServer(APP);
 const WSS = new WebSocket.Server({ server: SERVER, perMessageDeflate: false });
 const STATE_FILE = path.join(__dirname, 'worldState.json');
 
-// Rate limiter - 300 seconds (5 minutes)
+// Rate limiter - 600 seconds (10 minutes)
 const rateLimiter = {
     lastCallTime: 0,
-    minInterval: 300000,
+    minInterval: 600000,
     
     async waitForSlot() {
         const now = Date.now();
@@ -105,7 +105,7 @@ function addLog(msg) {
 }
 
 /**
- * GROQ COMPOUND API - WITH GLOBAL LOCK (5 MINUTES WAIT)
+ * GROQ AI - WITH GLOBAL LOCK (10 MINUTES WAIT)
  */
 async function queryAI(prompt, taskType) {
     if (!GROQ_API_KEY) {
@@ -114,14 +114,14 @@ async function queryAI(prompt, taskType) {
     }
 
     while (isAIRequestInProgress) {
-        console.log("⏳ Another AI request in progress - waiting 300s...");
-        await new Promise(resolve => setTimeout(resolve, 300000));
+        console.log("⏳ Another AI request in progress - waiting 600s...");
+        await new Promise(resolve => setTimeout(resolve, 600000));
     }
     
     isAIRequestInProgress = true;
 
     console.log("┌─────────────────────────────────────");
-    console.log("│ 🤖 GROQ COMPOUND - " + taskType);
+    console.log("│ 🤖 GROQ AI - " + taskType);
     console.log("│ 🧠 Model: groq/compound");
     console.log("└─────────────────────────────────────");
     
@@ -144,7 +144,7 @@ async function queryAI(prompt, taskType) {
                     model: 'groq/compound',
                     messages: [{ role: 'user', content: prompt }],
                     temperature: 0.3,
-                    max_tokens: 4096,
+                    max_tokens: 512,
                 }),
                 signal: controller.signal
             });
@@ -155,9 +155,10 @@ async function queryAI(prompt, taskType) {
         
         let response = await makeRequest();
         
-        if (response.status === 429) {
-            console.log("│ ⚠️ RATE LIMITED (429) - Waiting 60s...");
-            await new Promise(resolve => setTimeout(resolve, 60000));
+        // Handle rate limiting (429 and 413)
+        if (response.status === 429 || response.status === 413) {
+            console.log("│ ⚠️ RATE LIMITED (" + response.status + ") - Waiting 120s...");
+            await new Promise(resolve => setTimeout(resolve, 120000));
             response = await makeRequest();
         }
         
@@ -244,17 +245,14 @@ async function pushToGitHub(htmlPath, type, day) {
 }
 
 /**
- * AI Events
+ * AI Events - REDUCED PROMPT
  */
 async function generateAIEvents() {
     const treasury = worldState.treasury;
     
     console.log("\n🎲 GENERATING AI EVENT...");
     
-    const prompt = `Generate dark fantasy event JSON.
-Day ${worldState.day}, Pop ${worldState.population}, Gold ${treasury}, Happiness ${worldState.happiness}.
-Format: {"event":"text","goldImpact":-0.1,"happinessImpact":5,"techImpact":0.2,"visualEffect":"storm","duration":30}
-IMPORTANT: happinessImpact should be POSITIVE (5-20) to help recover from low happiness.`;
+    const prompt = `Dark fantasy event JSON. Day ${worldState.day}, Pop ${worldState.population}, Gold ${treasury}. Format: {"event":"text","goldImpact":-0.1,"happinessImpact":5,"techImpact":0.2,"visualEffect":"storm","duration":30}`;
     
     const aiResult = await queryAI(prompt, "EVENT GENERATION");
     
@@ -279,7 +277,7 @@ IMPORTANT: happinessImpact should be POSITIVE (5-20) to help recover from low ha
             console.log("⚠️ Parse failed:", e.message);
         }
     } else {
-        addLog("[AI EVENT] Compound unavailable - skipped");
+        addLog("[AI EVENT] AI unavailable - skipped");
     }
     
     if (worldState.activeEvents) {
@@ -426,7 +424,7 @@ WSS.on('connection', (ws) => {
 });
 
 /**
- * AI CODE IMPROVEMENT - TWO-STEP WITH PRE-VALIDATION
+ * AI CODE IMPROVEMENT - REDUCED PROMPTS
  */
 async function autoImproveGameCode() {
     const types = ["CSS STYLING", "MAP GRAPHICS & MECHANICS", "HTML STRUCTURE"];
@@ -449,17 +447,9 @@ async function autoImproveGameCode() {
             fs.writeFileSync(htmlPath, currentHtml);
         }
         
-        // STEP 1: Ask AI to ANALYZE current HTML
-        const analysisPrompt = `Analyze this HTML code and identify the ${improvementType} section that can be improved. List specific elements, classes, or functions that need improvement.
-
-CURRENT HTML:
-\`\`\`html
-${currentHtml.substring(0, 50000)}
-\`\`\`
-
-Return ONLY a JSON list of improvements needed:
-{"improvements": ["improvement1", "improvement2", "improvement3"]}`;
-
+        // STEP 1: REDUCED ANALYSIS PROMPT
+        const analysisPrompt = `Analyze HTML ${improvementType}. Return JSON: {"improvements":["item1","item2"]}`;
+        
         const analysisResult = await queryAI(analysisPrompt, "ANALYSIS - " + improvementType);
         
         if (!analysisResult) {
@@ -468,26 +458,9 @@ Return ONLY a JSON list of improvements needed:
             return;
         }
         
-        // STEP 2: Ask AI to make SPECIFIC improvements
-        const improvementPrompt = `MODIFY the following HTML by making these SPECIFIC improvements to the ${improvementType}:
-
-IMPROVEMENTS NEEDED:
-${analysisResult}
-
-CURRENT HTML (MODIFY THIS EXACT CODE):
-\`\`\`html
-${currentHtml}
-\`\`\`
-
-RULES:
-1. MODIFY the existing code - DO NOT rewrite from scratch
-2. KEEP all existing functions: connectWebSocket, updateUI, drawCastle, drawHouse, drawBarracks, drawTower, render, generateObjects
-3. KEEP all element IDs unchanged
-4. KEEP WebSocket connection exactly as is
-5. KEEP dark background #070913
-6. ONLY change the ${improvementType} parts
-7. Return the COMPLETE modified HTML`;
-
+        // STEP 2: REDUCED IMPROVEMENT PROMPT
+        const improvementPrompt = `Improve ${improvementType}. Keep WebSocket, IDs, #070913, functions. HTML:\n\`\`\`html\n${currentHtml}\n\`\`\`\nReturn full HTML.`;
+        
         const aiResponse = await queryAI(improvementPrompt, "IMPROVEMENT - " + improvementType);
         
         if (aiResponse && aiResponse.length > 100) {
@@ -496,15 +469,12 @@ RULES:
             if (htmlMatch) {
                 let newHtml = htmlMatch[0].replace(/```html/g, '').replace(/```/g, '').trim();
                 
-                // PRE-VALIDATION BEFORE SAVING
                 const validationResults = validateHTML(newHtml);
                 
                 if (validationResults.isValid) {
-                    // BACKUP current HTML first
                     const backupPath = htmlPath + '.backup';
                     fs.writeFileSync(backupPath, currentHtml);
                     
-                    // Save new HTML
                     fs.writeFileSync(htmlPath, newHtml);
                     console.log("✅ AI HTML applied successfully");
                     addLog("[AI] HTML updated - " + improvementType);
@@ -513,7 +483,6 @@ RULES:
                 } else {
                     console.log("⚠️ HTML validation failed:", validationResults.errors);
                     addLog("[AI] HTML rejected - " + validationResults.errors.join(', '));
-                    // Keep current HTML
                 }
             } else {
                 console.log("⚠️ No HTML found in AI response");
@@ -541,12 +510,10 @@ RULES:
 function validateHTML(html) {
     const errors = [];
     
-    // Check 1: WebSocket
     if (!/new WebSocket|ws\.onopen|ws\.onmessage/i.test(html)) {
         errors.push("Missing WebSocket");
     }
     
-    // Check 2: Essential IDs
     const requiredIds = ['stat-day', 'stat-era', 'stat-pop', 'stat-gold', 'stat-tech', 'stat-tanks', 'stat-status', 'stat-building-count', 'gameCanvas', 'event-panel', 'log-stream', 'connection-dot', 'connection-text'];
     requiredIds.forEach(id => {
         if (!html.includes('id="' + id + '"')) {
@@ -554,7 +521,6 @@ function validateHTML(html) {
         }
     });
     
-    // Check 3: Essential functions
     const requiredFunctions = ['connectWebSocket', 'updateUI', 'drawCastle', 'drawHouse', 'drawBarracks', 'drawTower', 'render', 'generateObjects'];
     requiredFunctions.forEach(func => {
         if (!html.includes('function ' + func) && !html.includes(func + ' =')) {
@@ -562,22 +528,18 @@ function validateHTML(html) {
         }
     });
     
-    // Check 4: No white background
     if (/background:\s*(white|#fff|#ffffff)/i.test(html)) {
         errors.push("White background detected");
     }
     
-    // Check 5: No scroll on body
     if (/body\s*{[^}]*overflow:\s*(auto|scroll)/i.test(html)) {
         errors.push("Scroll on body detected");
     }
     
-    // Check 6: Has canvas rendering
     if (!/getContext\('2d'\)|getContext\("2d"\)/i.test(html)) {
         errors.push("Missing canvas context");
     }
     
-    // Check 7: Has requestAnimationFrame
     if (!/requestAnimationFrame/i.test(html)) {
         errors.push("Missing requestAnimationFrame");
     }
@@ -593,8 +555,8 @@ SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
     console.log("🤖 AI Model: groq/compound");
-    console.log("⏱️ Events: every 300 days | Code: every 500 days | Rate: 300s");
-    console.log("🔒 AI Lock: 5 minute wait between requests");
+    console.log("⏱️ Events: every 300 days | Code: every 500 days | Rate: 600s");
+    console.log("🔒 AI Lock: 10 minute wait between requests");
     
     addLog("[SYSTEM] Simulation started.");
     broadcastState();
@@ -614,7 +576,6 @@ SERVER.listen(PORT, () => {
 
 /**
  * Clean HTML - PROTECTED
- * This is the fallback HTML with full canvas rendering
  */
 function getCleanHTML() {
     return `<!DOCTYPE html>
