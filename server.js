@@ -257,7 +257,7 @@ async function generateAIEvents() {
 }
 
 /**
- * SIMULATION TICK
+ * SIMULATION TICK - BALANCED ECONOMY
  */
 function runSimulationTick() {
     worldState.day += 1;
@@ -274,14 +274,15 @@ function runSimulationTick() {
     else if (worldState.happiness >= 30) moraleProductivity = 0.8;
     else moraleProductivity = 0.5;
 
-    const baseTaxPerCitizen = 5;
+    // BALANCED ECONOMY
+    const baseTaxPerCitizen = 8; // Increased from 5
     const techMultiplier = 1 + (worldState.techPower * 0.05);
     const tradeBonus = 1 + (worldState.population * 0.001);
     const grossIncome = Math.floor(worldState.population * baseTaxPerCitizen * moraleProductivity * techMultiplier * tradeBonus);
     
-    const citizenServices = Math.floor(worldState.population * 4);
-    const militaryMaintenance = worldState.tanks * 200;
-    const infrastructureRepairs = Math.floor(worldState.treasury * 0.005);
+    const citizenServices = Math.floor(worldState.population * 3); // Reduced from 4
+    const militaryMaintenance = worldState.tanks * 100; // Reduced from 200
+    const infrastructureRepairs = Math.floor(worldState.treasury * 0.003); // Reduced from 0.005
     const totalExpenses = citizenServices + militaryMaintenance + infrastructureRepairs;
     
     const netProfit = grossIncome - totalExpenses;
@@ -315,7 +316,7 @@ function runSimulationTick() {
     }
 
     if (worldState.tanks > 0) {
-        const defenseUpkeep = worldState.tanks * 150;
+        const defenseUpkeep = worldState.tanks * 100; // Reduced from 150
         worldState.treasury = Math.max(0, worldState.treasury - defenseUpkeep);
     }
 
@@ -344,10 +345,10 @@ WSS.on('connection', (ws) => {
 });
 
 /**
- * AI CODE IMPROVEMENT - WITH ACTUAL HTML IN PROMPT
+ * AI CODE IMPROVEMENT - WITH ACTUAL HTML AND GRAPHICS/MECHANICS PROMPT
  */
 async function autoImproveGameCode() {
-    const types = ["CSS STYLING", "CANVAS GRAPHICS", "HTML STRUCTURE"];
+    const types = ["CSS STYLING", "MAP GRAPHICS & MECHANICS", "HTML STRUCTURE"];
     const improvementType = types[worldState.aiImprovements % 3];
     
     console.log("\n┌─────────────────────────────────────");
@@ -367,33 +368,51 @@ async function autoImproveGameCode() {
             fs.writeFileSync(htmlPath, currentHtml);
         }
         
-        // INCLUDE THE ACTUAL HTML IN THE PROMPT
-        const prompt = `You are improving the ${improvementType} of this dark fantasy game.
+        // IMPROVED PROMPT - includes graphics and mechanics
+        const prompt = `You are improving the ${improvementType} of this dark fantasy civilization game.
 
 HERE IS THE CURRENT HTML CODE:
 \`\`\`html
 ${currentHtml}
 \`\`\`
 
-IMPORTANT INSTRUCTIONS:
-1. MODIFY the code above - do NOT create a new file
-2. PRESERVE the WebSocket connection code EXACTLY (connect(), ws.onopen, ws.onmessage, ws.onclose)
-3. PRESERVE all element IDs: stat-day, stat-era, stat-pop, stat-gold, stat-tech, stat-tanks, stat-status, stat-build, event-panel, log-stream, gameCanvas
-4. KEEP dark background #070913 - NO white backgrounds
-5. KEEP overflow: hidden and position: fixed on body
-6. ONLY enhance the ${improvementType} - improve colors, borders, shadows, animations
-7. Return the COMPLETE modified HTML code`;
+IMPROVEMENT GOALS:
+${
+    improvementType === "MAP GRAPHICS & MECHANICS" 
+    ? `- ENHANCE the Canvas rendering: add more detailed pixel art buildings, animated water, particle effects (rain, embers, fog)
+- IMPROVE unit animations: walking cycles, idle animations, different unit types (farmers, soldiers, mages)
+- ADD atmospheric effects: day/night cycle, weather particles, ambient lighting
+- ENHANCE terrain: multiple grass types, dirt paths, stone textures
+- IMPROVE building details: windows, doors, roofs, flags, smoke from chimneys
+- ADD resource visualization: gold mines with sparkle effects, trees with swaying`
+    : improvementType === "CSS STYLING"
+    ? `- ENHANCE the dark fantasy aesthetic with richer colors, glow effects, and atmospheric shadows
+- IMPROVE the panel designs with pixel-art borders and medieval styling
+- ADD smooth transitions and hover effects to stat cards
+- ENHANCE the status indicators with pulsing glow effects
+- IMPROVE typography with fantasy-themed fonts if available`
+    : `- IMPROVE the layout structure for better visual hierarchy
+- ADD semantic HTML elements for better organization
+- ENHANCE the dashboard layout with better spacing
+- IMPROVE the event panel and log container styling
+- ADD responsive improvements for mobile`
+}
+
+CRITICAL RULES - DO NOT BREAK:
+1. PRESERVE the WebSocket connection code EXACTLY (connect(), ws.onopen, ws.onmessage, ws.onclose)
+2. PRESERVE all element IDs: stat-day, stat-era, stat-pop, stat-gold, stat-tech, stat-tanks, stat-status, stat-build, event-panel, log-stream, gameCanvas
+3. KEEP dark background #070913 - NO white backgrounds
+4. KEEP overflow: hidden and position: fixed on body
+5. Return the COMPLETE modified HTML code`;
 
         const aiResponse = await queryAI(prompt, "CODE IMPROVEMENT - " + improvementType);
         
         if (aiResponse && aiResponse.length > 100) {
-            // Extract the HTML from the response
             const htmlMatch = aiResponse.match(/```html[\s\S]*?```/) || aiResponse.match(/<!DOCTYPE html>[\s\S]*?<\/html>/);
             
             if (htmlMatch) {
                 let newHtml = htmlMatch[0].replace(/```html/g, '').replace(/```/g, '').trim();
                 
-                // VALIDATE before applying
                 const hasWebSocket = /new WebSocket|ws\.onopen|ws\.onmessage/i.test(newHtml);
                 const hasWhiteBg = /background:\s*(white|#fff|#ffffff)/i.test(newHtml);
                 const hasScroll = /overflow:\s*(auto|scroll)/i.test(newHtml);
@@ -406,8 +425,6 @@ IMPORTANT INSTRUCTIONS:
                     fs.writeFileSync(htmlPath, newHtml);
                     console.log("✅ AI HTML applied successfully");
                 }
-            } else {
-                console.log("⚠️ Could not extract HTML from AI response");
             }
         }
         
@@ -427,8 +444,8 @@ SERVER.listen(PORT, () => {
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
     console.log("🤖 AI Model: qwen/qwen3.6-27b");
     console.log("⏱️ Events: every 250 days | Code: every 400 days | Rate: 120s");
-    console.log("🔌 WebSocket: PROTECTED");
-    console.log("📄 AI receives ACTUAL HTML in prompt");
+    console.log("⚖️ Economy: Balanced (tax 8, services 3, military 100)");
+    console.log("🎨 AI improves: CSS, Map Graphics & Mechanics, HTML");
     
     addLog("[SYSTEM] Simulation started.");
     broadcastState();
