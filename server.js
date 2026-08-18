@@ -21,17 +21,17 @@ const SERVER = http.createServer(APP);
 const WSS = new WebSocket.Server({ server: SERVER, perMessageDeflate: false });
 const STATE_FILE = path.join(__dirname, 'worldState.json');
 
-// Rate limiter - 30 seconds between calls
+// Rate limiter - 120 seconds between calls (very conservative)
 const rateLimiter = {
     lastCallTime: 0,
-    minInterval: 30000,
+    minInterval: 120000, // 120 seconds (2 minutes)
     
     async waitForSlot() {
         const now = Date.now();
         const timeSinceLastCall = now - this.lastCallTime;
         if (timeSinceLastCall < this.minInterval) {
             const waitTime = this.minInterval - timeSinceLastCall;
-            console.log(`⏳ Rate limiter: waiting ${waitTime}ms...`);
+            console.log(`⏳ Rate limiter: waiting ${Math.round(waitTime/1000)}s...`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
         }
         this.lastCallTime = Date.now();
@@ -325,12 +325,10 @@ function runSimulationTick() {
         worldState.activeEvents = worldState.activeEvents.filter(e => e.endDay > worldState.day);
     }
 
-    // AI EVENT every 250 days (~17 min)
     if (worldState.day % 250 === 0) {
         generateAIEvents();
     }
 
-    // Code improvement every 400 days (~27 min)
     if (worldState.day % 400 === 0) {
         autoImproveGameCode().catch(err => console.error(err.message));
     }
@@ -347,7 +345,7 @@ WSS.on('connection', (ws) => {
     ws.send(JSON.stringify({ type: 'WORLD_UPDATE', data: worldState }));
 });
 
-// AI CODE IMPROVEMENT - WITH EXPLICIT WEBSOCKET PROTECTION
+// AI CODE IMPROVEMENT
 async function autoImproveGameCode() {
     const types = ["CSS STYLING", "CANVAS GRAPHICS", "HTML STRUCTURE"];
     const improvementType = types[worldState.aiImprovements % 3];
@@ -428,7 +426,7 @@ SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
     console.log("🤖 AI Model: qwen/qwen3.6-27b");
-    console.log("⏱️ Events: every 250 days | Code: every 400 days | Rate: 30s");
+    console.log("⏱️ Events: every 250 days | Code: every 400 days | Rate: 120s");
     console.log("🔌 WebSocket: PROTECTED from AI modifications");
     
     addLog("[SYSTEM] Simulation started.");
