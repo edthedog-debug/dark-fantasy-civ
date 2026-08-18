@@ -633,4 +633,31 @@ function getCleanHTML() {
         let lastTouchDist = 0;
         canvas.addEventListener('touchstart', (e) => { e.preventDefault(); if (e.touches.length === 1) { isDragging = true; startX = e.touches[0].clientX - camera.x; startY = e.touches[0].clientY - camera.y; } else if (e.touches.length === 2) { isDragging = false; lastTouchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); } });
         canvas.addEventListener('touchend', () => isDragging = false);
-        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (e.touches.length === 1 && isDragging) { camera.x = e.touches[0].clientX - startX; camera.y = e.touches[0].clientY - startY; } else if (e.touches.length === 2) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (e.touches.length === 1 && isDragging) { camera.x = e.touches[0].clientX - startX; camera.y = e.touches[0].clientY - startY; } else if (e.touches.length === 2) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); camera.zoom = clamp(camera.zoom * (d / lastTouchDist), 0.5, 2.5); lastTouchDist = d; } }, { passive: false });
+        function drawCastle(x, y, h) { ctx.fillStyle = '#8a8a8a'; ctx.fillRect(x - h * 0.3, y - h, h * 0.6, h); for (let i = -2; i <= 2; i++) { ctx.fillRect(x + i * h * 0.12, y - h - 4, 4, 4); } ctx.fillStyle = '#ffff88'; for (let w = 0; w < 3; w++) { ctx.fillRect(x - 3, y - h + 6 + w * 10, 6, 5); } ctx.fillStyle = '#3a1a0a'; ctx.fillRect(x - 4, y - 8, 8, 8); }
+        function drawHouse(x, y, h) { ctx.fillStyle = '#c4a060'; ctx.fillRect(x - h * 0.35, y - h, h * 0.7, h); ctx.fillStyle = '#8a3a1a'; ctx.fillRect(x - h * 0.45, y - h - 3, h * 0.9, 4); ctx.fillStyle = '#ffff88'; ctx.fillRect(x - 3, y - h + 5, 5, 4); ctx.fillStyle = '#3a1a0a'; ctx.fillRect(x - 3, y - 5, 6, 5); }
+        function drawBarracks(x, y, h) { ctx.fillStyle = '#6a6a6a'; ctx.fillRect(x - h * 0.4, y - h, h * 0.8, h); ctx.fillStyle = '#4a4a4a'; ctx.fillRect(x - h * 0.5, y - h - 2, h, 3); }
+        function drawTower(x, y, h) { ctx.fillStyle = '#7a7a7a'; ctx.fillRect(x - h * 0.2, y - h, h * 0.4, h); ctx.fillStyle = '#5a5a5a'; ctx.fillRect(x - h * 0.3, y - h - 3, h * 0.6, 3); }
+        function render() {
+            frameCount++;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(camera.x, camera.y);
+            ctx.scale(camera.zoom, camera.zoom);
+            for (let x = 0; x < canvas.width + 20; x += 20) { for (let y = 0; y < canvas.height + 20; y += 20) { ctx.fillStyle = ((x + y) % 40 === 0) ? '#1a3a1a' : '#1a2a1a'; ctx.fillRect(x, y, 20, 20); } }
+            for (let y = 0; y < canvas.height; y += 4) { const wave = Math.sin((y * 0.04) + frameCount * 0.03) * 8; ctx.fillStyle = '#1a4a6a'; ctx.fillRect(canvas.width * 0.4 + wave, y, 16, 4); }
+            const treePositions = [[8,15],[22,25],[45,12],[60,30],[75,18],[15,50],[38,45],[65,55],[85,40]];
+            treePositions.forEach(t => { const tx = px(t[0], canvas.width); const ty = px(t[1], canvas.height); ctx.fillStyle = '#5a3a1a'; ctx.fillRect(tx, ty, 4, 12); ctx.fillStyle = '#1a5a1a'; ctx.fillRect(tx - 7, ty - 12, 18, 12); ctx.fillStyle = '#2a6a2a'; ctx.fillRect(tx - 4, ty - 16, 12, 5); });
+            buildings.forEach(b => { const bx = px(b.xPercent, canvas.width); const by = px(b.yPercent, canvas.height); const bh = px(b.heightPercent, canvas.height); switch(b.type) { case 0: drawCastle(bx, by, bh); break; case 1: drawHouse(bx, by, bh * 0.6); break; case 2: drawBarracks(bx, by, bh * 0.7); break; case 3: drawTower(bx, by, bh * 1.2); break; } });
+            units.forEach(u => { const ux = px(u.xPercent, canvas.width); const uy = px(u.yPercent, canvas.height); const legOffset = Math.sin(frameCount * 0.1 + ux) > 0 ? 0 : 3; ctx.fillStyle = u.color; ctx.fillRect(Math.round(ux), Math.round(uy - 6), 3, 6); ctx.fillStyle = '#ffcc99'; ctx.fillRect(Math.round(ux), Math.round(uy - 9), 3, 3); ctx.fillStyle = '#333'; ctx.fillRect(Math.round(ux), Math.round(uy), 1, 3 + legOffset); ctx.fillRect(Math.round(ux + 2), Math.round(uy), 1, 3 - legOffset); });
+            if (worldState && worldState.activeEvents) { worldState.activeEvents.forEach(evt => { if (evt.type === 'blood_moon') { ctx.fillStyle = 'rgba(150,0,0,0.3)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } if (evt.type === 'fire') { ctx.fillStyle = 'rgba(255,100,0,0.2)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } if (evt.type === 'storm') { ctx.fillStyle = 'rgba(30,30,60,0.5)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } if (evt.type === 'plague') { ctx.fillStyle = 'rgba(0,150,0,0.2)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } if (evt.type === 'prosperity') { ctx.fillStyle = 'rgba(255,215,0,0.15)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } }); }
+            ctx.restore();
+            requestAnimationFrame(render);
+        }
+        connectWebSocket();
+        requestAnimationFrame(render);
+    })();
+    </script>
+</body>
+</html>`;
+}
