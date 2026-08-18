@@ -101,7 +101,7 @@ function addLog(msg) {
 }
 
 /**
- * GROQ API - WITH GLOBAL LOCK
+ * GROQ API - WITH GLOBAL LOCK (2 MINUTES WAIT)
  */
 async function queryAI(prompt, taskType) {
     if (!GROQ_API_KEY) {
@@ -109,10 +109,10 @@ async function queryAI(prompt, taskType) {
         return null;
     }
 
-    // WAIT if another AI request is in progress
+    // WAIT if another AI request is in progress - 2 MINUTES
     while (isAIRequestInProgress) {
-        console.log("⏳ Another AI request in progress - waiting 5s...");
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        console.log("⏳ Another AI request in progress - waiting 120s...");
+        await new Promise(resolve => setTimeout(resolve, 120000)); // 120 seconds = 2 minutes
     }
     
     // SET the lock
@@ -453,7 +453,7 @@ SERVER.listen(PORT, () => {
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
     console.log("🤖 AI Model: qwen/qwen3.6-27b");
     console.log("⏱️ Events: every 250 days | Code: every 400 days | Rate: 120s");
-    console.log("🔒 AI Lock: prevents parallel requests");
+    console.log("🔒 AI Lock: 2 minute wait between requests");
     
     addLog("[SYSTEM] Simulation started.");
     broadcastState();
