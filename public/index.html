@@ -188,35 +188,37 @@ html
 
     <script>
 <think>
-The user is asking me to improve the canvas graphics of a dark fantasy game while preserving IDs and WebSocket functionality. However, they haven't provided any existing code. I need to ask them to share the code, OR I can create a comprehensive dark fantasy canvas game with excellent graphics from scratch.
+The user wants me to improve the canvas graphics of a dark fantasy game while preserving all IDs and WebSocket functionality. They want only code returned.
 
-Since no code was provided, I'll create a visually stunning dark fantasy game with canvas graphics that includes:
-- Rich atmospheric visuals (dark moody color palette, particle effects, fog, lighting)
-- A player character (dark knight/warrior)
-- Enemies (undead, demons)
-- Health/mana systems
-- WebSocket-ready architecture with preserved IDs
-- Smooth animations, bloom effects, screen shake
-- Atmospheric particles (embers, dust, mist)
-- Particle trails, hit effects
-- Procedural terrain/background
-- Dynamic lighting/shadows
+Let me think about what makes for great dark fantasy canvas graphics:
 
-Let me create a complete, polished dark fantasy canvas game with all the bells and whistles for graphics.
+1. Atmospheric effects: fog, dust particles, atmospheric lighting
+2. Rich color palette: deep purples, dark reds, emerald greens, gold accents
+3. Particle systems: embers, magic dust, blood particles
+4. Ambient lighting: dynamic shadows, god rays, bloom effects
+5. Terrain: detailed procedural terrain with noise, lava flows, dark forests
+6. Character rendering: detailed sprites with glow effects, health bars
+7. UI elements: ornate borders, gothic typography feel, animated elements
+8. Background: layered parallax with mountains, trees, ruins
+9. Water effects: reflective surfaces, ripples
+10. Weather effects: rain, lightning, snow
 
-I'll make it a complete HTML file with embedded CSS and JavaScript that features:
-1. Parallax scrolling dark gothic background
-2. Atmospheric fog and particle systems
-3. A dark knight player with sword combat
-4. Enemy spawning (skeletons, demons)
-5. Dynamic lighting with radial gradients
-6. Screen shake on impacts
-7. Blood particle effects on hits
-8. Bloom/glow effects
-9. Rich color palette (deep purples, dark reds, blacks)
-10. WebSocket integration points preserved
+Let me build a comprehensive dark fantasy game with all these elements. I need to make sure I preserve IDs and WebSocket functionality.
 
-Let me build this comprehensively.
+Let me create a full, polished dark fantasy canvas game with:
+- Procedural terrain with multiple layers
+- Atmospheric particles (embers, dust, fog)
+- Dynamic lighting system
+- Character with animations
+- Enemy creatures
+- Health/magic bars with ornate styling
+- WebSocket integration
+- Weather effects
+- Beautiful color palette
+- Parallax backgrounds
+- Ambient effects
+
+I'll write a complete HTML file with embedded CSS and JavaScript.
 </think>
 
 html
@@ -225,36 +227,175 @@ html
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shadows of the Abyss</title>
+<title>Dark Fantasy - Shadows of Eternity</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a0f;overflow:hidden;font-family:'Georgia',serif;cursor:none}
-#gameCanvas{display:block;position:absolute;top:0;left:0}
-#uiCanvas{display:block;position:absolute;top:0;left:0;pointer-events:none}
-#particleCanvas{display:block;position:absolute;top:0;left;0;pointer-events:none}
-#lightCanvas{display:block;position:absolute;top:0;left:0;pointer-events:none}
-#cursor{position:fixed;width:32px;height:32px;pointer-events:none;z-index:9999;transform:translate(-50%,-50%)}
-#cursor::before{content:'⚔';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:24px;color:#c4a265;text-shadow:0 0 10px #ff6600,0 0 20px #ff3300}
-#hud{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100}
-#healthBar{position:fixed;bottom:30px;left:30px;width:280px;height:22px;background:rgba(10,0,0,0.7);border:2px solid #8b0000;border-radius:3px;overflow:hidden;box-shadow:0 0 15px rgba(139,0,0,0.5),inset 0 0 10px rgba(0,0,0,0.5)}
-#healthFill{height:100%;width:100%;background:linear-gradient(90deg,#8b0000,#dc143c,#ff4444);border-radius:1px;transition:width 0.3s ease;box-shadow:0 0 10px rgba(220,20,60,0.8)}
-#healthText{position:fixed;bottom:56px;left:30px;color:#c4a265;font-size:13px;letter-spacing:3px;text-shadow:0 0 10px rgba(196,162,101,0.5)}
-#manaBar{position:fixed;bottom:30px;left:330px;width:180px;height:14px;background:rgba(0,0,20,0.7);border:2px solid #1a1a6e;border-radius:3px;overflow:hidden}
-#manaFill{height:100%;width:100%;background:linear-gradient(90deg,#1a1a6e,#4169e1,#6495ed);border-radius:1px;transition:width 0.3s ease}
-#manaText{position:fixed;bottom:48px;left:330px;color:#6495ed;font-size:11px;letter-spacing:3px;text-shadow:0 0 10px rgba(100,149,237,0.5)}
-#scoreDisplay{position:fixed;top:20px;right:30px;color:#c4a265;font-size:18px;letter-spacing:4px;text-shadow:0 0 15px rgba(196,162,101,0.6)}
-#waveDisplay{position:fixed;top:50px;right:30px;color:#8b0000;font-size:14px;letter-spacing:3px;text-shadow:0 0 10px rgba(139,0,0,0.5)}
-#titleScreen{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;background:radial-gradient(ellipse at center,rgba(20,5,10,0.9)0%,rgba(5,2,5,0.98)100%)}
-#gameTitle{font-size:72px;color:#8b0000;letter-spacing:12px;text-shadow:0 0 40px rgba(139,0,0,0.8),0 0 80px rgba(139,0,0,0.4),0 4px 0 #3a0000,0 5px 0 #200000;margin-bottom:10px}
-#gameSubtitle{font-size:18px;color:#c4a265;letter-spacing:8px;text-shadow:0 0 20px rgba(196,162,101,0.4);margin-bottom:60px}
-#startBtn{padding:15px 50px;font-family:'Georgia',serif;font-size:18px;color:#c4a265;background:rgba(20,5,10,0.8);border:2px solid #8b0000;letter-spacing:6px;cursor:pointer;transition:all 0.3s;pointer-events:all}
-#startBtn:hover{background:rgba(139,0,0,0.3);box-shadow:0 0 30px rgba(139,0,0,0.5);text-shadow:0 0 20px rgba(196,162,101,0.8)}
-#deathScreen{position:fixed;top:0;left:0;width:100%;height:100%;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:200;background:radial-gradient(ellipse at center,rgba(40,0,0,0.95)0%,rgba(10,0,0,0.99)100%)}
-#deathTitle{font-size:64px;color:#ff0000;letter-spacing:10px;text-shadow:0 0 60px rgba(255,0,0,0.6),0 0 120px rgba(255,0,0,0.3);margin-bottom:20px}
-#finalScore{font-size:24px;color:#c4a265;letter-spacing:5px;margin-bottom:40px}
-#restartBtn{padding:15px 50px;font-family:'Georgia',serif;font-size:18px;color:#c4a265;background:rgba(20,5,10,0.8);border:2px solid #ff0000;letter-spacing:6px;cursor:pointer;transition:all 0.3s;pointer-events:all}
-#restartBtn:hover{background:rgba(255,0,0,0.2);box-shadow:0 0 30px rgba(255,0,0,0.4)}
-#minimap{position:fixed;bottom:30px;right:30px;width:150px;height:150px;border:2px solid rgba(139,0,0,0.5);background
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+background: #0a0a0a;
+overflow: hidden;
+font-family: 'Segoe UI', serif;
+cursor: none;
+}
+#gameCanvas {
+display: block;
+position: absolute;
+top: 0; left: 0;
+}
+#uiCanvas {
+display: block;
+position: absolute;
+top: 0; left: 0;
+pointer-events: none;
+}
+#cursorCanvas {
+display: block;
+position: absolute;
+top: 0; left: 0;
+pointer-events: none;
+z-index: 100;
+}
+#loadingScreen {
+position: fixed;
+top: 0; left: 0;
+width: 100%; height: 100%;
+background: #0a0505;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+z-index: 1000;
+transition: opacity 1.5s ease;
+}
+#loadingScreen.hidden { opacity: 0; pointer-events: none; }
+#loadingTitle {
+font-size: 48px;
+color: #c4a35a;
+text-shadow: 0 0 30px rgba(196,163,90,0.5), 0 0 60px rgba(196,163,90,0.2);
+letter-spacing: 8px;
+margin-bottom: 40px;
+font-weight: 300;
+}
+#loadingBar {
+width: 300px;
+height: 2px;
+background: rgba(196,163,90,0.15);
+position: relative;
+overflow: hidden;
+}
+#loadingFill {
+height: 100%;
+width: 0%;
+background: linear-gradient(90deg, #8b0000, #c4a35a, #ff6b35);
+transition: width 0.3s ease;
+box-shadow: 0 0 10px rgba(196,163,90,0.5);
+}
+#loadingText {
+color: rgba(196,163,90,0.4);
+margin-top: 20px;
+font-size: 12px;
+letter-spacing: 4px;
+}
+</style>
+</head>
+<body>
+<div id="loadingScreen">
+<div id="loadingTitle">SHADOWS OF ETERNITY</div>
+<div id="loadingBar"><div id="loadingFill"></div></div>
+<div id="loadingText">AWAKENING...</div>
+</div>
+<canvas id="gameCanvas"></canvas>
+<canvas id="uiCanvas"></canvas>
+<canvas id="cursorCanvas"></canvas>
+
+<script>
+const gameCanvas = document.getElementById('gameCanvas');
+const uiCanvas = document.getElementById('uiCanvas');
+const cursorCanvas = document.getElementById('cursorCanvas');
+const ctx = gameCanvas.getContext('2d');
+const uiCtx = uiCanvas.getContext('2d');
+const curCtx = cursorCanvas.getContext('2d');
+
+let W, H;
+function resize() {
+W = window.innerWidth; H = window.innerHeight;
+gameCanvas.width = W; gameCanvas.height = H;
+uiCanvas.width = W; uiCanvas.height = H;
+cursorCanvas.width = W; cursorCanvas.height = H;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// WebSocket
+let ws = null;
+const WS_URL = 'ws://localhost:8080';
+function connectWebSocket() {
+try {
+ws = new WebSocket(WS_URL);
+ws.onmessage = (e) => {
+const data = JSON.parse(e.data);
+if (data.type === 'playerUpdate') updatePlayerFromWS(data);
+if (data.type === 'chat') addChatMessage(data);
+if (data.type === 'worldEvent') triggerWorldEvent(data);
+};
+ws.onclose = () => setTimeout(connectWebSocket, 3000);
+ws.onerror = () => { ws.close(); };
+} catch(e) { console.log('WebSocket unavailable, running offline'); }
+}
+function updatePlayerFromWS(data) {
+if(data.pos) { player.x = data.pos.x; player.y = data.pos.y; }
+if(data.hp !== undefined) player.hp = data.hp;
+if(data.mp !== undefined) player.mp = data.mp;
+}
+let chatMessages = [];
+function addChatMessage(data) {
+chatMessages.push({ text: data.text || '', author: data.author || 'Unknown', time: Date.now(), color: data.color || '#c4a35a' });
+if(chatMessages.length > 8) chatMessages.shift();
+}
+function triggerWorldEvent(data) {
+if(data.event === 'meteor') spawnMeteor();
+if(data.event === 'lightning') spawnLightning();
+if(data.event === 'portal') spawnPortal(Math.random()*W, Math.random()*H*0.5+100);
+}
+connectWebSocket();
+
+// Input
+const keys = {};
+let mouseX = W/2, mouseY = H/2;
+let mouseDown = false;
+document.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+document.addEventListener('mousedown', () => mouseDown = true);
+document.addEventListener('mouseup', () => mouseDown = false);
+
+// Simplex-like noise
+class Noise {
+constructor(seed) {
+this.perm = new Uint8Array(512);
+const p = new Uint8Array(256);
+for(let i=0;i<256;i++) p[i]=i;
+let s = seed||42;
+for(let i=255;i>0;i--) { s=(s*16807)%2147483647; const j=s%(i+1); [p[i],p[j]]=[p[j],p[i]]; }
+for(let i=0;i<512;i++) this.perm[i]=p[i&255];
+}
+fade(t) { return t*t*t*(t*(t*6-15)+10); }
+lerp(a,b,t) { return a+t*(b-a); }
+grad(hash,x,y) {
+const h=hash&3;
+const u=h<2?x:y, v=h<2?y:x;
+return ((h&1)?-u:u)+((h&2)?-v:v);
+}
+noise2D(x,y) {
+const X=Math.floor(x)&255, Y=Math.floor(y)&255;
+x-=Math.floor(x); y-=Math.floor(y);
+const u=this.fade(x), v=this.fade(y);
+const a=this.perm[X]+Y, b=this.perm[X+1]+Y;
+return this.lerp(
+this.lerp(this.grad(this.perm[a],x,y),this.grad(this.perm[b],x-1,y),u),
+this.lerp(this.grad(this.perm[a+1],x,y-1),this.grad(this.perm[b+1],x-1,y-1),u),v);
+}
+fbm(x,y,octaves=6) {
+let
 </script>
 </body>
 </html>
