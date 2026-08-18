@@ -325,10 +325,12 @@ function runSimulationTick() {
         worldState.activeEvents = worldState.activeEvents.filter(e => e.endDay > worldState.day);
     }
 
-    if (worldState.day % 200 === 0) {
+    // AI EVENT every 250 days (~17 min)
+    if (worldState.day % 250 === 0) {
         generateAIEvents();
     }
 
+    // Code improvement every 400 days (~27 min)
     if (worldState.day % 400 === 0) {
         autoImproveGameCode().catch(err => console.error(err.message));
     }
@@ -367,22 +369,20 @@ async function autoImproveGameCode() {
             fs.writeFileSync(htmlPath, currentHtml);
         }
         
-        // EXPLICIT WEBSOCKET PROTECTION IN PROMPT
         const prompt = `You are improving the ${improvementType} of a dark fantasy game.
 
         CRITICAL RULES - DO NOT BREAK THESE:
-        1. DO NOT modify, remove, or alter the WebSocket connection code (the connect() function, ws.onopen, ws.onmessage, ws.onclose, ws.onerror)
-        2. DO NOT change the WebSocket URL construction (protocol + '//' + window.location.host)
-        3. DO NOT remove the auto-reconnect logic (setTimeout(connect, 2000))
-        4. DO NOT rename or remove the 'ws' variable
-        5. DO NOT break the WORLD_UPDATE message handling
-        6. DO NOT remove any element IDs: stat-day, stat-era, stat-pop, stat-gold, stat-tech, stat-tanks, stat-status, stat-build, event-panel, log-stream, gameCanvas
-        7. DO NOT use white backgrounds (keep #070913 dark theme)
-        8. DO NOT add scroll to body (keep overflow: hidden, position: fixed)
-        9. ONLY enhance colors, borders, shadows, animations, and visual effects
-        10. Keep the dark fantasy theme
+        1. DO NOT modify the WebSocket connection code
+        2. DO NOT change the WebSocket URL
+        3. DO NOT remove auto-reconnect logic
+        4. DO NOT rename 'ws' variable
+        5. DO NOT break WORLD_UPDATE handling
+        6. DO NOT remove element IDs
+        7. DO NOT use white backgrounds
+        8. DO NOT add scroll to body
+        9. ONLY enhance visuals
+        10. Keep dark fantasy theme
 
-        The WebSocket connection is CRITICAL and must remain EXACTLY as is.
         Return ONLY the ${improvementType} improvements.`;
         
         const aiResponse = await queryAI(prompt, "CODE IMPROVEMENT - " + improvementType);
@@ -390,8 +390,6 @@ async function autoImproveGameCode() {
         if (aiResponse && aiResponse.length > 50) {
             const codeToAdd = aiResponse.replace(/```/g, '').trim();
             
-            // VALIDATE: Reject if WebSocket code is broken
-            const hasWebSocket = /WebSocket|ws\.onopen|ws\.onmessage/i.test(codeToAdd);
             const hasWhiteBg = /background:\s*(white|#fff|#ffffff)/i.test(codeToAdd);
             const hasScroll = /overflow:\s*(auto|scroll)/i.test(codeToAdd);
             const breaksConnection = /ws\s*=\s*null|ws\.close\(\)|delete\s+ws/i.test(codeToAdd);
@@ -430,7 +428,7 @@ SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
     console.log("🤖 AI Model: qwen/qwen3.6-27b");
-    console.log("⏱️ Events: every 200 days | Code: every 400 days | Rate: 30s");
+    console.log("⏱️ Events: every 250 days | Code: every 400 days | Rate: 30s");
     console.log("🔌 WebSocket: PROTECTED from AI modifications");
     
     addLog("[SYSTEM] Simulation started.");
