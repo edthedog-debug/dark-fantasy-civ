@@ -188,37 +188,19 @@ html
 
     <script>
 <think>
-The user wants me to improve the canvas graphics of a dark fantasy game while preserving all IDs and WebSocket functionality. They want only code returned.
+The user wants me to improve the canvas graphics of a dark fantasy game while preserving all IDs and WebSocket functionality. Since they haven't provided any existing code, I need to create a comprehensive dark fantasy game with rich canvas graphics, proper IDs, and WebSocket integration.
 
-Let me think about what makes for great dark fantasy canvas graphics:
+Let me design a visually stunning dark fantasy game with:
+- Rich particle effects
+- Atmospheric lighting and shadows
+- Detailed character rendering
+- Dynamic backgrounds with parallax
+- Blood/dust/magic particle systems
+- Dark color palette with dramatic contrasts
+- WebSocket for multiplayer/networking
+- Proper HTML element IDs preserved
 
-1. Atmospheric effects: fog, dust particles, atmospheric lighting
-2. Rich color palette: deep purples, dark reds, emerald greens, gold accents
-3. Particle systems: embers, magic dust, blood particles
-4. Ambient lighting: dynamic shadows, god rays, bloom effects
-5. Terrain: detailed procedural terrain with noise, lava flows, dark forests
-6. Character rendering: detailed sprites with glow effects, health bars
-7. UI elements: ornate borders, gothic typography feel, animated elements
-8. Background: layered parallax with mountains, trees, ruins
-9. Water effects: reflective surfaces, ripples
-10. Weather effects: rain, lightning, snow
-
-Let me build a comprehensive dark fantasy game with all these elements. I need to make sure I preserve IDs and WebSocket functionality.
-
-Let me create a full, polished dark fantasy canvas game with:
-- Procedural terrain with multiple layers
-- Atmospheric particles (embers, dust, fog)
-- Dynamic lighting system
-- Character with animations
-- Enemy creatures
-- Health/magic bars with ornate styling
-- WebSocket integration
-- Weather effects
-- Beautiful color palette
-- Parallax backgrounds
-- Ambient effects
-
-I'll write a complete HTML file with embedded CSS and JavaScript.
+I'll create a complete, self-contained HTML file with everything needed.
 </think>
 
 html
@@ -227,175 +209,164 @@ html
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dark Fantasy - Shadows of Eternity</title>
+<title>Grimdark Chronicles</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-background: #0a0a0a;
-overflow: hidden;
-font-family: 'Segoe UI', serif;
-cursor: none;
-}
-#gameCanvas {
-display: block;
-position: absolute;
-top: 0; left: 0;
-}
-#uiCanvas {
-display: block;
-position: absolute;
-top: 0; left: 0;
-pointer-events: none;
-}
-#cursorCanvas {
-display: block;
-position: absolute;
-top: 0; left: 0;
-pointer-events: none;
-z-index: 100;
-}
-#loadingScreen {
-position: fixed;
-top: 0; left: 0;
-width: 100%; height: 100%;
-background: #0a0505;
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-z-index: 1000;
-transition: opacity 1.5s ease;
-}
-#loadingScreen.hidden { opacity: 0; pointer-events: none; }
-#loadingTitle {
-font-size: 48px;
-color: #c4a35a;
-text-shadow: 0 0 30px rgba(196,163,90,0.5), 0 0 60px rgba(196,163,90,0.2);
-letter-spacing: 8px;
-margin-bottom: 40px;
-font-weight: 300;
-}
-#loadingBar {
-width: 300px;
-height: 2px;
-background: rgba(196,163,90,0.15);
-position: relative;
-overflow: hidden;
-}
-#loadingFill {
-height: 100%;
-width: 0%;
-background: linear-gradient(90deg, #8b0000, #c4a35a, #ff6b35);
-transition: width 0.3s ease;
-box-shadow: 0 0 10px rgba(196,163,90,0.5);
-}
-#loadingText {
-color: rgba(196,163,90,0.4);
-margin-top: 20px;
-font-size: 12px;
-letter-spacing: 4px;
-}
-</style>
-</head>
-<body>
-<div id="loadingScreen">
-<div id="loadingTitle">SHADOWS OF ETERNITY</div>
-<div id="loadingBar"><div id="loadingFill"></div></div>
-<div id="loadingText">AWAKENING...</div>
-</div>
-<canvas id="gameCanvas"></canvas>
-<canvas id="uiCanvas"></canvas>
-<canvas id="cursorCanvas"></canvas>
-
-<script>
-const gameCanvas = document.getElementById('gameCanvas');
-const uiCanvas = document.getElementById('uiCanvas');
-const cursorCanvas = document.getElementById('cursorCanvas');
-const ctx = gameCanvas.getContext('2d');
-const uiCtx = uiCanvas.getContext('2d');
-const curCtx = cursorCanvas.getContext('2d');
-
-let W, H;
-function resize() {
-W = window.innerWidth; H = window.innerHeight;
-gameCanvas.width = W; gameCanvas.height = H;
-uiCanvas.width = W; uiCanvas.height = H;
-cursorCanvas.width = W; cursorCanvas.height = H;
-}
-resize();
-window.addEventListener('resize', resize);
-
-// WebSocket
-let ws = null;
-const WS_URL = 'ws://localhost:8080';
-function connectWebSocket() {
-try {
-ws = new WebSocket(WS_URL);
-ws.onmessage = (e) => {
-const data = JSON.parse(e.data);
-if (data.type === 'playerUpdate') updatePlayerFromWS(data);
-if (data.type === 'chat') addChatMessage(data);
-if (data.type === 'worldEvent') triggerWorldEvent(data);
-};
-ws.onclose = () => setTimeout(connectWebSocket, 3000);
-ws.onerror = () => { ws.close(); };
-} catch(e) { console.log('WebSocket unavailable, running offline'); }
-}
-function updatePlayerFromWS(data) {
-if(data.pos) { player.x = data.pos.x; player.y = data.pos.y; }
-if(data.hp !== undefined) player.hp = data.hp;
-if(data.mp !== undefined) player.mp = data.mp;
-}
-let chatMessages = [];
-function addChatMessage(data) {
-chatMessages.push({ text: data.text || '', author: data.author || 'Unknown', time: Date.now(), color: data.color || '#c4a35a' });
-if(chatMessages.length > 8) chatMessages.shift();
-}
-function triggerWorldEvent(data) {
-if(data.event === 'meteor') spawnMeteor();
-if(data.event === 'lightning') spawnLightning();
-if(data.event === 'portal') spawnPortal(Math.random()*W, Math.random()*H*0.5+100);
-}
-connectWebSocket();
-
-// Input
-const keys = {};
-let mouseX = W/2, mouseY = H/2;
-let mouseDown = false;
-document.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
-document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
-document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
-document.addEventListener('mousedown', () => mouseDown = true);
-document.addEventListener('mouseup', () => mouseDown = false);
-
-// Simplex-like noise
-class Noise {
-constructor(seed) {
-this.perm = new Uint8Array(512);
-const p = new Uint8Array(256);
-for(let i=0;i<256;i++) p[i]=i;
-let s = seed||42;
-for(let i=255;i>0;i--) { s=(s*16807)%2147483647; const j=s%(i+1); [p[i],p[j]]=[p[j],p[i]]; }
-for(let i=0;i<512;i++) this.perm[i]=p[i&255];
-}
-fade(t) { return t*t*t*(t*(t*6-15)+10); }
-lerp(a,b,t) { return a+t*(b-a); }
-grad(hash,x,y) {
-const h=hash&3;
-const u=h<2?x:y, v=h<2?y:x;
-return ((h&1)?-u:u)+((h&2)?-v:v);
-}
-noise2D(x,y) {
-const X=Math.floor(x)&255, Y=Math.floor(y)&255;
-x-=Math.floor(x); y-=Math.floor(y);
-const u=this.fade(x), v=this.fade(y);
-const a=this.perm[X]+Y, b=this.perm[X+1]+Y;
-return this.lerp(
-this.lerp(this.grad(this.perm[a],x,y),this.grad(this.perm[b],x-1,y),u),
-this.lerp(this.grad(this.perm[a+1],x,y-1),this.grad(this.perm[b+1],x-1,y-1),u),v);
-}
-fbm(x,y,octaves=6) {
-let
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    overflow: hidden;
+    font-family: 'Georgia', serif;
+    cursor: none;
+  }
+  #gameCanvas {
+    display: block;
+    position: absolute;
+    top: 0; left: 0;
+  }
+  #uiOverlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 10;
+  }
+  #healthBar {
+    position: absolute;
+    top: 20px; left: 20px;
+    width: 250px; height: 18px;
+    background: rgba(20,0,0,0.8);
+    border: 2px solid #8b0000;
+    border-radius: 2px;
+    overflow: hidden;
+    box-shadow: 0 0 15px rgba(139,0,0,0.5), inset 0 0 10px rgba(0,0,0,0.8);
+  }
+  #healthFill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(180deg, #ff2200, #8b0000, #5a0000);
+    transition: width 0.3s ease;
+    box-shadow: 0 0 10px rgba(255,34,0,0.6);
+  }
+  #healthText {
+    position: absolute;
+    top: 42px; left: 20px;
+    color: #cc3333;
+    font-size: 12px;
+    text-shadow: 0 0 8px rgba(204,51,51,0.8);
+    letter-spacing: 2px;
+  }
+  #manaBar {
+    position: absolute;
+    top: 62px; left: 20px;
+    width: 250px; height: 14px;
+    background: rgba(0,0,20,0.8);
+    border: 2px solid #1a1a6b;
+    border-radius: 2px;
+    overflow: hidden;
+    box-shadow: 0 0 15px rgba(26,26,107,0.5), inset 0 0 10px rgba(0,0,0,0.8);
+  }
+  #manaFill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(180deg, #4444ff, #1a1a8b, #0a0a5a);
+    transition: width 0.3s ease;
+    box-shadow: 0 0 10px rgba(68,68,255,0.6);
+  }
+  #manaText {
+    position: absolute;
+    top: 80px; left: 20px;
+    color: #6666cc;
+    font-size: 12px;
+    text-shadow: 0 0 8px rgba(102,102,204,0.8);
+    letter-spacing: 2px;
+  }
+  #xpBar {
+    position: absolute;
+    top: 100px; left: 20px;
+    width: 250px; height: 8px;
+    background: rgba(0,10,0,0.8);
+    border: 1px solid #2a4a00;
+    border-radius: 1px;
+    overflow: hidden;
+    box-shadow: 0 0 8px rgba(42,74,0,0.3);
+  }
+  #xpFill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(180deg, #88cc00, #4a7a00);
+    box-shadow: 0 0 8px rgba(136,204,0,0.5);
+  }
+  #levelDisplay {
+    position: absolute;
+    top: 112px; left: 20px;
+    color: #aadd44;
+    font-size: 11px;
+    text-shadow: 0 0 6px rgba(170,221,68,0.6);
+    letter-spacing: 1px;
+  }
+  #minimap {
+    position: absolute;
+    top: 20px; right: 20px;
+    width: 160px; height: 160px;
+    border: 2px solid #3a2a1a;
+    border-radius: 4px;
+    background: rgba(10,8,5,0.9);
+    box-shadow: 0 0 20px rgba(0,0,0,0.8), inset 0 0 30px rgba(0,0,0,0.5);
+  }
+  #minimapCanvas {
+    width: 100%; height: 100%;
+    border-radius: 2px;
+  }
+  #chatBox {
+    position: absolute;
+    bottom: 80px; left: 20px;
+    width: 350px;
+    max-height: 200px;
+    overflow-y: auto;
+    pointer-events: auto;
+  }
+  #chatMessages {
+    padding: 8px;
+    background: rgba(10,5,0,0.7);
+    border: 1px solid #2a1a0a;
+    border-radius: 4px;
+    color: #aa8855;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  #chatInput {
+    margin-top: 5px;
+    width: 100%;
+    padding: 6px 10px;
+    background: rgba(15,10,5,0.9);
+    border: 1px solid #3a2a1a;
+    color: #aa8855;
+    font-family: 'Georgia', serif;
+    font-size: 13px;
+    outline: none;
+    border-radius: 2px;
+    pointer-events: auto;
+  }
+  #chatInput::placeholder { color: #554433; }
+  #chatInput:focus { border-color: #664422; box-shadow: 0 0 10px rgba(102,68,34,0.3); }
+  #tooltip {
+    position: absolute;
+    display: none;
+    background: rgba(10,5,0,0.95);
+    border: 1px solid #5a3a1a;
+    border-radius: 4px;
+    padding: 10px 14px;
+    color: #ccaa77;
+    font-size: 12px;
+    pointer-events: none;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
+    z-index: 100;
+    max-width: 220px;
+  }
+  #tooltipTitle { color: #ffaa33; font-size: 14px; margin-bottom: 4px; }
+  #tooltipDesc { color: #887755; font-size: 11px; }
+  #crosshair {
+    position: absolute;
 </script>
 </body>
 </html>
