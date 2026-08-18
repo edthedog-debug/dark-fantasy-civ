@@ -58,6 +58,9 @@ let worldState = {
     aiImprovements: 0,
     activeEvents: [],
     buildings: [],
+    buildingsCount: 3,
+    abandonedBuildings: 0,
+    demolitionTimer: 0,
     logs: [
         "[" + new Date().toLocaleTimeString() + "] Autonomous Cloud Engine Initialized."
     ]
@@ -294,13 +297,25 @@ IMPORTANT: happinessImpact should be POSITIVE (5-20) to help recover from low ha
 function runSimulationTick() {
     worldState.day += 1;
 
-    // RECOVERY: Emergency happiness intervention
+    // ============ HAPPINESS RECOVERY SYSTEM ============
+    // Emergency intervention for critical happiness
     if (worldState.happiness < 20 && worldState.treasury > 100000) {
         worldState.treasury -= 100000;
         worldState.happiness = Math.min(100, worldState.happiness + 15);
         addLog("[WELFARE] Invested 100,000 Gold in public welfare. Happiness +15");
     }
-
+    // Moderate intervention for low happiness
+    else if (worldState.happiness < 40 && worldState.treasury > 50000 && worldState.day % 10 === 0) {
+        worldState.treasury -= 50000;
+        worldState.happiness = Math.min(100, worldState.happiness + 8);
+        addLog("[WELFARE] Invested 50,000 Gold in public welfare. Happiness +8");
+    }
+    // Gradual natural recovery when happiness is moderate
+    else if (worldState.happiness >= 40 && worldState.happiness < 70 && worldState.day % 20 === 0) {
+        worldState.happiness = Math.min(100, worldState.happiness + 2);
+        addLog("[WELFARE] Natural happiness recovery +2");
+    }
+    // Emergency reserve when treasury is empty
     if (worldState.treasury <= 0 && worldState.happiness < 30) {
         worldState.treasury += 3000;
         worldState.happiness = Math.min(100, worldState.happiness + 10);
@@ -336,14 +351,49 @@ function runSimulationTick() {
 
     worldState.techPower += 0.008;
 
-    if (worldState.happiness > 70 && worldState.treasury > 20000 && worldState.day % 8 === 0) {
+    // ============ POPULATION SYSTEM ============
+    // Immigration: Only when happiness is good and treasury is sufficient
+    if (worldState.happiness > 60 && worldState.treasury > 20000 && worldState.day % 8 === 0) {
         worldState.population += 1;
         addLog("[DEMOGRAPHICS] +1 immigrant. Pop: " + worldState.population);
-    } else if (worldState.happiness < 30 && worldState.population > 1 && worldState.day % 8 === 0) {
-        if (worldState.happiness < 10) {
-            worldState.population -= 1;
-            addLog("[DEMOGRAPHICS] -1 emigrated. Pop: " + worldState.population);
+    }
+    // Emigration: Only when happiness is critically low
+    else if (worldState.happiness < 15 && worldState.population > 10 && worldState.day % 8 === 0) {
+        worldState.population -= 1;
+        addLog("[DEMOGRAPHICS] -1 emigrated. Pop: " + worldState.population);
+    }
+    // Natural growth: Small chance when happiness is decent
+    else if (worldState.happiness >= 50 && worldState.population > 10 && worldState.day % 25 === 0) {
+        worldState.population += 1;
+        addLog("[DEMOGRAPHICS] +1 natural growth. Pop: " + worldState.population);
+    }
+
+    // ============ BUILDINGS SYSTEM (DEPENDENT ON POPULATION) ============
+    // Calculate expected buildings based on population
+    const expectedBuildings = Math.floor(worldState.population / 100) + 2;
+    
+    // If population grows, build new buildings
+    if (worldState.buildingsCount < expectedBuildings && worldState.treasury > 10000 && worldState.day % 20 === 0) {
+        worldState.treasury -= 10000;
+        worldState.buildingsCount += 1;
+        addLog("[BUILDING] Built new structure. Total: " + worldState.buildingsCount);
+    }
+    
+    // If population drops, buildings become abandoned
+    if (worldState.buildingsCount > expectedBuildings) {
+        // Start demolition timer
+        worldState.demolitionTimer = (worldState.demolitionTimer || 0) + 1;
+        
+        // After 10 days of abandonment, demolish
+        if (worldState.demolitionTimer >= 10) {
+            worldState.buildingsCount -= 1;
+            worldState.demolitionTimer = 0;
+            worldState.abandonedBuildings = (worldState.abandonedBuildings || 0) + 1;
+            addLog("[BUILDING] Abandoned structure demolished. Total: " + worldState.buildingsCount);
         }
+    } else {
+        // Reset timer if population recovered
+        worldState.demolitionTimer = 0;
     }
 
     if (worldState.treasury > 30000 && worldState.day % 25 === 0) {
@@ -611,7 +661,7 @@ function getCleanHTML() {
             document.getElementById('stat-tanks').innerText = worldState.tanks;
             document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
             document.getElementById('stat-status').style.color = worldState.inWar ? '#e74c3c' : '#2ecc71';
-            document.getElementById('stat-building-count').innerText = Math.floor(worldState.population / 5) + 2;
+            document.getElementById('stat-building-count').innerText = worldState.buildingsCount || Math.floor(worldState.population / 100) + 2;
             const ep = document.getElementById('event-panel');
             if (worldState.activeEvents && worldState.activeEvents.length > 0) { ep.innerHTML = worldState.activeEvents.map(e => '⚡ ' + e.description).join(' | '); ep.style.borderColor = '#ff4444'; ep.style.color = '#ff6666'; } else { ep.innerHTML = 'No active events'; ep.style.borderColor = '#00ff88'; ep.style.color = '#00ff88'; }
             const logBox = document.getElementById('log-stream');
@@ -621,7 +671,7 @@ function getCleanHTML() {
             if (!worldState) return;
             buildings = [];
             units = [];
-            const bCount = clamp(Math.floor(worldState.population / 5) + 2, 5, 80);
+            const bCount = clamp(Math.floor(worldState.population / 100) + 2, 5, 80);
             const uCount = clamp(Math.floor(worldState.population / 10) + 2, 3, 50);
             for (let i = 0; i < bCount; i++) { buildings.push({ xPercent: 5 + ((i * 7) % 90), yPercent: 10 + ((i * 5) % 80), type: i % 4, heightPercent: 8 + (i % 5) * 3 }); }
             for (let u = 0; u < uCount; u++) { units.push({ xPercent: 5 + Math.random() * 90, yPercent: 10 + Math.random() * 80, color: ['#ff6666', '#6666ff', '#66ff66', '#ffff66', '#ff66ff'][u % 5] }); }
