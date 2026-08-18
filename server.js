@@ -21,10 +21,10 @@ const SERVER = http.createServer(APP);
 const WSS = new WebSocket.Server({ server: SERVER, perMessageDeflate: false });
 const STATE_FILE = path.join(__dirname, 'worldState.json');
 
-// Rate limiter - 120 seconds between calls (very conservative)
+// Rate limiter - 120 seconds
 const rateLimiter = {
     lastCallTime: 0,
-    minInterval: 120000, // 120 seconds (2 minutes)
+    minInterval: 120000,
     
     async waitForSlot() {
         const now = Date.now();
@@ -98,17 +98,16 @@ function addLog(msg) {
 }
 
 /**
- * GROQ API - qwen/qwen3.6-27b
+ * GROQ API
  */
 async function queryAI(prompt, taskType) {
     if (!GROQ_API_KEY) {
-        console.error("❌ No GROQ_API_KEY - AI DISABLED");
+        console.error("❌ No GROQ_API_KEY");
         return null;
     }
 
     console.log("┌─────────────────────────────────────");
-    console.log("│ 🤖 GROQ AI CONNECTION");
-    console.log("│ 📋 Task: " + taskType);
+    console.log("│ 🤖 GROQ AI - " + taskType);
     console.log("│ 🧠 Model: qwen/qwen3.6-27b");
     console.log("└─────────────────────────────────────");
     
@@ -118,7 +117,7 @@ async function queryAI(prompt, taskType) {
         const url = 'https://api.groq.com/openai/v1/chat/completions';
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
         
         const response = await fetch(url, {
             method: 'POST',
@@ -129,15 +128,15 @@ async function queryAI(prompt, taskType) {
             body: JSON.stringify({
                 model: 'qwen/qwen3.6-27b',
                 messages: [{ role: 'user', content: prompt }],
-                temperature: 0.7,
-                max_tokens: 1024
+                temperature: 0.3,
+                max_tokens: 4096
             }),
             signal: controller.signal
         });
         
         clearTimeout(timeoutId);
         
-        console.log("│ 📊 Response Status: " + response.status);
+        console.log("│ 📊 Status: " + response.status);
         
         if (response.ok) {
             const data = await response.json();
@@ -154,7 +153,6 @@ async function queryAI(prompt, taskType) {
         console.log("│ ❌ FAILED: " + e.message);
     }
     
-    console.log("│ ⚠️ AI unavailable");
     console.log("└─────────────────────────────────────");
     return null;
 }
@@ -339,13 +337,15 @@ function runSimulationTick() {
 
 setInterval(runSimulationTick, 4000);
 
-// WebSocket - IMMEDIATE send
+// WebSocket
 WSS.on('connection', (ws) => {
     console.log('🔗 Client connected');
     ws.send(JSON.stringify({ type: 'WORLD_UPDATE', data: worldState }));
 });
 
-// AI CODE IMPROVEMENT
+/**
+ * AI CODE IMPROVEMENT - WITH ACTUAL HTML IN PROMPT
+ */
 async function autoImproveGameCode() {
     const types = ["CSS STYLING", "CANVAS GRAPHICS", "HTML STRUCTURE"];
     const improvementType = types[worldState.aiImprovements % 3];
@@ -367,47 +367,47 @@ async function autoImproveGameCode() {
             fs.writeFileSync(htmlPath, currentHtml);
         }
         
-        const prompt = `You are improving the ${improvementType} of a dark fantasy game.
+        // INCLUDE THE ACTUAL HTML IN THE PROMPT
+        const prompt = `You are improving the ${improvementType} of this dark fantasy game.
 
-        CRITICAL RULES - DO NOT BREAK THESE:
-        1. DO NOT modify the WebSocket connection code
-        2. DO NOT change the WebSocket URL
-        3. DO NOT remove auto-reconnect logic
-        4. DO NOT rename 'ws' variable
-        5. DO NOT break WORLD_UPDATE handling
-        6. DO NOT remove element IDs
-        7. DO NOT use white backgrounds
-        8. DO NOT add scroll to body
-        9. ONLY enhance visuals
-        10. Keep dark fantasy theme
+HERE IS THE CURRENT HTML CODE:
+\`\`\`html
+${currentHtml}
+\`\`\`
 
-        Return ONLY the ${improvementType} improvements.`;
-        
+IMPORTANT INSTRUCTIONS:
+1. MODIFY the code above - do NOT create a new file
+2. PRESERVE the WebSocket connection code EXACTLY (connect(), ws.onopen, ws.onmessage, ws.onclose)
+3. PRESERVE all element IDs: stat-day, stat-era, stat-pop, stat-gold, stat-tech, stat-tanks, stat-status, stat-build, event-panel, log-stream, gameCanvas
+4. KEEP dark background #070913 - NO white backgrounds
+5. KEEP overflow: hidden and position: fixed on body
+6. ONLY enhance the ${improvementType} - improve colors, borders, shadows, animations
+7. Return the COMPLETE modified HTML code`;
+
         const aiResponse = await queryAI(prompt, "CODE IMPROVEMENT - " + improvementType);
         
-        if (aiResponse && aiResponse.length > 50) {
-            const codeToAdd = aiResponse.replace(/```/g, '').trim();
+        if (aiResponse && aiResponse.length > 100) {
+            // Extract the HTML from the response
+            const htmlMatch = aiResponse.match(/```html[\s\S]*?```/) || aiResponse.match(/<!DOCTYPE html>[\s\S]*?<\/html>/);
             
-            const hasWhiteBg = /background:\s*(white|#fff|#ffffff)/i.test(codeToAdd);
-            const hasScroll = /overflow:\s*(auto|scroll)/i.test(codeToAdd);
-            const breaksConnection = /ws\s*=\s*null|ws\.close\(\)|delete\s+ws/i.test(codeToAdd);
-            
-            if (hasWhiteBg || hasScroll || breaksConnection) {
-                console.log("⚠️ AI generated problematic code - REJECTED");
-                addLog("[AI] Problematic code rejected - keeping current");
-            } else {
-                let improvedHtml = currentHtml;
+            if (htmlMatch) {
+                let newHtml = htmlMatch[0].replace(/```html/g, '').replace(/```/g, '').trim();
                 
-                if (worldState.aiImprovements % 3 === 0) {
-                    improvedHtml = improvedHtml.replace(/<style>[\s\S]*?<\/style>/g, `<style>\n${codeToAdd}\n</style>`);
-                } else if (worldState.aiImprovements % 3 === 1) {
-                    improvedHtml = improvedHtml.replace(/<script>[\s\S]*?<\/script>/g, `<script>\n${codeToAdd}\n</script>`);
+                // VALIDATE before applying
+                const hasWebSocket = /new WebSocket|ws\.onopen|ws\.onmessage/i.test(newHtml);
+                const hasWhiteBg = /background:\s*(white|#fff|#ffffff)/i.test(newHtml);
+                const hasScroll = /overflow:\s*(auto|scroll)/i.test(newHtml);
+                const hasIDs = /stat-day|stat-era|stat-pop/i.test(newHtml);
+                
+                if (!hasWebSocket || hasWhiteBg || hasScroll || !hasIDs) {
+                    console.log("⚠️ AI generated invalid HTML - REJECTED");
+                    addLog("[AI] Invalid HTML rejected - keeping current");
                 } else {
-                    improvedHtml = improvedHtml.replace(/<body>[\s\S]*?<\/body>/g, `<body>\n${codeToAdd}\n</body>`);
+                    fs.writeFileSync(htmlPath, newHtml);
+                    console.log("✅ AI HTML applied successfully");
                 }
-                
-                fs.writeFileSync(htmlPath, improvedHtml);
-                console.log("✅ AI code applied (WebSocket preserved)");
+            } else {
+                console.log("⚠️ Could not extract HTML from AI response");
             }
         }
         
@@ -427,7 +427,8 @@ SERVER.listen(PORT, () => {
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
     console.log("🤖 AI Model: qwen/qwen3.6-27b");
     console.log("⏱️ Events: every 250 days | Code: every 400 days | Rate: 120s");
-    console.log("🔌 WebSocket: PROTECTED from AI modifications");
+    console.log("🔌 WebSocket: PROTECTED");
+    console.log("📄 AI receives ACTUAL HTML in prompt");
     
     addLog("[SYSTEM] Simulation started.");
     broadcastState();
@@ -436,7 +437,7 @@ SERVER.listen(PORT, () => {
     queryAI("Say OK", "CONNECTION TEST").then(response => {
         if (response) {
             console.log("✅ AI CONNECTION ESTABLISHED");
-            addLog("[SYSTEM] AI System ready (qwen3.6-27b).");
+            addLog("[SYSTEM] AI System ready.");
         } else {
             console.log("⚠️ AI connection failed");
             addLog("[SYSTEM] AI unavailable.");
