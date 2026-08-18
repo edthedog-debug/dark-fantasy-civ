@@ -101,7 +101,7 @@ function addLog(msg) {
 }
 
 /**
- * GROQ GPT-OSS API - WITH GLOBAL LOCK (2 MINUTES WAIT)
+ * GROQ API - WITH GLOBAL LOCK (2 MINUTES WAIT)
  */
 async function queryAI(prompt, taskType) {
     if (!GROQ_API_KEY) {
@@ -119,8 +119,8 @@ async function queryAI(prompt, taskType) {
     isAIRequestInProgress = true;
 
     console.log("┌─────────────────────────────────────");
-    console.log("│ 🤖 GROQ GPT-OSS AI - " + taskType);
-    console.log("│ 🧠 Model: openai/gpt-oss-120b");
+    console.log("│ 🤖 GROQ AI - " + taskType);
+    console.log("│ 🧠 Model: qwen/qwen3.6-27b");
     console.log("└─────────────────────────────────────");
     
     try {
@@ -138,7 +138,7 @@ async function queryAI(prompt, taskType) {
                 'Authorization': `Bearer ${GROQ_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'openai/gpt-oss-120b',
+                model: 'qwen/qwen3.6-27b',
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.3,
                 max_tokens: 4096
@@ -258,7 +258,7 @@ async function generateAIEvents() {
             console.log("⚠️ Parse failed:", e.message);
         }
     } else {
-        addLog("[AI EVENT] GPT-OSS unavailable - skipped");
+        addLog("[AI EVENT] Groq unavailable - skipped");
     }
     
     if (worldState.activeEvents) {
@@ -451,7 +451,7 @@ CRITICAL RULES:
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
-    console.log("🤖 AI Model: openai/gpt-oss-120b");
+    console.log("🤖 AI Model: qwen/qwen3.6-27b");
     console.log("⏱️ Events: every 250 days | Code: every 400 days | Rate: 120s");
     console.log("🔒 AI Lock: 2 minute wait between requests");
     
