@@ -38,6 +38,9 @@ const rateLimiter = {
     }
 };
 
+// GLOBAL FLAG to prevent parallel AI requests
+let isAIRequestInProgress = false;
+
 let worldState = {
     day: 1,
     era: "Aetheric Civilization Era 1",
@@ -98,13 +101,22 @@ function addLog(msg) {
 }
 
 /**
- * GROQ API
+ * GROQ API - WITH GLOBAL LOCK
  */
 async function queryAI(prompt, taskType) {
     if (!GROQ_API_KEY) {
         console.error("❌ No GROQ_API_KEY");
         return null;
     }
+
+    // WAIT if another AI request is in progress
+    while (isAIRequestInProgress) {
+        console.log("⏳ Another AI request in progress - waiting 5s...");
+        await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+    
+    // SET the lock
+    isAIRequestInProgress = true;
 
     console.log("┌─────────────────────────────────────");
     console.log("│ 🤖 GROQ AI - " + taskType);
@@ -151,6 +163,9 @@ async function queryAI(prompt, taskType) {
         }
     } catch (e) {
         console.log("│ ❌ FAILED: " + e.message);
+    } finally {
+        // RELEASE the lock
+        isAIRequestInProgress = false;
     }
     
     console.log("└─────────────────────────────────────");
@@ -274,8 +289,7 @@ function runSimulationTick() {
     else if (worldState.happiness >= 30) moraleProductivity = 0.8;
     else moraleProductivity = 0.5;
 
-    // Daily market fluctuation (-3% to +5% random factor)
-    const marketFluctuation = (Math.random() * 0.08) - 0.03; // Random between -3% and +5%
+    const marketFluctuation = (Math.random() * 0.08) - 0.03;
     
     const baseTaxPerCitizen = 8;
     const techMultiplier = 1 + (worldState.techPower * 0.05);
@@ -290,7 +304,6 @@ function runSimulationTick() {
     const netProfit = grossIncome - totalExpenses;
     worldState.treasury = Math.max(0, worldState.treasury + netProfit);
 
-    // Log economy with fluctuation info
     if (Math.abs(netProfit) > 1000 && worldState.day % 5 === 0) {
         const status = netProfit > 0 ? "📈 PROFIT" : "📉 LOSS";
         const fluctuation = marketFluctuation >= 0 ? "+" + (marketFluctuation * 100).toFixed(1) + "%" : (marketFluctuation * 100).toFixed(1) + "%";
@@ -382,24 +395,20 @@ ${currentHtml}
 IMPROVEMENT GOALS:
 ${
     improvementType === "MAP GRAPHICS & MECHANICS" 
-    ? `- ENHANCE the Canvas rendering: add more detailed pixel art buildings, animated water, particle effects
-- IMPROVE unit animations: walking cycles, different unit types
-- ADD atmospheric effects: day/night cycle, weather particles
-- ENHANCE terrain: multiple grass types, dirt paths, stone textures
-- IMPROVE building details: windows, doors, roofs, flags, smoke`
+    ? `- ENHANCE Canvas rendering with detailed pixel art, animations, particles
+- IMPROVE unit animations and types
+- ADD atmospheric effects`
     : improvementType === "CSS STYLING"
-    ? `- ENHANCE dark fantasy aesthetic with richer colors and glow effects
-- IMPROVE panel designs with pixel-art borders
-- ADD smooth transitions and hover effects
-- ENHANCE status indicators with pulsing glow`
-    : `- IMPROVE layout structure for visual hierarchy
-- ADD semantic HTML elements
-- ENHANCE dashboard spacing
-- IMPROVE responsive design for mobile`
+    ? `- ENHANCE dark fantasy aesthetic
+- IMPROVE panel designs
+- ADD transitions and hover effects`
+    : `- IMPROVE layout structure
+- ADD semantic HTML
+- ENHANCE responsive design`
 }
 
-CRITICAL RULES - DO NOT BREAK:
-1. PRESERVE WebSocket connection code EXACTLY
+CRITICAL RULES:
+1. PRESERVE WebSocket code EXACTLY
 2. PRESERVE all element IDs
 3. KEEP dark background #070913
 4. KEEP overflow: hidden, position: fixed
@@ -444,7 +453,7 @@ SERVER.listen(PORT, () => {
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
     console.log("🤖 AI Model: qwen/qwen3.6-27b");
     console.log("⏱️ Events: every 250 days | Code: every 400 days | Rate: 120s");
-    console.log("📈 Economy: Daily fluctuation (-3% to +5%)");
+    console.log("🔒 AI Lock: prevents parallel requests");
     
     addLog("[SYSTEM] Simulation started.");
     broadcastState();
