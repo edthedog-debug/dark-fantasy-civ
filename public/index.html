@@ -188,30 +188,19 @@ html
 
     <script>
 <think>
-The user wants me to improve the canvas graphics of a dark fantasy game while preserving all IDs and WebSocket functionality. Since they didn't provide the original code, I'll create a comprehensive dark fantasy game with excellent canvas graphics including:
+The user wants me to improve the canvas graphics of a dark fantasy game while preserving all IDs and WebSocket functionality. Since they said "this dark fantasy game" but didn't provide code, I need to create/imagine a dark fantasy game with canvas graphics, IDs, and WebSocket functionality, and make it visually impressive.
 
-1. Atmospheric particle systems (embers, dust, fog)
-2. Dynamic lighting with glow effects
-3. Detailed sprite rendering using canvas primitives
-4. Parallax scrolling backgrounds
-5. Skull/castle/dungeon themed visuals
-6. Blood/damage effects
-7. Shadow and vignette effects
-8. Animated backgrounds
+Let me create a comprehensive dark fantasy game with:
+- Rich atmospheric canvas rendering (fog, particles, lighting effects)
+- Dark fantasy aesthetic (gothic colors, moody atmosphere)
+- Particle systems for ambiance
+- Proper IDs throughout
+- WebSocket communication for multiplayer/networking
+- Game loop with rendering
+- Character rendering with effects
+- Environmental effects (rain, fog, embers)
 
-I'll build a complete dark fantasy game with rich canvas graphics, proper IDs, and WebSocket connectivity.
-
-Let me create a full dark fantasy game with:
-- A character (dark knight/wizard) with detailed pixel-art style rendering
-- Enemies (skeletons, demons, bats)
-- Atmospheric effects (particles, fog, rain, embers)
-- Dynamic lighting system
-- Health/magic bars with styled rendering
-- A crumbling castle/dungeon environment
-- WebSocket integration for multiplayer
-- All elements with proper IDs
-
-Let me write this as a single HTML file with embedded CSS and JavaScript.
+I'll make this a complete, self-contained HTML file with excellent canvas graphics.
 </think>
 
 html
@@ -220,191 +209,167 @@ html
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Realm of Ashes</title>
+<title>Dark Fantasy Realm</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  background: #0a0a0a;
-  overflow: hidden;
-  font-family: 'Georgia', serif;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  cursor: none;
-}
-#gameContainer {
-  position: relative;
-  width: 960px;
-  height: 640px;
-}
-#gameCanvas {
-  position: absolute;
-  top: 0; left: 0;
-  border: 2px solid #2a1a0a;
-  box-shadow: 0 0 40px rgba(180, 50, 0, 0.3), inset 0 0 60px rgba(0,0,0,0.5);
-  border-radius: 4px;
-}
-#uiCanvas {
-  position: absolute;
-  top: 0; left: 0;
-  pointer-events: none;
-}
-#chatOverlay {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  color: #c8a87a;
-  font-size: 13px;
-  pointer-events: none;
-  text-shadow: 1px 1px 3px #000;
-  z-index: 10;
-}
-#chatInput {
-  position: absolute;
-  bottom: 8px;
-  right: 10px;
-  background: rgba(20,10,5,0.85);
-  border: 1px solid #5a3a1a;
-  color: #c8a87a;
-  padding: 6px 12px;
-  font-family: 'Georgia', serif;
-  font-size: 13px;
-  width: 220px;
-  border-radius: 3px;
-  outline: none;
-  z-index: 20;
-}
-#chatInput::placeholder { color: #5a4a3a; }
-#chatInput:focus { border-color: #8a5a2a; box-shadow: 0 0 8px rgba(180,80,20,0.4); }
-#tooltip {
-  position: absolute;
-  background: rgba(10,5,2,0.92);
-  border: 1px solid #5a3a1a;
-  color: #c8a87a;
-  padding: 8px 12px;
-  font-size: 12px;
-  border-radius: 3px;
-  pointer-events: none;
-  display: none;
-  z-index: 30;
-  max-width: 200px;
-}
-#minimap {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  border: 1px solid #3a2a1a;
-  border-radius: 3px;
-  z-index: 10;
-}
-#loadingScreen {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: #0a0808;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 100;
-  transition: opacity 1s;
-}
-#loadingScreen h1 {
-  color: #8b2500;
-  font-size: 42px;
-  text-shadow: 0 0 20px rgba(180,50,0,0.6), 0 0 60px rgba(180,50,0,0.2);
-  letter-spacing: 6px;
-  margin-bottom: 8px;
-}
-#loadingScreen p {
-  color: #6a4a2a;
-  font-size: 14px;
-  letter-spacing: 3px;
-}
-#loadingBar {
-  width: 300px;
-  height: 4px;
-  background: #1a0a05;
-  border-radius: 2px;
-  margin-top: 30px;
-  overflow: hidden;
-}
-#loadingFill {
-  width: 0%;
-  height: 100%;
-  background: linear-gradient(90deg, #8b2500, #c85020, #8b2500);
-  border-radius: 2px;
-  transition: width 0.3s;
-}
-</style>
-</head>
-<body>
-<div id="gameContainer">
-  <canvas id="gameCanvas" width="960" height="640"></canvas>
-  <canvas id="uiCanvas" width="960" height="640"></canvas>
-  <canvas id="minimap" width="120" height="120"></canvas>
-  <div id="chatOverlay"></div>
-  <input type="text" id="chatInput" placeholder="Press Enter to chat..." />
-  <div id="tooltip"></div>
-  <div id="loadingScreen">
-    <h1>REALM OF ASHES</h1>
-    <p>Entering the abyss...</p>
-    <div id="loadingBar"><div id="loadingFill"></div></div>
-  </div>
-</div>
-
-<script>
-// ─── CONFIG & STATE ────────────────────────────────────────────
-const W = 960, H = 640;
-const gameCanvas = document.getElementById('gameCanvas');
-const ctx = gameCanvas.getContext('2d');
-const uiCanvas = document.getElementById('uiCanvas');
-const uiCtx = uiCanvas.getContext('2d');
-const minimapCanvas = document.getElementById('minimap');
-const mmCtx = minimapCanvas.getContext('2d');
-
-const state = {
-  player: {
-    id: 'player',
-    x: 480, y: 320,
-    vx: 0, vy: 0,
-    hp: 100, maxHp: 100,
-    mp: 60, maxMp: 60,
-    level: 1, xp: 0,
-    facing: 1,
-    animFrame: 0,
-    animTimer: 0,
-    attacking: false,
-    attackTimer: 0,
-    attackCooldown: 0,
-    invincible: 0,
-    trail: [],
-    speed: 3.2,
-    className: 'Dark Knight'
-  },
-  enemies: [],
-  particles: [],
-  projectiles: [],
-  items: [],
-  chatMessages: [],
-  camera: { x: 0, y: 0 },
-  time: 0,
-  keys: {},
-  mouse: { x: W/2, y: H/2, down: false },
-  ws: null,
-  gameStarted: false,
-  bgStars: [],
-  rainDrops: [],
-  fogLayers: [],
-  terrainTiles: [],
-  torches: [],
-  skulls: [],
-  ambientParticles: [],
-  screenShake: { x: 0, y: 0, intensity: 0 },
-  damageNumbers: [],
-  comboCount: 0,
-  comboTimer: 0
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000;
+    overflow: hidden;
+    font-family: 'Segoe UI', sans-serif;
+    cursor: none;
+  }
+  #gameCanvas {
+    display: block;
+    position: absolute;
+    top: 0; left: 0;
+  }
+  #uiOverlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 10;
+  }
+  #hud {
+    position: absolute;
+    top: 20px; left: 20px;
+    z-index: 20;
+    pointer-events: none;
+  }
+  #healthBar {
+    width: 220px; height: 18px;
+    background: rgba(20,0,0,0.8);
+    border: 1px solid #8b0000;
+    border-radius: 9px;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(139,0,0,0.5), inset 0 0 5px rgba(0,0,0,0.5);
+  }
+  #healthFill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #8b0000, #dc143c, #ff4444);
+    border-radius: 9px;
+    transition: width 0.3s;
+    box-shadow: 0 0 8px rgba(220,20,60,0.6);
+  }
+  #manaBar {
+    width: 220px; height: 14px;
+    background: rgba(0,0,30,0.8);
+    border: 1px solid #1a1a8b;
+    border-radius: 7px;
+    overflow: hidden;
+    margin-top: 6px;
+    box-shadow: 0 0 10px rgba(26,26,139,0.5), inset 0 0 5px rgba(0,0,0,0.5);
+  }
+  #manaFill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #1a1a8b, #4169e1, #6495ed);
+    border-radius: 7px;
+    transition: width 0.3s;
+    box-shadow: 0 0 8px rgba(65,105,225,0.6);
+  }
+  #xpBar {
+    width: 220px; height: 8px;
+    background: rgba(20,20,0,0.8);
+    border: 1px solid #8b8b00;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  #xpFill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #8b8b00, #daa520, #ffd700);
+    border-radius: 4px;
+    transition: width 0.3s;
+  }
+  #statsPanel {
+    position: absolute;
+    top: 20px; right: 20px;
+    color: #c0b090;
+    font-size: 13px;
+    text-align: right;
+    text-shadow: 0 0 8px rgba(139,0,0,0.5);
+    pointer-events: none;
+  }
+  #chatBox {
+    position: absolute;
+    bottom: 20px; left: 20px;
+    width: 350px;
+    pointer-events: auto;
+    z-index: 20;
+  }
+  #chatMessages {
+    height: 150px;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(139,69,19,0.4);
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 6px;
+    color: #c0a060;
+    font-size: 12px;
+    scrollbar-width: thin;
+    scrollbar-color: #5a3a1a #1a0a0a;
+  }
+  #chatMessages::-webkit-scrollbar { width: 6px; }
+  #chatMessages::-webkit-scrollbar-track { background: #1a0a0a; }
+  #chatMessages::-webkit-scrollbar-thumb { background: #5a3a1a; border-radius: 3px; }
+  #chatInput {
+    width: 100%;
+    background: rgba(0,0,0,0.7);
+    border: 1px solid rgba(139,69,19,0.5);
+    border-radius: 4px;
+    color: #c0a060;
+    padding: 8px 12px;
+    font-size: 13px;
+    outline: none;
+  }
+  #chatInput::placeholder { color: rgba(192,160,96,0.4); }
+  #minimap {
+    position: absolute;
+    bottom: 20px; right: 20px;
+    width: 180px; height: 180px;
+    border: 2px solid rgba(139,69,19,0.6);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8), inset 0 0 15px rgba(0,0,0,0.5);
+    pointer-events: none;
+    z-index: 20;
+  }
+  #inventory {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(10,5,0,0.92);
+    border: 2px solid rgba(139,69,19,0.7);
+    border-radius: 6px;
+    padding: 20px;
+    display: none;
+    pointer-events: auto;
+    z-index: 30;
+    box-shadow: 0 0 40px rgba(139,0,0,0.3);
+  }
+  #inventory h3 {
+    color: #daa520;
+    margin-bottom: 12px;
+    text-align: center;
+    text-shadow: 0 0 10px rgba(218,165,32,0.5);
+  }
+  .inv-slot {
+    width: 50px; height: 50px;
+    background: rgba(30,15,0,0.8);
+    border: 1px solid rgba(139,69,19,0.5);
+    display: inline-block;
+    margin: 3px;
+    border-radius: 4px;
+    position: relative;
+  }
+  .inv-slot:hover { border-color: #daa520; }
+  #connectionStatus {
+    position: absolute;
+    top: 20px; left:
 </script>
 </body>
 </html>
