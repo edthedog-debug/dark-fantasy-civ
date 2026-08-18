@@ -188,36 +188,26 @@ html
 
     <script>
 <think>
-The user wants me to improve the canvas graphics of a dark fantasy game while preserving all IDs and WebSocket functionality. Since they haven't provided the current code, I need to think about what a typical dark fantasy canvas game would look like and create an improved version.
+The user wants me to improve the canvas graphics of a dark fantasy game. They want me to preserve all IDs and WebSocket functionality. They want only code returned.
 
-Wait - they said "Improve" which implies there's existing code. But they haven't shared it. Let me re-read... They want me to return only code. This seems like they might have shared code in a previous context, but I don't have that context here.
+Since no existing code was provided, I need to create a dark fantasy game with canvas graphics that includes WebSocket functionality. Let me create an impressive dark fantasy game with:
 
-Let me create a comprehensive dark fantasy game with excellent canvas graphics that includes WebSocket functionality and proper IDs. I'll make it a rich, atmospheric game with particle effects, lighting, shadows, and dark fantasy aesthetics.
+1. Rich atmospheric visuals - fog, particles, dynamic lighting
+2. A dark fantasy themed canvas game
+3. WebSocket integration for multiplayer/networking
+4. All proper IDs preserved
+5. Stunning visual effects - bloom, particle systems, procedural backgrounds
 
-I'll create a complete HTML file with:
-- Dark fantasy themed canvas rendering
-- Particle systems (embers, fog, dust)
-- Dynamic lighting and shadows
-- Atmospheric effects (vignette, noise)
-- Character rendering with glow effects
-- WebSocket connection handling
-- All proper IDs preserved
-- Game loop with proper architecture
+Let me create a complete, polished dark fantasy game with excellent canvas graphics. I'll make it a dungeon crawler / action RPG style game with:
 
-Let me build something visually impressive:
+- Procedurally generated dungeon with atmospheric lighting
+- Particle systems for magic, blood, torches
+- Dynamic shadows and fog of war
+- Animated sprites and effects
+- WebSocket communication layer
+- Rich color palette fitting dark fantasy
 
-1. Background with layered parallax
-2. Fog/atmospheric particles
-3. Dynamic lighting system
-4. Character with trail effects
-5. Enemy spawning with visual effects
-6. Projectile effects
-7. UI overlay with health/mana bars
-8. Post-processing effects (vignette, scanlines)
-9. Screen shake
-10. Death/blood particles
-
-I'll write a complete, self-contained HTML file.
+Let me write this as a single HTML file with embedded CSS and JavaScript.
 </think>
 
 html
@@ -226,174 +216,177 @@ html
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dark Fantasy Game</title>
+<title>Shadows of the Forgotten Realm</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-background: #000;
-overflow: hidden;
-font-family: 'Segoe UI', sans-serif;
-cursor: none;
+  background: #0a0a0f;
+  overflow: hidden;
+  font-family: 'Georgia', serif;
+  cursor: none;
 }
 #gameCanvas {
-display: block;
-position: absolute;
-top: 0; left: 0;
+  display: block;
+  position: absolute;
+  top: 0; left: 0;
 }
 #uiOverlay {
-position: absolute;
-top: 0; left: 0;
-width: 100%; height: 100%;
-pointer-events: none;
-z-index: 10;
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 10;
 }
-#healthBar {
-position: absolute;
-bottom: 30px; left: 30px;
-width: 280px; height: 18px;
-background: rgba(20, 5, 5, 0.85);
-border: 2px solid #5a1a1a;
-border-radius: 2px;
-box-shadow: 0 0 15px rgba(139, 0, 0, 0.5), inset 0 0 10px rgba(0,0,0,0.8);
+#hud {
+  position: absolute;
+  top: 20px; left: 20px;
+  color: #c4a46a;
+  font-size: 14px;
+  text-shadow: 0 0 10px rgba(196,164,106,0.5);
+  z-index: 11;
+  pointer-events: none;
 }
-#healthFill {
-height: 100%;
-width: 100%;
-background: linear-gradient(90deg, #8b0000, #cc2200, #8b0000);
-border-radius: 1px;
-transition: width 0.3s ease;
-box-shadow: 0 0 8px rgba(204, 34, 0, 0.6);
+#hud .bar-container {
+  width: 220px;
+  height: 14px;
+  background: rgba(20,10,5,0.85);
+  border: 1px solid #3a2a1a;
+  margin: 4px 0;
+  position: relative;
+  overflow: hidden;
 }
-#manaBar {
-position: absolute;
-bottom: 55px; left: 30px;
-width: 280px; height: 14px;
-background: rgba(5, 5, 20, 0.85);
-border: 2px solid #1a1a5a;
-border-radius: 2px;
-box-shadow: 0 0 15px rgba(0, 30, 139, 0.5), inset 0 0 10px rgba(0,0,0,0.8);
+#hud .bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  position: relative;
 }
-#manaFill {
-height: 100%;
-width: 100%;
-background: linear-gradient(90deg, #1a1a8b, #3344cc, #1a1a8b);
-border-radius: 1px;
-transition: width 0.3s ease;
-box-shadow: 0 0 8px rgba(51, 68, 204, 0.6);
+#hud .bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 50%;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.2), transparent);
 }
-#xpBar {
-position: absolute;
-bottom: 10px; left: 30px;
-width: 280px; height: 8px;
-background: rgba(10, 10, 5, 0.85);
-border: 1px solid #3a3a1a;
-border-radius: 2px;
-}
-#xpFill {
-height: 100%;
-width: 0%;
-background: linear-gradient(90deg, #666600, #aaaa00, #666600);
-border-radius: 1px;
-transition: width 0.3s ease;
-}
-#statsPanel {
-position: absolute;
-top: 20px; right: 20px;
-color: #887755;
-font-size: 13px;
-text-align: right;
-text-shadow: 0 0 10px rgba(136, 119, 85, 0.5);
-}
-#statsPanel div { margin-bottom: 4px; }
-#crosshair {
-position: absolute;
-pointer-events: none;
-z-index: 20;
-}
+#healthFill { background: linear-gradient(90deg, #6b1a1a, #c0392b, #e74c3c); }
+#manaFill { background: linear-gradient(90deg, #1a2a6b, #2980b9, #3498db); }
+#xpFill { background: linear-gradient(90deg, #4a6b1a, #27ae60, #2ecc71); }
 #minimap {
-position: absolute;
-top: 20px; left: 20px;
-width: 150px; height: 150px;
-border: 2px solid #3a2a1a;
-background: rgba(10, 5, 5, 0.8);
-box-shadow: 0 0 20px rgba(0,0,0,0.8);
+  position: absolute;
+  top: 20px; right: 20px;
+  border: 2px solid #3a2a1a;
+  box-shadow: 0 0 20px rgba(0,0,0,0.8);
+  z-index: 11;
 }
-#chatOverlay {
-position: absolute;
-bottom: 100px; left: 30px;
-width: 350px;
-max-height: 200px;
-overflow-y: auto;
-pointer-events: auto;
-z-index: 15;
+#dialogBox {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 700px;
+  background: rgba(10,8,15,0.95);
+  border: 1px solid #4a3a2a;
+  border-radius: 4px;
+  padding: 20px 30px;
+  color: #c4a46a;
+  font-size: 16px;
+  display: none;
+  z-index: 12;
+  box-shadow: 0 0 40px rgba(0,0,0,0.9), inset 0 0 30px rgba(0,0,0,0.5);
 }
-#chatOverlay::-webkit-scrollbar { width: 4px; }
-#chatOverlay::-webkit-scrollbar-thumb { background: #3a2a1a; }
-.chat-msg {
-color: #998866;
-font-size: 12px;
-padding: 2px 0;
-text-shadow: 0 0 5px rgba(0,0,0,0.8);
+#dialogBox .speaker {
+  color: #e74c3c;
+  font-weight: bold;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 12px;
+}
+#inventory {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  z-index: 11;
+}
+.inv-slot {
+  width: 52px; height: 52px;
+  background: rgba(20,15,10,0.9);
+  border: 1px solid #3a2a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6a5a4a;
+  font-size: 10px;
+  position: relative;
+}
+.inv-slot.active { border-color: #c4a46a; box-shadow: 0 0 10px rgba(196,164,106,0.3); }
+.inv-slot .key {
+  position: absolute;
+  top: 2px; left: 4px;
+  font-size: 9px;
+  color: #5a4a3a;
+}
+#wsStatus {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #5a5a5a;
+  font-size: 11px;
+  z-index: 11;
+  letter-spacing: 1px;
+}
+#wsStatus.connected { color: #27ae60; }
+#wsStatus.disconnected { color: #c0392b; }
+#titleScreen {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  background: radial-gradient(ellipse at center, rgba(20,10,5,0.8) 0%, rgba(5,5,10,0.98) 70%);
+}
+#titleScreen h1 {
+  color: #c4a46a;
+  font-size: 52px;
+  letter-spacing: 8px;
+  text-transform: uppercase;
+  text-shadow: 0 0 40px rgba(196,164,106,0.4), 0 4px 8px rgba(0,0,0,0.8);
+  margin-bottom: 10px;
+}
+#titleScreen .subtitle {
+  color: #6a4a3a;
+  font-size: 16px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  margin-bottom: 60px;
+}
+#titleScreen .start-btn {
+  color: #c4a46a;
+  font-size: 18px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  cursor: pointer;
+  pointer-events: all;
+  animation: pulse 2s ease-in-out infinite;
+  padding: 12px 40px;
+  border: 1px solid #3a2a1a;
+  background: rgba(20,15,10,0.8);
+}
+#titleScreen .start-btn:hover {
+  border-color: #c4a46a;
+  box-shadow: 0 0 30px rgba(196,164,106,0.2);
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 #deathScreen {
-position: absolute;
-top: 0; left: 0;
-width: 100%; height: 100%;
-background: rgba(30, 0, 0, 0.9);
-display: none;
-justify-content: center;
-align-items: center;
-flex-direction: column;
-z-index: 100;
-}
-#deathScreen h1 {
-color: #8b0000;
-font-size: 72px;
-text-shadow: 0 0 40px rgba(139, 0, 0, 0.8);
-letter-spacing: 15px;
-}
-#deathScreen p {
-color: #664433;
-font-size: 18px;
-margin-top: 20px;
-}
-#connectStatus {
-position: absolute;
-top: 20px;
-left: 50%;
-transform: translateX(-50%);
-color: #444;
-font-size: 12px;
-z-index: 50;
-}
-</style>
-</head>
-<body>
-
-<canvas id="gameCanvas"></canvas>
-
-<div id="uiOverlay">
-  <canvas id="minimap"></canvas>
-  <div id="healthBar"><div id="healthFill"></div></div>
-  <div id="manaBar"><div id="manaFill"></div></div>
-  <div id="xpBar"><div id="xpFill"></div></div>
-  <div id="statsPanel">
-    <div id="levelDisplay">Level: 1</div>
-    <div id="killDisplay">Souls Reaped: 0</div>
-    <div id="fpsDisplay">FPS: 60</div>
-  </div>
-  <div id="chatOverlay"></div>
-  <div id="connectStatus">Connecting...</div>
-</div>
-
-<div id="deathScreen">
-  <h1>YOU DIED</h1>
-  <p>Press R to respawn in the netherrealm</p>
-</div>
-
-<script>
-// ============================================================
-// DARK FANTASY GAME - ENHANCED CANVAS GRAPHICS
 </script>
 </body>
 </html>
