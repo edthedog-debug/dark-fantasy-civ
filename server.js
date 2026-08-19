@@ -62,6 +62,7 @@ let worldState = {
     abandonedBuildings: 0,
     demolitionTimer: 0,
     successfulImprovements: 0,
+    lastImprovementDetails: null,
     logs: [
         "[" + new Date().toLocaleTimeString() + "] Autonomous Cloud Engine Initialized."
     ]
@@ -143,8 +144,8 @@ async function queryAI(prompt, taskType) {
                 body: JSON.stringify({
                     model: 'groq/compound',
                     messages: [{ role: 'user', content: prompt }],
-                    temperature: 0.3,
-                    max_tokens: 512,
+                    temperature: 0.7, // Increased for more creative changes
+                    max_tokens: 1024, // Increased for more substantial modifications
                 }),
                 signal: controller.signal
             });
@@ -234,7 +235,7 @@ async function pushToGitHub(htmlPath, type, day) {
         fs.copyFileSync(STATE_FILE, path.join('/tmp/repo', 'worldState.json'));
         
         await executeGitCommand('git add public/index.html worldState.json');
-        await executeGitCommand(`git commit -m "🤖 [AI] ${type} - Day ${day}" --allow-empty`);
+        await executeGitCommand(`git commit -m "🤖 [AI] ${type} - Day ${day} - Deep Enhancement" --allow-empty`);
         await executeGitCommand('git push origin main --force', 4);
         
         process.chdir(orig);
@@ -245,32 +246,118 @@ async function pushToGitHub(htmlPath, type, day) {
 }
 
 /**
- * AI Events - REDUCED PROMPT
+ * AI Events - ENHANCED PROMPT FOR RICHER EVENTS
  */
 async function generateAIEvents() {
     const treasury = worldState.treasury;
+    const population = worldState.population;
+    const happiness = worldState.happiness;
+    const techPower = worldState.techPower;
+    const era = worldState.era;
     
-    console.log("\n🎲 GENERATING AI EVENT...");
+    console.log("\n🎲 GENERATING COMPLEX AI EVENT...");
     
-    const prompt = `Dark fantasy event JSON. Day ${worldState.day}, Pop ${worldState.population}, Gold ${treasury}. Format: {"event":"text","goldImpact":-0.1,"happinessImpact":5,"techImpact":0.2,"visualEffect":"storm","duration":30}`;
+    const prompt = `Create a COMPLEX and INTERESTING dark fantasy civilization event.
+
+Current State:
+- Day: ${worldState.day}
+- Population: ${population}
+- Treasury: ${treasury} gold
+- Happiness: ${happiness}%
+- Tech Power: ${techPower}
+- Era: ${era}
+- Buildings: ${worldState.buildingsCount}
+- Defenses: ${worldState.tanks}
+
+Requirements:
+1. Event should have meaningful consequences (not trivial)
+2. Include multiple effects (economic, social, technological)
+3. Add visual atmosphere
+4. Consider current state when designing event
+5. Make it memorable and impactful
+
+Return JSON format:
+{
+    "event": "Detailed event description",
+    "goldImpact": -0.15,
+    "happinessImpact": -8,
+    "techImpact": 0.5,
+    "populationImpact": 2,
+    "buildingImpact": -1,
+    "defenseImpact": 1,
+    "visualEffect": "blood_moon|storm|fire|plague|prosperity|darkness|frost|earthquake",
+    "duration": 45,
+    "rarity": "common|uncommon|rare|epic|legendary",
+    "chainEvent": "potential follow-up event description",
+    "moralChoice": "A difficult decision for the civilization"
+}`;
     
-    const aiResult = await queryAI(prompt, "EVENT GENERATION");
+    const aiResult = await queryAI(prompt, "COMPLEX EVENT GENERATION");
     
     if (aiResult) {
         try {
             const jsonMatch = aiResult.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const parsed = JSON.parse(jsonMatch[0]);
-                console.log("✅ AI EVENT GENERATED");
+                console.log("✅ COMPLEX AI EVENT GENERATED:", parsed.event);
                 
                 addLog("[AI EVENT] " + parsed.event);
-                if (typeof parsed.goldImpact === 'number') worldState.treasury = Math.max(0, worldState.treasury + Math.floor(treasury * parsed.goldImpact));
-                if (typeof parsed.happinessImpact === 'number') worldState.happiness = Math.min(100, Math.max(10, worldState.happiness + parsed.happinessImpact));
-                if (typeof parsed.techImpact === 'number') worldState.techPower += Math.max(0, parsed.techImpact);
+                
+                // Apply all effects
+                if (typeof parsed.goldImpact === 'number') {
+                    const goldChange = Math.floor(treasury * parsed.goldImpact);
+                    worldState.treasury = Math.max(0, worldState.treasury + goldChange);
+                    if (Math.abs(goldChange) > 100) {
+                        addLog(`[EVENT EFFECT] Treasury ${goldChange > 0 ? '+' : ''}${goldChange.toLocaleString()} gold`);
+                    }
+                }
+                
+                if (typeof parsed.happinessImpact === 'number') {
+                    worldState.happiness = Math.min(100, Math.max(5, worldState.happiness + parsed.happinessImpact));
+                    if (Math.abs(parsed.happinessImpact) >= 5) {
+                        addLog(`[EVENT EFFECT] Happiness ${parsed.happinessImpact > 0 ? '+' : ''}${parsed.happinessImpact}%`);
+                    }
+                }
+                
+                if (typeof parsed.techImpact === 'number') {
+                    worldState.techPower += parsed.techImpact;
+                    if (Math.abs(parsed.techImpact) >= 0.3) {
+                        addLog(`[EVENT EFFECT] Technology ${parsed.techImpact > 0 ? '+' : ''}${parsed.techImpact.toFixed(1)}`);
+                    }
+                }
+                
+                if (typeof parsed.populationImpact === 'number' && parsed.populationImpact !== 0) {
+                    worldState.population = Math.max(5, worldState.population + parsed.populationImpact);
+                    addLog(`[EVENT EFFECT] Population ${parsed.populationImpact > 0 ? '+' : ''}${parsed.populationImpact}`);
+                }
+                
+                if (typeof parsed.buildingImpact === 'number' && parsed.buildingImpact !== 0) {
+                    worldState.buildingsCount = Math.max(0, worldState.buildingsCount + parsed.buildingImpact);
+                    addLog(`[EVENT EFFECT] Buildings ${parsed.buildingImpact > 0 ? '+' : ''}${parsed.buildingImpact}`);
+                }
+                
+                if (typeof parsed.defenseImpact === 'number' && parsed.defenseImpact !== 0) {
+                    worldState.tanks = Math.max(0, worldState.tanks + parsed.defenseImpact);
+                    addLog(`[EVENT EFFECT] Defenses ${parsed.defenseImpact > 0 ? '+' : ''}${parsed.defenseImpact}`);
+                }
                 
                 if (parsed.visualEffect && parsed.visualEffect !== 'none') {
                     worldState.activeEvents = worldState.activeEvents || [];
-                    worldState.activeEvents.push({ type: parsed.visualEffect, description: parsed.event, endDay: worldState.day + (parsed.duration || 30) });
+                    worldState.activeEvents.push({ 
+                        type: parsed.visualEffect, 
+                        description: parsed.event, 
+                        endDay: worldState.day + (parsed.duration || 30),
+                        rarity: parsed.rarity || 'common'
+                    });
+                }
+                
+                if (parsed.moralChoice) {
+                    worldState.pendingChoice = {
+                        description: parsed.moralChoice,
+                        dayReceived: worldState.day,
+                        expiresDay: worldState.day + 10
+                    };
+                    addLog("[MORAL CHOICE] " + parsed.moralChoice);
                 }
             }
         } catch (e) {
@@ -399,6 +486,12 @@ function runSimulationTick() {
         worldState.treasury = Math.max(0, worldState.treasury - defenseUpkeep);
     }
 
+    // Handle pending moral choices
+    if (worldState.pendingChoice && worldState.pendingChoice.expiresDay < worldState.day) {
+        addLog("[CHOICE EXPIRED] " + worldState.pendingChoice.description);
+        delete worldState.pendingChoice;
+    }
+
     if (worldState.activeEvents) {
         worldState.activeEvents = worldState.activeEvents.filter(e => e.endDay > worldState.day);
     }
@@ -424,155 +517,247 @@ WSS.on('connection', (ws) => {
 });
 
 /**
- * AI CODE IMPROVEMENT - REDUCED PROMPTS
+ * AI CODE IMPROVEMENT - ENHANCED PROMPTS FOR MEANINGFUL CHANGES
  */
 async function autoImproveGameCode() {
-    const types = ["CSS STYLING", "MAP GRAPHICS & MECHANICS", "HTML STRUCTURE"];
+    const types = [
+        {
+            name: "CSS STYLING",
+            focus: "Complete visual overhaul with advanced effects",
+            requirements: "Add particle systems, dynamic lighting, animated backgrounds, glass-morphism effects, custom animations"
+        },
+        {
+            name: "MAP GRAPHICS & MECHANICS", 
+            focus: "Advanced rendering techniques and interactive elements",
+            requirements: "Implement day/night cycle, weather effects, terrain variations, building animations, unit AI movement"
+        },
+        {
+            name: "HTML STRUCTURE",
+            focus: "Enhanced UI/UX with new features",
+            requirements: "Add resource management panels, citizen happiness indicators, mini-map, tooltip system, achievement notifications"
+        }
+    ];
+    
     const improvementType = types[worldState.aiImprovements % 3];
     
     console.log("\n┌─────────────────────────────────────");
-    console.log("│ 🤖 AI CODE IMPROVEMENT");
-    console.log("│ 📋 Type: " + improvementType);
+    console.log("│ 🤖 AI CODE IMPROVEMENT - DEEP REWRITE");
+    console.log("│ 📋 Type: " + improvementType.name);
+    console.log("│ 🎯 Focus: " + improvementType.focus);
     console.log("└─────────────────────────────────────");
     
-    addLog("[AI AUTO-CODING] " + improvementType + " improvement...");
+    addLog(`[AI DEEP-CODING] ${improvementType.name}: ${improvementType.focus}`);
 
     try {
         const htmlPath = path.join(__dirname, 'public', 'index.html');
         if (!fs.existsSync(htmlPath)) return;
         
         let currentHtml = fs.readFileSync(htmlPath, 'utf8');
-        if (currentHtml.length > 100000) {
-            currentHtml = getCleanHTML();
-            fs.writeFileSync(htmlPath, currentHtml);
-        }
         
-        // STEP 1: REDUCED ANALYSIS PROMPT
-        const analysisPrompt = `Analyze HTML ${improvementType}. Return JSON: {"improvements":["item1","item2"]}`;
+        // ANALYSIS PROMPT - Comprehensive code review
+        const analysisPrompt = `Perform a DEEP code analysis of this dark fantasy civilization game's ${improvementType.name}. 
+
+CRITICAL ANALYSIS REQUIREMENTS:
+1. Identify ALL weaknesses in the current ${improvementType.name}
+2. Find missing features that would significantly enhance gameplay
+3. Detect performance bottlenecks
+4. Identify accessibility issues
+5. Find responsive design problems
+6. Locate code duplication and inefficiencies
+
+Return JSON with detailed findings:
+{
+    "criticalIssues": ["issue1", "issue2"],
+    "missingFeatures": ["feature1", "feature2"],
+    "performanceProblems": ["problem1", "problem2"],
+    "accessibilityIssues": ["issue1", "issue2"],
+    "codeQualityImprovements": ["improvement1", "improvement2"],
+    "innovationOpportunities": ["idea1", "idea2"]
+}`;
         
-        const analysisResult = await queryAI(analysisPrompt, "ANALYSIS - " + improvementType);
+        const analysisResult = await queryAI(analysisPrompt, "DEEP ANALYSIS - " + improvementType.name);
         
         if (!analysisResult) {
-            addLog("[AI] Analysis failed - keeping current HTML");
+            addLog(`[AI] Analysis failed for ${improvementType.name}`);
             worldState.aiImprovements += 1;
             return;
         }
+
+        // IMPROVEMENT PROMPT - Aggressive enhancement
+        const improvementPrompt = `MAJOR CODE TRANSFORMATION REQUIRED
+
+You are enhancing the ${improvementType.name} of a dark fantasy civilization game. 
+
+ANALYSIS FINDINGS:
+${analysisResult}
+
+TRANSFORMATION REQUIREMENTS:
+1. ${improvementType.requirements}
+2. Implement at least 3 SIGNIFICANT new features or visual improvements
+3. Optimize existing code for better performance
+4. Add smooth animations and transitions
+5. Improve mobile responsiveness
+6. Enhance user interaction and feedback
+7. Add dynamic visual effects that respond to game state
+8. Implement progressive enhancement techniques
+
+CRITICAL CONSTRAINTS:
+- MUST preserve ALL existing WebSocket functionality
+- MUST maintain these IDs: ${['stat-day', 'stat-era', 'stat-pop', 'stat-gold', 'stat-tech', 'stat-tanks', 'stat-status', 'stat-building-count', 'gameCanvas', 'event-panel', 'log-stream', 'connection-dot', 'connection-text'].join(', ')}
+- MUST keep these functions: ${['connectWebSocket', 'updateUI', 'drawCastle', 'drawHouse', 'drawBarracks', 'drawTower', 'render', 'generateObjects'].join(', ')}
+- Background must remain #070913 (dark theme)
+- NO scrolling on body element
+- Canvas must use 2D context
+- Must use requestAnimationFrame
+
+INNOVATION CHALLENGES:
+- Create something visually stunning that wasn't there before
+- Add at least one interactive element
+- Implement a new animation or effect
+- Optimize rendering performance
+
+Current HTML code:
+\`\`\`html
+${currentHtml}
+\`\`\`
+
+Return the COMPLETE transformed HTML with ALL improvements applied. The changes should be DRAMATIC and immediately noticeable.`;
         
-        // STEP 2: REDUCED IMPROVEMENT PROMPT
-        const improvementPrompt = `Improve ${improvementType}. Keep WebSocket, IDs, #070913, functions. HTML:\n\`\`\`html\n${currentHtml}\n\`\`\`\nReturn full HTML.`;
+        const aiResponse = await queryAI(improvementPrompt, "DEEP TRANSFORMATION - " + improvementType.name);
         
-        const aiResponse = await queryAI(improvementPrompt, "IMPROVEMENT - " + improvementType);
-        
-        if (aiResponse && aiResponse.length > 100) {
+        if (aiResponse && aiResponse.length > 200) {
             const htmlMatch = aiResponse.match(/```html[\s\S]*?```/) || aiResponse.match(/<!DOCTYPE html>[\s\S]*?<\/html>/);
             
             if (htmlMatch) {
                 let newHtml = htmlMatch[0].replace(/```html/g, '').replace(/```/g, '').trim();
                 
-                const validationResults = validateHTML(newHtml);
+                // Enhanced validation with quality metrics
+                const validationResults = validateHTMLWithQualityMetrics(newHtml, currentHtml);
                 
-                if (validationResults.isValid) {
+                if (validationResults.isValid && validationResults.qualityScore > 0.7) {
                     const backupPath = htmlPath + '.backup';
                     fs.writeFileSync(backupPath, currentHtml);
                     
                     fs.writeFileSync(htmlPath, newHtml);
-                    console.log("✅ AI HTML applied successfully");
-                    addLog("[AI] HTML updated - " + improvementType);
+                    console.log(`✅ AI HTML transformed - Quality Score: ${(validationResults.qualityScore * 100).toFixed(1)}%`);
+                    addLog(`[AI] HTML deep-transformed - ${improvementType.name} (Quality: ${(validationResults.qualityScore * 100).toFixed(0)}%)`);
                     
                     worldState.successfulImprovements = (worldState.successfulImprovements || 0) + 1;
+                    worldState.lastImprovementDetails = {
+                        type: improvementType.name,
+                        qualityScore: validationResults.qualityScore,
+                        changesCount: validationResults.changesCount,
+                        newFeatures: validationResults.newFeatures
+                    };
                 } else {
-                    console.log("⚠️ HTML validation failed:", validationResults.errors);
-                    addLog("[AI] HTML rejected - " + validationResults.errors.join(', '));
+                    console.log(`⚠️ HTML rejected - Quality Score: ${(validationResults.qualityScore * 100).toFixed(1)}%`);
+                    console.log("Issues:", validationResults.errors);
+                    addLog(`[AI] HTML rejected (Quality: ${(validationResults.qualityScore * 100).toFixed(0)}%) - ${validationResults.errors.slice(0, 3).join(', ')}`);
                 }
-            } else {
-                console.log("⚠️ No HTML found in AI response");
-                addLog("[AI] No HTML found in response");
             }
-        } else {
-            console.log("⚠️ AI response too short");
-            addLog("[AI] Response too short - skipped");
         }
         
         worldState.aiImprovements += 1;
-        addLog("[AI COMMIT] " + improvementType + " attempt #" + worldState.aiImprovements);
-        
-        pushToGitHub(htmlPath, improvementType, worldState.day).catch(() => {});
+        pushToGitHub(htmlPath, improvementType.name, worldState.day).catch(() => {});
         
     } catch (err) {
-        console.error("Error:", err.message);
-        addLog("[AI] Error - keeping current HTML");
+        console.error("Transformation error:", err.message);
+        addLog("[AI] Transformation error - keeping current HTML");
     }
 }
 
 /**
- * VALIDATE HTML BEFORE SAVING
+ * ENHANCED VALIDATION WITH QUALITY METRICS
  */
-function validateHTML(html) {
+function validateHTMLWithQualityMetrics(newHtml, oldHtml) {
     const errors = [];
+    let qualityScore = 0;
+    let changesCount = 0;
+    let newFeatures = [];
     
-    if (!/new WebSocket|ws\.onopen|ws\.onmessage/i.test(html)) {
+    // Basic validation (existing)
+    if (!/new WebSocket|ws\.onopen|ws\.onmessage/i.test(newHtml)) {
         errors.push("Missing WebSocket");
     }
     
     const requiredIds = ['stat-day', 'stat-era', 'stat-pop', 'stat-gold', 'stat-tech', 'stat-tanks', 'stat-status', 'stat-building-count', 'gameCanvas', 'event-panel', 'log-stream', 'connection-dot', 'connection-text'];
     requiredIds.forEach(id => {
-        if (!html.includes('id="' + id + '"')) {
+        if (!newHtml.includes('id="' + id + '"')) {
             errors.push("Missing ID: " + id);
         }
     });
     
     const requiredFunctions = ['connectWebSocket', 'updateUI', 'drawCastle', 'drawHouse', 'drawBarracks', 'drawTower', 'render', 'generateObjects'];
     requiredFunctions.forEach(func => {
-        if (!html.includes('function ' + func) && !html.includes(func + ' =')) {
+        if (!newHtml.includes('function ' + func) && !newHtml.includes(func + ' =')) {
             errors.push("Missing function: " + func);
         }
     });
     
-    if (/background:\s*(white|#fff|#ffffff)/i.test(html)) {
-        errors.push("White background detected");
+    // Quality metrics
+    const newLineCount = newHtml.split('\n').length;
+    const oldLineCount = oldHtml.split('\n').length;
+    changesCount = Math.abs(newLineCount - oldLineCount);
+    
+    // Score for significant changes (line count difference)
+    if (changesCount > 200) {
+        qualityScore += 0.3;
+        newFeatures.push("Extensive code changes");
+    } else if (changesCount > 100) {
+        qualityScore += 0.2;
+        newFeatures.push("Moderate code changes");
     }
     
-    if (/body\s*{[^}]*overflow:\s*(auto|scroll)/i.test(html)) {
-        errors.push("Scroll on body detected");
+    // Detect new features
+    const featurePatterns = [
+        { pattern: /animation|@keyframes|transition/i, feature: "Animations", weight: 0.15 },
+        { pattern: /particle|sparkle|glow|shadow|blur|gradient/i, feature: "Visual effects", weight: 0.15 },
+        { pattern: /addEventListener|onclick|onmouseover|onhover/i, feature: "Interactivity", weight: 0.15 },
+        { pattern: /setTimeout|setInterval|Date\.now/i, feature: "Dynamic updates", weight: 0.1 },
+        { pattern: /localStorage|sessionStorage|cookie/i, feature: "Persistence", weight: 0.1 },
+        { pattern: /class |constructor|extends|super/i, feature: "OOP patterns", weight: 0.1 },
+        { pattern: /async|await|Promise|fetch/i, feature: "Async operations", weight: 0.1 },
+        { pattern: /media query|@media|responsive/i, feature: "Responsive design", weight: 0.1 },
+        { pattern: /touchstart|touchmove|touchend|pinch|swipe/i, feature: "Touch gestures", weight: 0.15 },
+        { pattern: /audio|sound|music|AudioContext/i, feature: "Audio features", weight: 0.15 }
+    ];
+    
+    featurePatterns.forEach(({ pattern, feature, weight }) => {
+        const wasInOld = pattern.test(oldHtml);
+        const isInNew = pattern.test(newHtml);
+        if (isInNew && !wasInOld) {
+            qualityScore += weight;
+            newFeatures.push(feature);
+        }
+    });
+    
+    // Detect performance optimizations
+    if (/requestAnimationFrame|cancelAnimationFrame|performance\.now/i.test(newHtml)) {
+        if (!/requestAnimationFrame|cancelAnimationFrame|performance\.now/i.test(oldHtml)) {
+            qualityScore += 0.1;
+            newFeatures.push("Performance optimization");
+        }
     }
     
-    if (!/getContext\('2d'\)|getContext\("2d"\)/i.test(html)) {
-        errors.push("Missing canvas context");
+    // Detect code quality improvements
+    if (/const |let |=>|template literal|destructur/i.test(newHtml)) {
+        if (!/const |let |=>|template literal|destructur/i.test(oldHtml)) {
+            qualityScore += 0.1;
+            newFeatures.push("Modern JS patterns");
+        }
     }
     
-    if (!/requestAnimationFrame/i.test(html)) {
-        errors.push("Missing requestAnimationFrame");
-    }
+    // Ensure minimum quality threshold
+    qualityScore = Math.min(qualityScore, 1.0);
     
     return {
         isValid: errors.length === 0,
-        errors: errors
+        errors: errors,
+        qualityScore: qualityScore,
+        changesCount: changesCount,
+        newFeatures: newFeatures
     };
 }
-
-// START SERVER
-SERVER.listen(PORT, () => {
-    console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
-    console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
-    console.log("🤖 AI Model: groq/compound");
-    console.log("⏱️ Events: every 300 days | Code: every 500 days | Rate: 600s");
-    console.log("🔒 AI Lock: 10 minute wait between requests");
-    
-    addLog("[SYSTEM] Simulation started.");
-    broadcastState();
-    
-    console.log("\n🔌 Testing AI connection...");
-    queryAI("Say OK", "CONNECTION TEST").then(response => {
-        if (response) {
-            console.log("✅ AI CONNECTION ESTABLISHED");
-            addLog("[SYSTEM] AI System ready.");
-        } else {
-            console.log("⚠️ AI connection failed");
-            addLog("[SYSTEM] AI unavailable.");
-        }
-        broadcastState();
-    });
-});
 
 /**
  * Clean HTML - PROTECTED
@@ -606,125 +791,4 @@ function getCleanHTML() {
         .status-dot { width: 8px; height: 8px; background: #00ff88; border-radius: 50%; animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { box-shadow: 0 0 5px #00ff88; } 50% { box-shadow: 0 0 15px #00ff88; } }
         .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-        .stat-card { background: rgba(25, 33, 52, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 6px 8px; }
-        .stat-label { font-size: 8px; color: #6b7c93; text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-value { font-size: 13px; font-weight: bold; color: #fff; }
-        #map-container { flex: 1; background: #04060d; border: 1px solid rgba(0, 210, 255, 0.25); border-radius: 10px; position: relative; overflow: hidden; min-height: 0; }
-        canvas { display: block; width: 100%; height: 100%; touch-action: none; }
-        .event-panel { background: rgba(12, 17, 29, 0.95); border: 1px solid #00ff88; border-radius: 8px; padding: 6px 10px; font-size: 10px; color: #00ff88; max-height: 40px; overflow-y: auto; flex-shrink: 0; }
-        .log-container { height: 100px; background: rgba(12, 17, 29, 0.98); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 8px; padding: 8px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 10px; flex-shrink: 0; }
-        .log-entry { color: #a0aec0; margin-bottom: 2px; line-height: 1.4; }
-        .log-entry:last-child { color: #00d2ff; }
-        @media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 4px; } .stat-value { font-size: 11px; } .log-container { height: 70px; } body { padding: 6px; gap: 6px; } }
-    </style>
-</head>
-<body>
-    <div class="dashboard">
-        <div class="dash-header">
-            <span style="color:#8a99ad;font-weight:bold;">SOVEREIGN AI ENGINE</span>
-            <div class="status-badge">
-                <div class="status-dot" id="connection-dot"></div>
-                <span id="connection-text">CONNECTING...</span>
-            </div>
-        </div>
-        <div class="stats-grid">
-            <div class="stat-card"><div class="stat-label">DAY</div><div class="stat-value" id="stat-day">-</div></div>
-            <div class="stat-card"><div class="stat-label">ERA</div><div class="stat-value" id="stat-era" style="color:#9b59b6;">-</div></div>
-            <div class="stat-card"><div class="stat-label">POPULATION</div><div class="stat-value" id="stat-pop" style="color:#2ecc71;">-</div></div>
-            <div class="stat-card"><div class="stat-label">TREASURY</div><div class="stat-value" id="stat-gold" style="color:#ffd700;">-</div></div>
-            <div class="stat-card"><div class="stat-label">TECH</div><div class="stat-value" id="stat-tech" style="color:#3498db;">-</div></div>
-            <div class="stat-card"><div class="stat-label">DEFENSES</div><div class="stat-value" id="stat-tanks">-</div></div>
-            <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value" id="stat-status" style="color:#2ecc71;">-</div></div>
-            <div class="stat-card"><div class="stat-label">BUILDINGS</div><div class="stat-value" id="stat-building-count">-</div></div>
-        </div>
-    </div>
-    <div id="map-container"><canvas id="gameCanvas"></canvas></div>
-    <div class="event-panel" id="event-panel">No active events</div>
-    <div class="log-container"><div id="log-stream" style="color:#6b7c93;">Connecting to server...</div></div>
-    <script>
-    (() => {
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = false;
-        let worldState = null;
-        let ws = null;
-        let buildings = [];
-        let units = [];
-        let frameCount = 0;
-        let camera = { x: 0, y: 0, zoom: 1 };
-        let isDragging = false;
-        let startX = 0, startY = 0;
-        let lastRegeneration = 0;
-        const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-        const px = (p, d) => (p / 100) * d;
-        function resizeCanvas() { const container = document.getElementById('map-container'); canvas.width = container.clientWidth; canvas.height = container.clientHeight; }
-        window.addEventListener('resize', () => setTimeout(resizeCanvas, 150));
-        resizeCanvas();
-        function connectWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(protocol + '//' + window.location.host);
-            ws.onopen = () => { console.log('✅ WebSocket connected'); document.getElementById('log-stream').innerHTML = '<span style="color:#00ff88;">✅ Connected</span>'; document.getElementById('connection-dot').style.background = '#00ff88'; document.getElementById('connection-text').innerText = 'CONNECTED'; };
-            ws.onmessage = (event) => { try { const msg = JSON.parse(event.data); if (msg.type === 'WORLD_UPDATE') { worldState = msg.data; updateUI(); const now = Date.now(); if (now - lastRegeneration > 5000) { lastRegeneration = now; generateObjects(); } } } catch (e) { console.error('❌ Parse error:', e); } };
-            ws.onerror = () => { document.getElementById('log-stream').innerHTML = '<span style="color:#ff4444;">❌ Error</span>'; document.getElementById('connection-dot').style.background = '#e74c3c'; document.getElementById('connection-text').innerText = 'ERROR'; };
-            ws.onclose = () => { document.getElementById('log-stream').innerHTML = '<span style="color:#ffcc00;">🔄 Reconnecting...</span>'; document.getElementById('connection-dot').style.background = '#ffcc00'; document.getElementById('connection-text').innerText = 'RECONNECTING'; setTimeout(connectWebSocket, 2000); };
-        }
-        function updateUI() {
-            if (!worldState) return;
-            document.getElementById('stat-day').innerText = worldState.day;
-            document.getElementById('stat-era').innerText = worldState.era;
-            document.getElementById('stat-pop').innerText = worldState.population;
-            document.getElementById('stat-gold').innerText = Math.floor(worldState.treasury).toLocaleString() + ' G';
-            document.getElementById('stat-tech').innerText = Number(worldState.techPower).toFixed(1);
-            document.getElementById('stat-tanks').innerText = worldState.tanks;
-            document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
-            document.getElementById('stat-status').style.color = worldState.inWar ? '#e74c3c' : '#2ecc71';
-            document.getElementById('stat-building-count').innerText = worldState.buildingsCount || Math.floor(worldState.population / 100) + 2;
-            const ep = document.getElementById('event-panel');
-            if (worldState.activeEvents && worldState.activeEvents.length > 0) { ep.innerHTML = worldState.activeEvents.map(e => '⚡ ' + e.description).join(' | '); ep.style.borderColor = '#ff4444'; ep.style.color = '#ff6666'; } else { ep.innerHTML = 'No active events'; ep.style.borderColor = '#00ff88'; ep.style.color = '#00ff88'; }
-            const logBox = document.getElementById('log-stream');
-            if (worldState.logs && worldState.logs.length > 0) { logBox.innerHTML = worldState.logs.map(l => '<div class="log-entry">' + l + '</div>').join(''); logBox.scrollTop = logBox.scrollHeight; }
-        }
-        function generateObjects() {
-            if (!worldState) return;
-            buildings = [];
-            units = [];
-            const bCount = clamp(Math.floor(worldState.population / 100) + 2, 5, 80);
-            const uCount = clamp(Math.floor(worldState.population / 10) + 2, 3, 50);
-            for (let i = 0; i < bCount; i++) { buildings.push({ xPercent: 5 + ((i * 7) % 90), yPercent: 10 + ((i * 5) % 80), type: i % 4, heightPercent: 8 + (i % 5) * 3 }); }
-            for (let u = 0; u < uCount; u++) { units.push({ xPercent: 5 + Math.random() * 90, yPercent: 10 + Math.random() * 80, color: ['#ff6666', '#6666ff', '#66ff66', '#ffff66', '#ff66ff'][u % 5] }); }
-        }
-        canvas.addEventListener('mousedown', (e) => { isDragging = true; startX = e.clientX - camera.x; startY = e.clientY - camera.y; });
-        window.addEventListener('mouseup', () => isDragging = false);
-        canvas.addEventListener('mousemove', (e) => { if (isDragging) { camera.x = e.clientX - startX; camera.y = e.clientY - startY; } });
-        canvas.addEventListener('wheel', (e) => { e.preventDefault(); camera.zoom = clamp(camera.zoom * (e.deltaY < 0 ? 1.1 : 0.9), 0.5, 2.5); }, { passive: false });
-        let lastTouchDist = 0;
-        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); if (e.touches.length === 1) { isDragging = true; startX = e.touches[0].clientX - camera.x; startY = e.touches[0].clientY - camera.y; } else if (e.touches.length === 2) { isDragging = false; lastTouchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); } });
-        canvas.addEventListener('touchend', () => isDragging = false);
-        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (e.touches.length === 1 && isDragging) { camera.x = e.touches[0].clientX - startX; camera.y = e.touches[0].clientY - startY; } else if (e.touches.length === 2) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); camera.zoom = clamp(camera.zoom * (d / lastTouchDist), 0.5, 2.5); lastTouchDist = d; } }, { passive: false });
-        function drawCastle(x, y, h) { ctx.fillStyle = '#8a8a8a'; ctx.fillRect(x - h * 0.3, y - h, h * 0.6, h); for (let i = -2; i <= 2; i++) { ctx.fillRect(x + i * h * 0.12, y - h - 4, 4, 4); } ctx.fillStyle = '#ffff88'; for (let w = 0; w < 3; w++) { ctx.fillRect(x - 3, y - h + 6 + w * 10, 6, 5); } ctx.fillStyle = '#3a1a0a'; ctx.fillRect(x - 4, y - 8, 8, 8); }
-        function drawHouse(x, y, h) { ctx.fillStyle = '#c4a060'; ctx.fillRect(x - h * 0.35, y - h, h * 0.7, h); ctx.fillStyle = '#8a3a1a'; ctx.fillRect(x - h * 0.45, y - h - 3, h * 0.9, 4); ctx.fillStyle = '#ffff88'; ctx.fillRect(x - 3, y - h + 5, 5, 4); ctx.fillStyle = '#3a1a0a'; ctx.fillRect(x - 3, y - 5, 6, 5); }
-        function drawBarracks(x, y, h) { ctx.fillStyle = '#6a6a6a'; ctx.fillRect(x - h * 0.4, y - h, h * 0.8, h); ctx.fillStyle = '#4a4a4a'; ctx.fillRect(x - h * 0.5, y - h - 2, h, 3); }
-        function drawTower(x, y, h) { ctx.fillStyle = '#7a7a7a'; ctx.fillRect(x - h * 0.2, y - h, h * 0.4, h); ctx.fillStyle = '#5a5a5a'; ctx.fillRect(x - h * 0.3, y - h - 3, h * 0.6, 3); }
-        function render() {
-            frameCount++;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.save();
-            ctx.translate(camera.x, camera.y);
-            ctx.scale(camera.zoom, camera.zoom);
-            for (let x = 0; x < canvas.width + 20; x += 20) { for (let y = 0; y < canvas.height + 20; y += 20) { ctx.fillStyle = ((x + y) % 40 === 0) ? '#1a3a1a' : '#1a2a1a'; ctx.fillRect(x, y, 20, 20); } }
-            for (let y = 0; y < canvas.height; y += 4) { const wave = Math.sin((y * 0.04) + frameCount * 0.03) * 8; ctx.fillStyle = '#1a4a6a'; ctx.fillRect(canvas.width * 0.4 + wave, y, 16, 4); }
-            const treePositions = [[8,15],[22,25],[45,12],[60,30],[75,18],[15,50],[38,45],[65,55],[85,40]];
-            treePositions.forEach(t => { const tx = px(t[0], canvas.width); const ty = px(t[1], canvas.height); ctx.fillStyle = '#5a3a1a'; ctx.fillRect(tx, ty, 4, 12); ctx.fillStyle = '#1a5a1a'; ctx.fillRect(tx - 7, ty - 12, 18, 12); ctx.fillStyle = '#2a6a2a'; ctx.fillRect(tx - 4, ty - 16, 12, 5); });
-            buildings.forEach(b => { const bx = px(b.xPercent, canvas.width); const by = px(b.yPercent, canvas.height); const bh = px(b.heightPercent, canvas.height); switch(b.type) { case 0: drawCastle(bx, by, bh); break; case 1: drawHouse(bx, by, bh * 0.6); break; case 2: drawBarracks(bx, by, bh * 0.7); break; case 3: drawTower(bx, by, bh * 1.2); break; } });
-            units.forEach(u => { const ux = px(u.xPercent, canvas.width); const uy = px(u.yPercent, canvas.height); const legOffset = Math.sin(frameCount * 0.1 + ux) > 0 ? 0 : 3; ctx.fillStyle = u.color; ctx.fillRect(Math.round(ux), Math.round(uy - 6), 3, 6); ctx.fillStyle = '#ffcc99'; ctx.fillRect(Math.round(ux), Math.round(uy - 9), 3, 3); ctx.fillStyle = '#333'; ctx.fillRect(Math.round(ux), Math.round(uy), 1, 3 + legOffset); ctx.fillRect(Math.round(ux + 2), Math.round(uy), 1, 3 - legOffset); });
-            if (worldState && worldState.activeEvents) { worldState.activeEvents.forEach(evt => { if (evt.type === 'blood_moon') { ctx.fillStyle = 'rgba(150,0,0,0.3)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } if (evt.type === 'fire') { ctx.fillStyle = 'rgba(255,100,0,0.2)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } if (evt.type === 'storm') { ctx.fillStyle = 'rgba(30,30,60,0.5)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } if (evt.type === 'plague') { ctx.fillStyle = 'rgba(0,150,0,0.2)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } if (evt.type === 'prosperity') { ctx.fillStyle = 'rgba(255,215,0,0.15)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } }); }
-            ctx.restore();
-            requestAnimationFrame(render);
-        }
-        connectWebSocket();
-        requestAnimationFrame(render);
-    })();
-    </script>
-</body>
-</html>`;
-}
+        .stat-card { background: rgba(25, 33
