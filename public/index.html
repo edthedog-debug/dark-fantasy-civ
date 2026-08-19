@@ -35,14 +35,11 @@
             flex-direction: column;
             padding: 10px;
             gap: 8px;
-            overflow: hidden !important;
-            position: fixed !important;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            /* CORREGIDO: Quitar position: fixed y permitir scroll si es necesario */
+            overflow: auto !important;
             width: 100%;
-            height: 100%;
+            height: 100vh;
+            height: 100dvh;
         }
 
         .dashboard {
@@ -51,6 +48,7 @@
             border-radius: 10px;
             padding: 10px;
             flex-shrink: 0;
+            min-height: 0;
         }
 
         .dash-header {
@@ -58,6 +56,7 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
+            flex-wrap: wrap;
         }
 
         .status-badge {
@@ -92,6 +91,7 @@
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 6px;
             padding: 6px 8px;
+            min-width: 0;
         }
 
         .stat-label {
@@ -99,12 +99,18 @@
             color: #6b7c93;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .stat-value {
             font-size: 13px;
             font-weight: bold;
             color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         #map-container {
@@ -114,7 +120,8 @@
             border-radius: 10px;
             position: relative;
             overflow: hidden;
-            min-height: 0;
+            min-height: 200px; /* CORREGIDO: Altura mínima para el canvas */
+            max-height: calc(100vh - 300px); /* CORREGIDO: Evitar que crezca demasiado */
         }
 
         canvas {
@@ -137,7 +144,7 @@
         }
 
         .log-container {
-            height: 100px;
+            height: 120px; /* CORREGIDO: Altura fija más grande */
             background: rgba(12, 17, 29, 0.98);
             border: 1px solid rgba(0, 210, 255, 0.2);
             border-radius: 8px;
@@ -152,6 +159,7 @@
             color: #a0aec0;
             margin-bottom: 2px;
             line-height: 1.4;
+            word-wrap: break-word;
         }
 
         .log-entry:last-child {
@@ -161,8 +169,9 @@
         @media (max-width: 768px) {
             .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 4px; }
             .stat-value { font-size: 11px; }
-            .log-container { height: 70px; }
+            .log-container { height: 80px; }
             body { padding: 6px; gap: 6px; }
+            #map-container { min-height: 150px; max-height: calc(100vh - 250px); }
         }
     </style>
 </head>
@@ -203,7 +212,18 @@
         const ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = false;
 
-        let worldState = null;
+        let worldState = {
+            day: 1,
+            era: "Loading...",
+            population: 0,
+            treasury: 0,
+            techPower: 0,
+            tanks: 0,
+            inWar: false,
+            activeEvents: [],
+            logs: ["Initializing..."]
+        }; // CORREGIDO: Estado inicial no-nulo
+
         let ws = null;
         let buildings = [];
         let units = [];
@@ -212,71 +232,106 @@
         let isDragging = false;
         let startX = 0, startY = 0;
         let lastRegeneration = 0;
+        let resizeTimeout = null;
 
         const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
         const px = (p, d) => (p / 100) * d;
 
         function resizeCanvas() {
-            const container = document.getElementById('map-container');
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                const container = document.getElementById('map-container');
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                
+                // CORREGIDO: Verificar dimensiones válidas
+                if (width > 0 && height > 0) {
+                    canvas.width = width;
+                    canvas.height = height;
+                    console.log(`Canvas resized to ${width}x${height}`);
+                } else {
+                    console.warn('Container has no dimensions yet');
+                }
+            }, 100);
         }
-        window.addEventListener('resize', () => setTimeout(resizeCanvas, 150));
-        resizeCanvas();
+
+        // CORREGIDO: Llamar a resizeCanvas después de que el DOM esté listo
+        window.addEventListener('load', resizeCanvas);
+        window.addEventListener('resize', resizeCanvas);
+        
+        // CORREGIDO: Inicializar canvas con tamaño por defecto
+        setTimeout(resizeCanvas, 1000);
 
         function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(protocol + '//' + window.location.host);
+            const wsUrl = protocol + '//' + window.location.host;
+            
+            try {
+                ws = new WebSocket(wsUrl);
 
-            ws.onopen = () => {
-                console.log('✅ WebSocket connected');
-                document.getElementById('log-stream').innerHTML = '<span style="color:#00ff88;">✅ Connected</span>';
-                document.getElementById('connection-dot').style.background = '#00ff88';
-                document.getElementById('connection-text').innerText = 'CONNECTED';
-            };
+                ws.onopen = () => {
+                    console.log('✅ WebSocket connected');
+                    document.getElementById('log-stream').innerHTML = '<span style="color:#00ff88;">✅ Connected</span>';
+                    document.getElementById('connection-dot').style.background = '#00ff88';
+                    document.getElementById('connection-text').innerText = 'CONNECTED';
+                };
 
-            ws.onmessage = (event) => {
-                try {
-                    const msg = JSON.parse(event.data);
-                    if (msg.type === 'WORLD_UPDATE') {
-                        worldState = msg.data;
-                        updateUI();
-                        const now = Date.now();
-                        if (now - lastRegeneration > 5000) {
-                            lastRegeneration = now;
-                            generateObjects();
+                ws.onmessage = (event) => {
+                    try {
+                        const msg = JSON.parse(event.data);
+                        if (msg.type === 'WORLD_UPDATE' && msg.data) {
+                            worldState = msg.data;
+                            updateUI();
+                            const now = Date.now();
+                            if (now - lastRegeneration > 5000) {
+                                lastRegeneration = now;
+                                generateObjects();
+                            }
                         }
+                    } catch (e) {
+                        console.error('❌ Parse error:', e);
                     }
-                } catch (e) {
-                    console.error('❌ Parse error:', e);
-                }
-            };
+                };
 
-            ws.onerror = () => {
-                document.getElementById('log-stream').innerHTML = '<span style="color:#ff4444;">❌ Error</span>';
-                document.getElementById('connection-dot').style.background = '#e74c3c';
-                document.getElementById('connection-text').innerText = 'ERROR';
-            };
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    document.getElementById('log-stream').innerHTML = '<span style="color:#ff4444;">❌ Connection Error</span>';
+                    document.getElementById('connection-dot').style.background = '#e74c3c';
+                    document.getElementById('connection-text').innerText = 'ERROR';
+                };
 
-            ws.onclose = () => {
-                document.getElementById('log-stream').innerHTML = '<span style="color:#ffcc00;">🔄 Reconnecting...</span>';
-                document.getElementById('connection-dot').style.background = '#ffcc00';
-                document.getElementById('connection-text').innerText = 'RECONNECTING';
+                ws.onclose = () => {
+                    console.log('WebSocket closed, reconnecting...');
+                    document.getElementById('log-stream').innerHTML = '<span style="color:#ffcc00;">🔄 Reconnecting...</span>';
+                    document.getElementById('connection-dot').style.background = '#ffcc00';
+                    document.getElementById('connection-text').innerText = 'RECONNECTING';
+                    setTimeout(connectWebSocket, 2000);
+                };
+            } catch (error) {
+                console.error('Failed to create WebSocket:', error);
                 setTimeout(connectWebSocket, 2000);
-            };
+            }
         }
 
         function updateUI() {
             if (!worldState) return;
-            document.getElementById('stat-day').innerText = worldState.day;
-            document.getElementById('stat-era').innerText = worldState.era;
-            document.getElementById('stat-pop').innerText = worldState.population;
-            document.getElementById('stat-gold').innerText = Math.floor(worldState.treasury).toLocaleString() + ' G';
-            document.getElementById('stat-tech').innerText = Number(worldState.techPower).toFixed(1);
-            document.getElementById('stat-tanks').innerText = worldState.tanks;
-            document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
-            document.getElementById('stat-status').style.color = worldState.inWar ? '#e74c3c' : '#2ecc71';
-            document.getElementById('stat-building-count').innerText = Math.floor(worldState.population / 5) + 2;
+            
+            const updateElement = (id, value, color = '#fff') => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.innerText = value;
+                    if (color !== '#fff') el.style.color = color;
+                }
+            };
+            
+            updateElement('stat-day', worldState.day || '-');
+            updateElement('stat-era', worldState.era || '-', '#9b59b6');
+            updateElement('stat-pop', worldState.population || 0, '#2ecc71');
+            updateElement('stat-gold', Math.floor(worldState.treasury || 0).toLocaleString() + ' G', '#ffd700');
+            updateElement('stat-tech', Number(worldState.techPower || 0).toFixed(1), '#3498db');
+            updateElement('stat-tanks', worldState.tanks || 0);
+            updateElement('stat-status', worldState.inWar ? 'WAR' : 'PEACE', worldState.inWar ? '#e74c3c' : '#2ecc71');
+            updateElement('stat-building-count', Math.floor((worldState.population || 0) / 5) + 2);
 
             const ep = document.getElementById('event-panel');
             if (worldState.activeEvents && worldState.activeEvents.length > 0) {
@@ -291,7 +346,16 @@
 
             const logBox = document.getElementById('log-stream');
             if (worldState.logs && worldState.logs.length > 0) {
-                logBox.innerHTML = worldState.logs.map(l => '<div class="log-entry">' + l + '</div>').join('');
+                // CORREGIDO: Usar DocumentFragment para mejor rendimiento
+                const fragment = document.createDocumentFragment();
+                worldState.logs.forEach(log => {
+                    const div = document.createElement('div');
+                    div.className = 'log-entry';
+                    div.textContent = log; // Usar textContent en lugar de innerHTML
+                    fragment.appendChild(div);
+                });
+                logBox.innerHTML = '';
+                logBox.appendChild(fragment);
                 logBox.scrollTop = logBox.scrollHeight;
             }
         }
@@ -300,8 +364,12 @@
             if (!worldState) return;
             buildings = [];
             units = [];
-            const bCount = clamp(Math.floor(worldState.population / 5) + 2, 5, 80);
-            const uCount = clamp(Math.floor(worldState.population / 10) + 2, 3, 50);
+            
+            // CORREGIDO: Verificar que population es un número válido
+            const population = worldState.population || 10;
+            const bCount = clamp(Math.floor(population / 5) + 2, 5, 40);
+            const uCount = clamp(Math.floor(population / 10) + 2, 3, 25);
+            
             for (let i = 0; i < bCount; i++) {
                 buildings.push({
                     xPercent: 5 + ((i * 7) % 90),
@@ -320,30 +388,60 @@
         }
 
         // Mouse controls
-        canvas.addEventListener('mousedown', (e) => { isDragging = true; startX = e.clientX - camera.x; startY = e.clientY - camera.y; });
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX - camera.x;
+            startY = e.clientY - camera.y;
+        });
         window.addEventListener('mouseup', () => isDragging = false);
-        canvas.addEventListener('mousemove', (e) => { if (isDragging) { camera.x = e.clientX - startX; camera.y = e.clientY - startY; } });
-        canvas.addEventListener('wheel', (e) => { e.preventDefault(); camera.zoom = clamp(camera.zoom * (e.deltaY < 0 ? 1.1 : 0.9), 0.5, 2.5); }, { passive: false });
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                camera.x = e.clientX - startX;
+                camera.y = e.clientY - startY;
+            }
+        });
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            camera.zoom = clamp(camera.zoom * (e.deltaY < 0 ? 1.1 : 0.9), 0.5, 2.5);
+        }, { passive: false });
 
         // Touch controls
         let lastTouchDist = 0;
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            if (e.touches.length === 1) { isDragging = true; startX = e.touches[0].clientX - camera.x; startY = e.touches[0].clientY - camera.y; }
-            else if (e.touches.length === 2) { isDragging = false; lastTouchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
-        });
+            if (e.touches.length === 1) {
+                isDragging = true;
+                startX = e.touches[0].clientX - camera.x;
+                startY = e.touches[0].clientY - camera.y;
+            } else if (e.touches.length === 2) {
+                isDragging = false;
+                lastTouchDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+            }
+        }, { passive: false });
+        
         canvas.addEventListener('touchend', () => isDragging = false);
+        
         canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
-            if (e.touches.length === 1 && isDragging) { camera.x = e.touches[0].clientX - startX; camera.y = e.touches[0].clientY - startY; }
-            else if (e.touches.length === 2) {
-                const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-                camera.zoom = clamp(camera.zoom * (d / lastTouchDist), 0.5, 2.5);
+            if (e.touches.length === 1 && isDragging) {
+                camera.x = e.touches[0].clientX - startX;
+                camera.y = e.touches[0].clientY - startY;
+            } else if (e.touches.length === 2) {
+                const d = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                if (lastTouchDist > 0) {
+                    camera.zoom = clamp(camera.zoom * (d / lastTouchDist), 0.5, 2.5);
+                }
                 lastTouchDist = d;
             }
         }, { passive: false });
 
-        // Pixel art drawing
+        // Pixel art drawing functions
         function drawCastle(x, y, h) {
             ctx.fillStyle = '#8a8a8a';
             ctx.fillRect(x - h * 0.3, y - h, h * 0.6, h);
@@ -385,6 +483,13 @@
 
         function render() {
             frameCount++;
+            
+            // CORREGIDO: No dibujar si canvas no tiene dimensiones
+            if (canvas.width === 0 || canvas.height === 0) {
+                requestAnimationFrame(render);
+                return;
+            }
+            
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             ctx.save();
@@ -462,8 +567,20 @@
         }
 
         // START
+        console.log('Initializing game...');
+        generateObjects(); // Generar objetos iniciales
         connectWebSocket();
         requestAnimationFrame(render);
+        
+        // CORREGIDO: Verificación periódica de dimensiones
+        setInterval(() => {
+            const container = document.getElementById('map-container');
+            if (container.clientWidth > 0 && container.clientHeight > 0) {
+                if (canvas.width !== container.clientWidth || canvas.height !== container.clientHeight) {
+                    resizeCanvas();
+                }
+            }
+        }, 2000);
     })();
     </script>
 </body>
