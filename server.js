@@ -75,7 +75,6 @@ if (fs.existsSync(STATE_FILE)) {
         const savedState = JSON.parse(rawData);
         worldState = { ...worldState, ...savedState };
         console.log("✅ State loaded - Day:", worldState.day, "| Improvements:", worldState.aiImprovements);
-        console.log("📊 Successful improvements:", worldState.successfulImprovements || 0);
     } catch (e) {
         console.error("Error loading state file:", e);
     }
@@ -84,7 +83,6 @@ if (fs.existsSync(STATE_FILE)) {
 function saveWorldState() {
     try {
         fs.writeFileSync(STATE_FILE, JSON.stringify(worldState, null, 2));
-        console.log("💾 State saved - Day:", worldState.day);
     } catch (err) {
         console.error("Error saving state:", err);
     }
@@ -106,7 +104,6 @@ function addLog(msg) {
     const time = new Date().toLocaleTimeString();
     worldState.logs.push("[" + time + "] " + msg);
     if (worldState.logs.length > 50) worldState.logs.shift();
-    console.log("📝 LOG:", msg);
 }
 
 /**
@@ -215,10 +212,6 @@ async function queryAI(prompt, taskType) {
                     if (text && text.trim().length > 0) {
                         console.log(`│ ✅ SUCCESS with ${model.displayName}`);
                         console.log("└─────────────────────────────────────");
-                        
-                        // Log which model was used
-                        addLog(`[AI] Model used: ${model.displayName}`);
-                        
                         return text;
                     } else {
                         console.log(`│ ⚠️ Empty response from ${model.displayName}`);
@@ -251,7 +244,6 @@ async function queryAI(prompt, taskType) {
         
         // All models failed
         console.log(`\n│ ❌ ALL MODELS FAILED - No fallback available`);
-        addLog("[AI] All models failed - system unavailable");
         
     } catch (e) {
         console.log("│ ❌ SYSTEM ERROR: " + e.message);
@@ -262,6 +254,8 @@ async function queryAI(prompt, taskType) {
     console.log("└─────────────────────────────────────");
     return null;
 }
+
+// ... (resto del código permanece igual) ...
 
 /**
  * Execute git command - Disabled on Render
@@ -277,16 +271,9 @@ function executeGitCommand(command, retries = 3) {
         
         const attempt = (n) => {
             exec(command, { maxBuffer: 1024*1024*10, timeout: 60000 }, (error, stdout) => {
-                if (error && n < retries) {
-                    console.log(`⚠️ Git command failed (attempt ${n}/${retries}), retrying...`);
-                    setTimeout(() => attempt(n+1), 10000*n);
-                } else if (error) {
-                    console.error(`❌ Git command failed: ${command}`);
-                    console.error(`Error: ${error.message}`);
-                    reject(error);
-                } else {
-                    resolve(stdout);
-                }
+                if (error && n < retries) setTimeout(() => attempt(n+1), 10000*n);
+                else if (error) reject(error);
+                else resolve(stdout);
             });
         };
         attempt(1);
@@ -298,58 +285,41 @@ function executeGitCommand(command, retries = 3) {
  */
 async function pushToGitHub(htmlPath, type, day) {
     if (!GITHUB_TOKEN || process.env.RENDER) {
-        console.log("⚠️ GitHub push disabled (no token or on Render)");
-        console.log("   GITHUB_TOKEN:", GITHUB_TOKEN ? "Present" : "Missing");
-        console.log("   RENDER:", process.env.RENDER ? "Yes" : "No");
+        console.log("⚠️ GitHub push disabled");
         return;
     }
-    
-    console.log("🔄 Starting GitHub push...");
-    console.log("   Repo:", GITHUB_REPO);
-    console.log("   Token:", GITHUB_TOKEN ? "Present" : "Missing");
     
     try {
         const token = GITHUB_TOKEN.trim();
         const repoUrl = `https://${token}@github.com/${GITHUB_REPO}.git`;
         
-        console.log("📦 Cloning repository...");
         await executeGitCommand('rm -rf /tmp/repo', 1);
         await executeGitCommand(`git clone --depth 1 ${repoUrl} /tmp/repo`, 4);
         
         const orig = process.cwd();
         process.chdir('/tmp/repo');
-        console.log("⚙️ Configuring git...");
         await executeGitCommand('git config user.email "ai@example.com"');
         await executeGitCommand('git config user.name "AI Auto-Improver"');
         
         const pub = path.join('/tmp/repo', 'public');
-        if (!fs.existsSync(pub)) {
-            console.log("📁 Creating public directory...");
-            fs.mkdirSync(pub, { recursive: true });
-        }
+        if (!fs.existsSync(pub)) fs.mkdirSync(pub, { recursive: true });
         
-        console.log("📄 Copying files...");
         fs.copyFileSync(htmlPath, path.join(pub, 'index.html'));
         fs.copyFileSync(STATE_FILE, path.join('/tmp/repo', 'worldState.json'));
         
-        console.log("📝 Committing changes...");
         await executeGitCommand('git add public/index.html worldState.json');
-        await executeGitCommand(`git commit -m "🤖 [AI] ${type} - Day ${day} - Deep Enhancement" --allow-empty`);
-        
-        console.log("📤 Pushing to GitHub...");
+        await executeGitCommand(`git commit -m "🤖 [AI] ${type} - Day ${day} - Pixel Art Enhancement" --allow-empty`);
         await executeGitCommand('git push origin main --force', 4);
         
         process.chdir(orig);
-        console.log("✅ GitHub push successful!");
-        addLog("[GITHUB] Changes pushed successfully");
+        console.log("✅ GitHub OK");
     } catch (e) {
-        console.log("❌ GitHub push failed:", e.message);
-        addLog("[GITHUB] Push failed: " + e.message);
+        console.log("❌ GitHub:", e.message);
     }
 }
 
 /**
- * AI Events - ENHANCED PROMPT FOR RICHER EVENTS
+ * AI Events - SIMPLIFIED PROMPT FOR RICHER EVENTS
  */
 async function generateAIEvents() {
     const treasury = worldState.treasury;
@@ -360,41 +330,22 @@ async function generateAIEvents() {
     
     console.log("\n🎲 GENERATING COMPLEX AI EVENT...");
     
-    const prompt = `Create a COMPLEX and IMPACTFUL dark fantasy civilization event.
-
-Current State:
-- Day: ${worldState.day}
-- Population: ${population}
-- Treasury: ${treasury} gold
-- Happiness: ${happiness}%
-- Tech Power: ${techPower}
-- Era: ${era}
-- Buildings: ${worldState.buildingsCount}
-- Defenses: ${worldState.tanks}
-
-REQUIREMENTS:
-1. Event must have SIGNIFICANT consequences (not trivial)
-2. Include multiple effects (economic, social, technological)
-3. Add visual atmosphere with unique effects
-4. Consider current state when designing event
-5. Make it MEMORABLE and IMPACTFUL
-6. Include potential chain events or moral choices
-
-Return JSON format:
+    const prompt = `Create a dark fantasy civilization event. Return JSON:
 {
-    "event": "Detailed event description with narrative",
-    "goldImpact": -0.15,
-    "happinessImpact": -8,
-    "techImpact": 0.5,
-    "populationImpact": 2,
-    "buildingImpact": -1,
-    "defenseImpact": 1,
+    "event": "Event description",
+    "goldImpact": number,
+    "happinessImpact": number,
+    "techImpact": number,
+    "populationImpact": number,
+    "buildingImpact": number,
+    "defenseImpact": number,
     "visualEffect": "blood_moon|storm|fire|plague|prosperity|darkness|frost|earthquake",
-    "duration": 45,
+    "duration": number,
     "rarity": "common|uncommon|rare|epic|legendary",
-    "chainEvent": "Potential follow-up event description",
-    "moralChoice": "A difficult decision for the civilization"
-}`;
+    "moralChoice": "Optional moral choice"
+}
+
+Current state: Day ${worldState.day}, Population ${population}, Treasury ${treasury}, Happiness ${happiness}%, Tech ${techPower}, Buildings ${worldState.buildingsCount}, Defenses ${worldState.tanks}`;
     
     const aiResult = await queryAI(prompt, "COMPLEX EVENT GENERATION");
     
@@ -481,9 +432,6 @@ Return JSON format:
     else if (worldState.techPower > 20) worldState.era = "Advanced Magitech Era";
     else if (worldState.techPower > 10) worldState.era = "Industrial Magic Era";
     else if (worldState.techPower > 5) worldState.era = "Renaissance Arcana";
-    
-    saveWorldState();
-    broadcastState();
 }
 
 /**
@@ -606,12 +554,10 @@ function runSimulationTick() {
     }
 
     if (worldState.day % 300 === 0) {
-        console.log("🎯 Triggering AI event generation...");
         generateAIEvents().catch(err => console.error("Event generation error:", err));
     }
 
     if (worldState.day % 500 === 0) {
-        console.log("🎯 Triggering AI code improvement...");
         autoImproveGameCode().catch(err => console.error("Code improvement error:", err));
     }
 
@@ -628,185 +574,96 @@ WSS.on('connection', (ws) => {
 });
 
 /**
- * AI CODE IMPROVEMENT - ENHANCED PROMPTS FOR MEANINGFUL CHANGES
+ * AI CODE IMPROVEMENT - FOCUSED ON PIXEL ART MAP GRAPHICS
  */
 async function autoImproveGameCode() {
-    const types = [
-        {
-            name: "CSS STYLING & VISUAL EFFECTS",
-            focus: "Complete visual overhaul with advanced effects",
-            requirements: "Add particle systems, dynamic lighting, animated backgrounds, glass-morphism effects, custom animations, gradient meshes"
-        },
-        {
-            name: "MAP GRAPHICS & GAME MECHANICS", 
-            focus: "Advanced rendering techniques and interactive elements",
-            requirements: "Implement day/night cycle, weather effects, terrain variations, building animations, unit AI movement, combat effects"
-        },
-        {
-            name: "HTML STRUCTURE & UI/UX",
-            focus: "Enhanced UI/UX with new features",
-            requirements: "Add resource management panels, citizen happiness indicators, mini-map, tooltip system, achievement notifications, settings menu"
-        }
-    ];
-    
-    const improvementType = types[worldState.aiImprovements % 3];
-    
     console.log("\n┌─────────────────────────────────────");
-    console.log("│ 🤖 AI CODE IMPROVEMENT - DEEP REWRITE");
-    console.log("│ 📋 Type: " + improvementType.name);
-    console.log("│ 🎯 Focus: " + improvementType.focus);
+    console.log("│ 🤖 AI PIXEL ART MAP ENHANCEMENT");
     console.log("└─────────────────────────────────────");
     
-    addLog(`[AI DEEP-CODING] ${improvementType.name}: ${improvementType.focus}`);
+    addLog(`[AI PIXEL ART] Enhancing dark fantasy map graphics`);
 
     try {
         const htmlPath = path.join(__dirname, 'public', 'index.html');
-        console.log("📂 HTML path:", htmlPath);
-        console.log("📂 File exists:", fs.existsSync(htmlPath));
-        
         if (!fs.existsSync(htmlPath)) {
-            console.error("❌ HTML file not found at:", htmlPath);
-            addLog("[AI] HTML file not found");
+            console.error("❌ HTML file not found");
             return;
         }
         
         let currentHtml = fs.readFileSync(htmlPath, 'utf8');
-        console.log("📄 Current HTML size:", currentHtml.length, "bytes");
         
-        // ANALYSIS PROMPT - Comprehensive code review
-        const analysisPrompt = `Perform a DEEP code analysis of this dark fantasy civilization game's ${improvementType.name}. 
+        // SINGLE SIMPLIFIED PROMPT - Give AI creative freedom
+        const improvementPrompt = `Improve the pixel art map graphics in this dark fantasy civilization game. Focus on the canvas rendering functions (drawCastle, drawHouse, drawBarracks, drawTower, render, generateObjects).
 
-CRITICAL ANALYSIS REQUIREMENTS:
-1. Identify ALL weaknesses in the current ${improvementType.name}
-2. Find missing features that would significantly enhance gameplay
-3. Detect performance bottlenecks
-4. Identify accessibility issues
-5. Find responsive design problems
-6. Locate code duplication and inefficiencies
-7. Analyze user experience and interaction flow
+Enhance the visual quality with:
+- Better pixel art details
+- Atmospheric effects (fog, shadows, lighting)
+- More detailed buildings and terrain
+- Dark fantasy aesthetic
+- Particle effects
+- Color grading
 
-Return JSON with detailed findings:
-{
-    "criticalIssues": ["issue1", "issue2", "issue3"],
-    "missingFeatures": ["feature1", "feature2", "feature3"],
-    "performanceProblems": ["problem1", "problem2"],
-    "accessibilityIssues": ["issue1", "issue2"],
-    "codeQualityImprovements": ["improvement1", "improvement2"],
-    "innovationOpportunities": ["idea1", "idea2", "idea3"]
-}`;
-        
-        console.log("🤖 Requesting AI analysis...");
-        const analysisResult = await queryAI(analysisPrompt, "DEEP ANALYSIS - " + improvementType.name);
-        
-        if (!analysisResult) {
-            addLog(`[AI] Analysis failed for ${improvementType.name}`);
-            worldState.aiImprovements += 1;
-            saveWorldState();
-            return;
-        }
-        
-        console.log("✅ Analysis received, preparing improvement prompt...");
-
-        // IMPROVEMENT PROMPT - Aggressive enhancement
-        const improvementPrompt = `MAJOR CODE TRANSFORMATION REQUIRED
-
-You are DRAMATICALLY enhancing the ${improvementType.name} of a dark fantasy civilization game. 
-
-ANALYSIS FINDINGS:
-${analysisResult}
-
-TRANSFORMATION REQUIREMENTS:
-1. ${improvementType.requirements}
-2. Implement at least 5 SIGNIFICANT new features or visual improvements
-3. Optimize existing code for better performance (target 30% improvement)
-4. Add smooth animations and transitions (minimum 3 new animations)
-5. Improve mobile responsiveness significantly
-6. Enhance user interaction with new UI elements
-7. Add dynamic visual effects that respond to game state
-8. Implement progressive enhancement techniques
-9. Add error handling and edge cases
-10. Improve code organization and readability
-
-CRITICAL CONSTRAINTS:
-- MUST preserve ALL existing WebSocket functionality
-- MUST maintain these IDs: stat-day, stat-era, stat-pop, stat-gold, stat-tech, stat-tanks, stat-status, stat-building-count, gameCanvas, event-panel, log-stream, connection-dot, connection-text
-- MUST keep these functions: connectWebSocket, updateUI, drawCastle, drawHouse, drawBarracks, drawTower, render, generateObjects
-- Background must remain #070913 (dark theme)
-- NO scrolling on body element
-- Canvas must use 2D context
-- Must use requestAnimationFrame
-- Must maintain all existing game state variables
-
-INNOVATION CHALLENGES:
-- Create something visually stunning that wasn't there before
-- Add at least 3 interactive elements
-- Implement 2 new animations or effects
-- Optimize rendering performance significantly
-- Add responsive design improvements
-- Enhance user feedback mechanisms
+IMPORTANT: Keep the HTML structure and WebSocket functionality intact. Only modify the drawing/rendering functions and CSS.
 
 Current HTML code:
 \`\`\`html
 ${currentHtml}
 \`\`\`
 
-Return the COMPLETE transformed HTML with ALL improvements applied. The changes should be DRAMATIC, IMMEDIATELY noticeable, and significantly improve the game experience.`;
+Return the complete improved HTML.`;
         
-        console.log("🤖 Requesting AI transformation...");
-        const aiResponse = await queryAI(improvementPrompt, "DEEP TRANSFORMATION - " + improvementType.name);
+        const aiResponse = await queryAI(improvementPrompt, "PIXEL ART MAP ENHANCEMENT");
         
         if (aiResponse && aiResponse.length > 500) {
-            console.log("✅ AI response received, length:", aiResponse.length);
             const htmlMatch = aiResponse.match(/```html[\s\S]*?```/) || aiResponse.match(/<!DOCTYPE html>[\s\S]*?<\/html>/);
             
             if (htmlMatch) {
                 let newHtml = htmlMatch[0].replace(/```html/g, '').replace(/```/g, '').trim();
-                console.log("📄 New HTML size:", newHtml.length, "bytes");
                 
                 // Enhanced validation with quality metrics
                 const validationResults = validateHTMLWithQualityMetrics(newHtml, currentHtml);
-                console.log("✅ Validation complete. Valid:", validationResults.isValid, "Quality:", validationResults.qualityScore);
                 
                 if (validationResults.isValid && validationResults.qualityScore > 0.6) {
                     const backupPath = htmlPath + '.backup';
                     fs.writeFileSync(backupPath, currentHtml);
-                    console.log("💾 Backup created at:", backupPath);
                     
                     fs.writeFileSync(htmlPath, newHtml);
                     console.log(`✅ AI HTML transformed - Quality Score: ${(validationResults.qualityScore * 100).toFixed(1)}%`);
                     console.log(`📊 Changes: ${validationResults.changesCount} lines, ${validationResults.newFeatures.length} new features`);
-                    addLog(`[AI] HTML deep-transformed - ${improvementType.name} (Quality: ${(validationResults.qualityScore * 100).toFixed(0)}%)`);
+                    addLog(`[AI] Pixel art enhanced (Quality: ${(validationResults.qualityScore * 100).toFixed(0)}%)`);
                     
                     worldState.successfulImprovements = (worldState.successfulImprovements || 0) + 1;
                     worldState.lastImprovementDetails = {
-                        type: improvementType.name,
+                        type: "PIXEL ART MAP",
                         qualityScore: validationResults.qualityScore,
                         changesCount: validationResults.changesCount,
                         newFeatures: validationResults.newFeatures,
                         timestamp: new Date().toISOString()
                     };
-                    
-                    // Push to GitHub
-                    await pushToGitHub(htmlPath, improvementType.name, worldState.day);
                 } else {
                     console.log(`⚠️ HTML rejected - Quality Score: ${(validationResults.qualityScore * 100).toFixed(1)}%`);
                     console.log("Issues:", validationResults.errors);
-                    addLog(`[AI] HTML rejected (Quality: ${(validationResults.qualityScore * 100).toFixed(0)}%) - ${validationResults.errors.slice(0, 3).join(', ')}`);
+                    addLog(`[AI] HTML rejected (Quality: ${(validationResults.qualityScore * 100).toFixed(0)}%)`);
                 }
             } else {
                 console.log("⚠️ No HTML found in AI response");
                 addLog("[AI] No HTML found in response");
             }
         } else {
-            console.log("⚠️ AI response too short or empty");
+            console.log("⚠️ AI response too short");
             addLog("[AI] Response too short - skipped");
         }
         
         worldState.aiImprovements += 1;
         saveWorldState();
         
+        // Push to GitHub if enabled
+        if (!process.env.RENDER) {
+            pushToGitHub(htmlPath, "Pixel Art", worldState.day).catch(() => {});
+        }
+        
     } catch (err) {
-        console.error("❌ Transformation error:", err.message);
+        console.error("Transformation error:", err.message);
         addLog("[AI] Transformation error - keeping current HTML");
     }
 }
@@ -930,20 +787,17 @@ SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
     console.log("🤖 AI Models: Compound → GPT-OSS-120B → GPT-OSS-20B");
-    console.log("⏱️ Events: every 300 days | Code: every 500 days | Rate: 600s");
+    console.log("⏱️ Events: every 300 days | Pixel Art: every 500 days | Rate: 600s");
     console.log("🔒 AI Lock: prevents parallel requests");
     console.log("🌐 Environment:", process.env.RENDER ? "Render" : "Local");
-    console.log("📂 Working directory:", __dirname);
-    console.log("📂 Public directory exists:", fs.existsSync(path.join(__dirname, 'public')));
-    console.log("📂 HTML file exists:", fs.existsSync(path.join(__dirname, 'public', 'index.html')));
     
     addLog("[SYSTEM] Simulation started.");
     broadcastState();
     
-    console.log("\n🔌 Testing AI connection (Multi-Model)...");
+    console.log("\n🔌 Testing AI connection (Multi-Model Fallback)...");
     queryAI("Say OK", "CONNECTION TEST").then(response => {
         if (response) {
-            console.log("✅ AI CONNECTION ESTABLISHED (Multi-Model Fallback)");
+            console.log("✅ AI CONNECTION ESTABLISHED (Multi-Model)");
             addLog("[SYSTEM] AI System ready with fallback chain.");
         } else {
             console.log("⚠️ AI connection failed - all models unavailable");
