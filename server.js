@@ -144,8 +144,8 @@ async function queryAI(prompt, taskType) {
                 body: JSON.stringify({
                     model: 'groq/compound',
                     messages: [{ role: 'user', content: prompt }],
-                    temperature: 0.7, // Increased for more creative changes
-                    max_tokens: 1024, // Increased for more substantial modifications
+                    temperature: 0.7,
+                    max_tokens: 1024,
                 }),
                 signal: controller.signal
             });
@@ -156,7 +156,6 @@ async function queryAI(prompt, taskType) {
         
         let response = await makeRequest();
         
-        // Handle rate limiting (429 and 413)
         if (response.status === 429 || response.status === 413) {
             console.log("│ ⚠️ RATE LIMITED (" + response.status + ") - Waiting 120s...");
             await new Promise(resolve => setTimeout(resolve, 120000));
@@ -303,7 +302,6 @@ Return JSON format:
                 
                 addLog("[AI EVENT] " + parsed.event);
                 
-                // Apply all effects
                 if (typeof parsed.goldImpact === 'number') {
                     const goldChange = Math.floor(treasury * parsed.goldImpact);
                     worldState.treasury = Math.max(0, worldState.treasury + goldChange);
@@ -383,7 +381,6 @@ Return JSON format:
 function runSimulationTick() {
     worldState.day += 1;
 
-    // ============ HAPPINESS RECOVERY SYSTEM ============
     if (worldState.happiness < 20 && worldState.treasury > 100000) {
         worldState.treasury -= 100000;
         worldState.happiness = Math.min(100, worldState.happiness + 15);
@@ -433,7 +430,6 @@ function runSimulationTick() {
 
     worldState.techPower += 0.008;
 
-    // ============ POPULATION SYSTEM ============
     if (worldState.happiness > 60 && worldState.treasury > 20000 && worldState.day % 8 === 0) {
         worldState.population += 1;
         addLog("[DEMOGRAPHICS] +1 immigrant. Pop: " + worldState.population);
@@ -447,7 +443,6 @@ function runSimulationTick() {
         addLog("[DEMOGRAPHICS] +1 natural growth. Pop: " + worldState.population);
     }
 
-    // ============ BUILDINGS SYSTEM (DEPENDENT ON POPULATION) ============
     const expectedBuildings = Math.floor(worldState.population / 100) + 2;
     
     if (worldState.buildingsCount < expectedBuildings && worldState.treasury > 10000 && worldState.day % 20 === 0) {
@@ -486,7 +481,6 @@ function runSimulationTick() {
         worldState.treasury = Math.max(0, worldState.treasury - defenseUpkeep);
     }
 
-    // Handle pending moral choices
     if (worldState.pendingChoice && worldState.pendingChoice.expiresDay < worldState.day) {
         addLog("[CHOICE EXPIRED] " + worldState.pendingChoice.description);
         delete worldState.pendingChoice;
@@ -510,7 +504,6 @@ function runSimulationTick() {
 
 setInterval(runSimulationTick, 4000);
 
-// WebSocket
 WSS.on('connection', (ws) => {
     console.log('🔗 Client connected');
     ws.send(JSON.stringify({ type: 'WORLD_UPDATE', data: worldState }));
@@ -554,7 +547,6 @@ async function autoImproveGameCode() {
         
         let currentHtml = fs.readFileSync(htmlPath, 'utf8');
         
-        // ANALYSIS PROMPT - Comprehensive code review
         const analysisPrompt = `Perform a DEEP code analysis of this dark fantasy civilization game's ${improvementType.name}. 
 
 CRITICAL ANALYSIS REQUIREMENTS:
@@ -583,7 +575,6 @@ Return JSON with detailed findings:
             return;
         }
 
-        // IMPROVEMENT PROMPT - Aggressive enhancement
         const improvementPrompt = `MAJOR CODE TRANSFORMATION REQUIRED
 
 You are enhancing the ${improvementType.name} of a dark fantasy civilization game. 
@@ -631,7 +622,6 @@ Return the COMPLETE transformed HTML with ALL improvements applied. The changes 
             if (htmlMatch) {
                 let newHtml = htmlMatch[0].replace(/```html/g, '').replace(/```/g, '').trim();
                 
-                // Enhanced validation with quality metrics
                 const validationResults = validateHTMLWithQualityMetrics(newHtml, currentHtml);
                 
                 if (validationResults.isValid && validationResults.qualityScore > 0.7) {
@@ -675,7 +665,6 @@ function validateHTMLWithQualityMetrics(newHtml, oldHtml) {
     let changesCount = 0;
     let newFeatures = [];
     
-    // Basic validation (existing)
     if (!/new WebSocket|ws\.onopen|ws\.onmessage/i.test(newHtml)) {
         errors.push("Missing WebSocket");
     }
@@ -694,12 +683,10 @@ function validateHTMLWithQualityMetrics(newHtml, oldHtml) {
         }
     });
     
-    // Quality metrics
     const newLineCount = newHtml.split('\n').length;
     const oldLineCount = oldHtml.split('\n').length;
     changesCount = Math.abs(newLineCount - oldLineCount);
     
-    // Score for significant changes (line count difference)
     if (changesCount > 200) {
         qualityScore += 0.3;
         newFeatures.push("Extensive code changes");
@@ -708,7 +695,6 @@ function validateHTMLWithQualityMetrics(newHtml, oldHtml) {
         newFeatures.push("Moderate code changes");
     }
     
-    // Detect new features
     const featurePatterns = [
         { pattern: /animation|@keyframes|transition/i, feature: "Animations", weight: 0.15 },
         { pattern: /particle|sparkle|glow|shadow|blur|gradient/i, feature: "Visual effects", weight: 0.15 },
@@ -731,7 +717,6 @@ function validateHTMLWithQualityMetrics(newHtml, oldHtml) {
         }
     });
     
-    // Detect performance optimizations
     if (/requestAnimationFrame|cancelAnimationFrame|performance\.now/i.test(newHtml)) {
         if (!/requestAnimationFrame|cancelAnimationFrame|performance\.now/i.test(oldHtml)) {
             qualityScore += 0.1;
@@ -739,7 +724,6 @@ function validateHTMLWithQualityMetrics(newHtml, oldHtml) {
         }
     }
     
-    // Detect code quality improvements
     if (/const |let |=>|template literal|destructur/i.test(newHtml)) {
         if (!/const |let |=>|template literal|destructur/i.test(oldHtml)) {
             qualityScore += 0.1;
@@ -747,7 +731,6 @@ function validateHTMLWithQualityMetrics(newHtml, oldHtml) {
         }
     }
     
-    // Ensure minimum quality threshold
     qualityScore = Math.min(qualityScore, 1.0);
     
     return {
@@ -791,4 +774,8 @@ function getCleanHTML() {
         .status-dot { width: 8px; height: 8px; background: #00ff88; border-radius: 50%; animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { box-shadow: 0 0 5px #00ff88; } 50% { box-shadow: 0 0 15px #00ff88; } }
         .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-        .stat-card { background: rgba(25, 33
+        .stat-card { background: rgba(25, 33, 52, 0.7); border: 1px solid rgba(0, 210, 255, 0.15); border-radius: 6px; padding: 6px 10px; display: flex; flex-direction: column; }
+        .stat-label { font-size: 10px; color: #8899bb; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-value { font-size: 14px; font-weight: 600; color: #e0e6ed; }
+        .stat-value.gold { color: #ffd700; }
+        .stat-value.cyan { color: #
