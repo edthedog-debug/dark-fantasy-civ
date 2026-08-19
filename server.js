@@ -107,8 +107,30 @@ function addLog(msg) {
 }
 
 /**
- * GROQ AI - USING COMPOUND API ENDPOINT WITH GLOBAL LOCK (10 MINUTES WAIT)
+ * GROQ AI - MULTI-MODEL FALLBACK SYSTEM
+ * Order: Compound → GPT-OSS-120B → GPT-OSS-20B
  */
+const AI_MODELS = [
+    {
+        name: 'groq/compound',
+        displayName: 'COMPOUND',
+        maxTokens: 2048,
+        temperature: 0.8
+    },
+    {
+        name: 'openai/gpt-oss-120b',
+        displayName: 'GPT-OSS-120B',
+        maxTokens: 4096,
+        temperature: 0.8
+    },
+    {
+        name: 'openai/gpt-oss-20b',
+        displayName: 'GPT-OSS-20B',
+        maxTokens: 2048,
+        temperature: 0.7
+    }
+];
+
 async function queryAI(prompt, taskType) {
     if (!GROQ_API_KEY) {
         console.error("❌ No GROQ_API_KEY");
@@ -123,78 +145,113 @@ async function queryAI(prompt, taskType) {
     isAIRequestInProgress = true;
 
     console.log("┌─────────────────────────────────────");
-    console.log("│ 🤖 GROQ AI (COMPOUND) - " + taskType);
-    console.log("│ 🧠 Model: llama-3.3-70b-versatile");
+    console.log("│ 🤖 GROQ AI MULTI-MODEL - " + taskType);
+    console.log("│ 🔄 Fallback Chain: Compound → GPT-OSS-120B → GPT-OSS-20B");
     console.log("└─────────────────────────────────────");
     
     try {
-        await rateLimiter.waitForSlot();
-        
-        // USING GROQ COMPOUND API - wrapped endpoint for enhanced capabilities
-        const url = 'https://api.groq.com/openai/v1/chat/completions';
-        
-        const makeRequest = async () => {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 60000);
+        // Try each model in sequence
+        for (let i = 0; i < AI_MODELS.length; i++) {
+            const model = AI_MODELS[i];
+            console.log(`\n┌─────────────────────────────────────`);
+            console.log(`│ 🎯 ATTEMPT ${i + 1}/${AI_MODELS.length}: ${model.displayName}`);
+            console.log(`│ 📦 Model: ${model.name}`);
+            console.log(`└─────────────────────────────────────`);
             
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${GROQ_API_KEY}`
-                },
-                body: JSON.stringify({
-                    model: 'llama-3.3-70b-versatile',
-                    messages: [{ role: 'user', content: prompt }],
-                    temperature: 0.8, // Increased for more creative changes
-                    max_tokens: 2048, // Increased for more substantial modifications
-                    // COMPOUND API ADDITIONS - leveraging advanced features
-                    top_p: 0.9,
-                    frequency_penalty: 0.3,
-                    presence_penalty: 0.2,
-                    stream: false,
-                    response_format: { type: "text" }
-                }),
-                signal: controller.signal
-            });
+            await rateLimiter.waitForSlot();
             
-            clearTimeout(timeoutId);
-            return response;
-        };
-        
-        let response = await makeRequest();
-        
-        // Handle rate limiting (429 and 413)
-        if (response.status === 429 || response.status === 413) {
-            console.log("│ ⚠️ RATE LIMITED (" + response.status + ") - Waiting 120s...");
-            await new Promise(resolve => setTimeout(resolve, 120000));
-            response = await makeRequest();
-        }
-        
-        console.log("│ 📊 Status: " + response.status);
-        
-        if (response.ok) {
-            const data = await response.json();
-            const text = data.choices?.[0]?.message?.content;
+            const url = 'https://api.groq.com/openai/v1/chat/completions';
             
-            console.log("│ 📝 Text length:", text?.length);
-            console.log("│ 📝 Text preview:", text ? text.substring(0, 150) : 'NULL');
+            const makeRequest = async () => {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 60000);
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${GROQ_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: model.name,
+                        messages: [{ role: 'user', content: prompt }],
+                        temperature: model.temperature,
+                        max_tokens: model.maxTokens,
+                        top_p: 0.9,
+                        frequency_penalty: 0.3,
+                        presence_penalty: 0.2,
+                        stream: false,
+                        response_format: { type: "text" }
+                    }),
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                return response;
+            };
             
-            if (text && text.trim().length > 0) {
-                console.log("│ ✅ SUCCESS (COMPOUND)");
-                console.log("└─────────────────────────────────────");
-                return text;
-            } else {
-                console.log("│ ⚠️ Empty response");
-                console.log("│ Response:", JSON.stringify(data).substring(0, 200));
+            try {
+                let response = await makeRequest();
+                
+                // Handle rate limiting (429 and 413)
+                if (response.status === 429 || response.status === 413) {
+                    console.log(`│ ⚠️ RATE LIMITED (${response.status}) - Waiting 120s...`);
+                    await new Promise(resolve => setTimeout(resolve, 120000));
+                    response = await makeRequest();
+                }
+                
+                console.log(`│ 📊 Status: ${response.status}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const text = data.choices?.[0]?.message?.content;
+                    
+                    console.log(`│ 📝 Text length: ${text?.length}`);
+                    console.log(`│ 📝 Text preview: ${text ? text.substring(0, 150) : 'NULL'}`);
+                    
+                    if (text && text.trim().length > 0) {
+                        console.log(`│ ✅ SUCCESS with ${model.displayName}`);
+                        console.log("└─────────────────────────────────────");
+                        
+                        // Log which model was used
+                        addLog(`[AI] Model used: ${model.displayName}`);
+                        
+                        return text;
+                    } else {
+                        console.log(`│ ⚠️ Empty response from ${model.displayName}`);
+                        console.log(`│ Response: ${JSON.stringify(data).substring(0, 200)}`);
+                        
+                        // If not the last model, try next
+                        if (i < AI_MODELS.length - 1) {
+                            console.log(`│ 🔄 Falling back to next model...`);
+                        }
+                    }
+                } else {
+                    const errorText = await response.text();
+                    console.log(`│ ❌ ERROR (${response.status}) with ${model.displayName}`);
+                    console.log(`│ Error: ${errorText.substring(0, 200)}`);
+                    
+                    // If not the last model, try next
+                    if (i < AI_MODELS.length - 1) {
+                        console.log(`│ 🔄 Falling back to next model...`);
+                    }
+                }
+            } catch (modelError) {
+                console.log(`│ ❌ FAILED with ${model.displayName}: ${modelError.message}`);
+                
+                // If not the last model, try next
+                if (i < AI_MODELS.length - 1) {
+                    console.log(`│ 🔄 Falling back to next model...`);
+                }
             }
-        } else {
-            const errorText = await response.text();
-            console.log("│ ❌ ERROR: " + response.status);
-            console.log("│ Error:", errorText.substring(0, 200));
         }
+        
+        // All models failed
+        console.log(`\n│ �' ALL MODELS FAILED - No fallback available`);
+        addLog("[AI] All models failed - system unavailable");
+        
     } catch (e) {
-        console.log("│ ❌ FAILED: " + e.message);
+        console.log("│ ❌ SYSTEM ERROR: " + e.message);
     } finally {
         isAIRequestInProgress = false;
     }
@@ -831,7 +888,7 @@ function validateHTMLWithQualityMetrics(newHtml, oldHtml) {
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
-    console.log("🤖 AI Model: llama-3.3-70b-versatile (COMPOUND API)");
+    console.log("🤖 AI Models: Compound → GPT-OSS-120B → GPT-OSS-20B");
     console.log("⏱️ Events: every 300 days | Code: every 500 days | Rate: 600s");
     console.log("🔒 AI Lock: prevents parallel requests");
     console.log("🌐 Environment:", process.env.RENDER ? "Render" : "Local");
@@ -839,14 +896,14 @@ SERVER.listen(PORT, () => {
     addLog("[SYSTEM] Simulation started.");
     broadcastState();
     
-    console.log("\n🔌 Testing AI connection (COMPOUND)...");
+    console.log("\n🔌 Testing AI connection (Multi-Model)...");
     queryAI("Say OK", "CONNECTION TEST").then(response => {
         if (response) {
-            console.log("✅ AI CONNECTION ESTABLISHED (COMPOUND)");
-            addLog("[SYSTEM] AI System ready.");
+            console.log("✅ AI CONNECTION ESTABLISHED (Multi-Model Fallback)");
+            addLog("[SYSTEM] AI System ready with fallback chain.");
         } else {
-            console.log("⚠️ AI connection failed");
-            addLog("[SYSTEM] AI unavailable.");
+            console.log("⚠️ AI connection failed - all models unavailable");
+            addLog("[SYSTEM] AI unavailable - all models failed.");
         }
         broadcastState();
     });
