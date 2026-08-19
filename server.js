@@ -777,4 +777,5 @@ function getCleanHTML() {
         .stat-card { background: rgba(25, 33, 52, 0.7); border: 1px solid rgba(0, 210, 255, 0.15); border-radius: 6px; padding: 6px 10px; display: flex; flex-direction: column; }
         .stat-label { font-size: 10px; color: #8899bb; text-transform: uppercase; letter-spacing: 0.5px; }
         .stat-value { font-size: 14px; font-weight: 600; color: #e0e6ed; }
-        .stat
+        .stat-value.gold { color: #ffd700; }
+        .stat-value.cyan { color: #
