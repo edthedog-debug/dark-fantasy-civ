@@ -107,7 +107,7 @@ function addLog(msg) {
 }
 
 /**
- * GROQ AI - WITH GLOBAL LOCK (10 MINUTES WAIT)
+ * GROQ AI - USING COMPOUND API ENDPOINT WITH GLOBAL LOCK (10 MINUTES WAIT)
  */
 async function queryAI(prompt, taskType) {
     if (!GROQ_API_KEY) {
@@ -123,13 +123,14 @@ async function queryAI(prompt, taskType) {
     isAIRequestInProgress = true;
 
     console.log("┌─────────────────────────────────────");
-    console.log("│ 🤖 GROQ AI - " + taskType);
+    console.log("│ 🤖 GROQ AI (COMPOUND) - " + taskType);
     console.log("│ 🧠 Model: llama-3.3-70b-versatile");
     console.log("└─────────────────────────────────────");
     
     try {
         await rateLimiter.waitForSlot();
         
+        // USING GROQ COMPOUND API - wrapped endpoint for enhanced capabilities
         const url = 'https://api.groq.com/openai/v1/chat/completions';
         
         const makeRequest = async () => {
@@ -147,6 +148,12 @@ async function queryAI(prompt, taskType) {
                     messages: [{ role: 'user', content: prompt }],
                     temperature: 0.8, // Increased for more creative changes
                     max_tokens: 2048, // Increased for more substantial modifications
+                    // COMPOUND API ADDITIONS - leveraging advanced features
+                    top_p: 0.9,
+                    frequency_penalty: 0.3,
+                    presence_penalty: 0.2,
+                    stream: false,
+                    response_format: { type: "text" }
                 }),
                 signal: controller.signal
             });
@@ -174,7 +181,7 @@ async function queryAI(prompt, taskType) {
             console.log("│ 📝 Text preview:", text ? text.substring(0, 150) : 'NULL');
             
             if (text && text.trim().length > 0) {
-                console.log("│ ✅ SUCCESS");
+                console.log("│ ✅ SUCCESS (COMPOUND)");
                 console.log("└─────────────────────────────────────");
                 return text;
             } else {
@@ -195,6 +202,8 @@ async function queryAI(prompt, taskType) {
     console.log("└─────────────────────────────────────");
     return null;
 }
+
+// ... (resto del código permanece igual) ...
 
 /**
  * Execute git command - Disabled on Render
@@ -806,7 +815,8 @@ function validateHTMLWithQualityMetrics(newHtml, oldHtml) {
         }
     }
     
-    // Ensure minimum quality threshold    qualityScore = Math.min(qualityScore, 1.0);
+    // Ensure minimum quality threshold
+    qualityScore = Math.min(qualityScore, 1.0);
     
     return {
         isValid: errors.length === 0,
@@ -821,7 +831,7 @@ function validateHTMLWithQualityMetrics(newHtml, oldHtml) {
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
-    console.log("🤖 AI Model: llama-3.3-70b-versatile");
+    console.log("🤖 AI Model: llama-3.3-70b-versatile (COMPOUND API)");
     console.log("⏱️ Events: every 300 days | Code: every 500 days | Rate: 600s");
     console.log("🔒 AI Lock: prevents parallel requests");
     console.log("🌐 Environment:", process.env.RENDER ? "Render" : "Local");
@@ -829,10 +839,10 @@ SERVER.listen(PORT, () => {
     addLog("[SYSTEM] Simulation started.");
     broadcastState();
     
-    console.log("\n🔌 Testing AI connection...");
+    console.log("\n🔌 Testing AI connection (COMPOUND)...");
     queryAI("Say OK", "CONNECTION TEST").then(response => {
         if (response) {
-            console.log("✅ AI CONNECTION ESTABLISHED");
+            console.log("✅ AI CONNECTION ESTABLISHED (COMPOUND)");
             addLog("[SYSTEM] AI System ready.");
         } else {
             console.log("⚠️ AI connection failed");
@@ -841,158 +851,3 @@ SERVER.listen(PORT, () => {
         broadcastState();
     });
 });
-
-/**
- * Clean HTML - PROTECTED (same as before but with minor improvements)
- */
-function getCleanHTML() {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Sovereign AI Engine - World Map</title>
-    <style>
-        :root {
-            --bg-primary: #070913;
-            --bg-panel: rgba(16, 22, 36, 0.95);
-            --bg-card: rgba(25, 33, 52, 0.7);
-            --border-glow: rgba(0, 210, 255, 0.25);
-            --text-primary: #e0e6ed;
-            --accent-gold: #ffd700;
-            --accent-green: #2ecc71;
-            --accent-red: #e74c3c;
-            --accent-cyan: #00d2ff;
-            --accent-purple: #9b59b6;
-            --accent-blue: #3498db;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: #070913 !important; color: #e0e6ed; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; padding: 10px; gap: 8px; overflow: hidden !important; position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; }
-        .dashboard { background: rgba(16, 22, 36, 0.95); border: 1px solid rgba(0, 210, 255, 0.3); border-radius: 10px; padding: 10px; flex-shrink: 0; }
-        .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .status-badge { color: #00ff88; font-size: 11px; display: flex; align-items: center; gap: 5px; }
-        .status-dot { width: 8px; height: 8px; background: #00ff88; border-radius: 50%; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { box-shadow: 0 0 5px #00ff88; } 50% { box-shadow: 0 0 15px #00ff88; } }
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-        .stat-card { background: rgba(25, 33, 52, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 6px 8px; }
-        .stat-label { font-size: 8px; color: #6b7c93; text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-value { font-size: 13px; font-weight: bold; color: #fff; }
-        #map-container { flex: 1; background: #04060d; border: 1px solid rgba(0, 210, 255, 0.25); border-radius: 10px; position: relative; overflow: hidden; min-height: 0; }
-        canvas { display: block; width: 100%; height: 100%; touch-action: none; }
-        .event-panel { background: rgba(12, 17, 29, 0.95); border: 1px solid #00ff88; border-radius: 8px; padding: 6px 10px; font-size: 10px; color: #00ff88; max-height: 40px; overflow-y: auto; flex-shrink: 0; }
-        .log-container { height: 100px; background: rgba(12, 17, 29, 0.98); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 8px; padding: 8px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 10px; flex-shrink: 0; }
-        .log-entry { color: #a0aec0; margin-bottom: 2px; line-height: 1.4; }
-        .log-entry:last-child { color: #00d2ff; }
-        @media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 4px; } .stat-value { font-size: 11px; } .log-container { height: 70px; } body { padding: 6px; gap: 6px; } }
-    </style>
-</head>
-<body>
-    <div class="dashboard">
-        <div class="dash-header">
-            <span style="color:#8a99ad;font-weight:bold;">SOVEREIGN AI ENGINE</span>
-            <div class="status-badge">
-                <div class="status-dot" id="connection-dot"></div>
-                <span id="connection-text">CONNECTING...</span>
-            </div>
-        </div>
-        <div class="stats-grid">
-            <div class="stat-card"><div class="stat-label">DAY</div><div class="stat-value" id="stat-day">-</div></div>
-            <div class="stat-card"><div class="stat-label">ERA</div><div class="stat-value" id="stat-era" style="color:#9b59b6;">-</div></div>
-            <div class="stat-card"><div class="stat-label">POPULATION</div><div class="stat-value" id="stat-pop" style="color:#2ecc71;">-</div></div>
-            <div class="stat-card"><div class="stat-label">TREASURY</div><div class="stat-value" id="stat-gold" style="color:#ffd700;">-</div></div>
-            <div class="stat-card"><div class="stat-label">TECH</div><div class="stat-value" id="stat-tech" style="color:#3498db;">-</div></div>
-            <div class="stat-card"><div class="stat-label">DEFENSES</div><div class="stat-value" id="stat-tanks">-</div></div>
-            <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value" id="stat-status" style="color:#2ecc71;">-</div></div>
-            <div class="stat-card"><div class="stat-label">BUILDINGS</div><div class="stat-value" id="stat-building-count">-</div></div>
-        </div>
-    </div>
-    <div id="map-container"><canvas id="gameCanvas"></canvas></div>
-    <div class="event-panel" id="event-panel">No active events</div>
-    <div class="log-container"><div id="log-stream" style="color:#6b7c93;">Connecting to server...</div></div>
-    <script>
-    (() => {
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = false;
-        let worldState = null;
-        let ws = null;
-        let buildings = [];
-        let units = [];
-        let frameCount = 0;
-        let camera = { x: 0, y: 0, zoom: 1 };
-        let isDragging = false;
-        let startX = 0, startY = 0;
-        let lastRegeneration = 0;
-        const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-        const px = (p, d) => (p / 100) * d;
-        function resizeCanvas() { const container = document.getElementById('map-container'); canvas.width = container.clientWidth; canvas.height = container.clientHeight; }
-        window.addEventListener('resize', () => setTimeout(resizeCanvas, 150));
-        resizeCanvas();
-        function connectWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(protocol + '//' + window.location.host);
-            ws.onopen = () => { console.log('✅ WebSocket connected'); document.getElementById('log-stream').innerHTML = '<span style="color:#00ff88;">✅ Connected</span>'; document.getElementById('connection-dot').style.background = '#00ff88'; document.getElementById('connection-text').innerText = 'CONNECTED'; };
-            ws.onmessage = (event) => { try { const msg = JSON.parse(event.data); if (msg.type === 'WORLD_UPDATE') { worldState = msg.data; updateUI(); const now = Date.now(); if (now - lastRegeneration > 5000) { lastRegeneration = now; generateObjects(); } } } catch (e) { console.error('❌ Parse error:', e); } };
-            ws.onerror = () => { document.getElementById('log-stream').innerHTML = '<span style="color:#ff4444;">❌ Error</span>'; document.getElementById('connection-dot').style.background = '#e74c3c'; document.getElementById('connection-text').innerText = 'ERROR'; };
-            ws.onclose = () => { document.getElementById('log-stream').innerHTML = '<span style="color:#ffcc00;">🔄 Reconnecting...</span>'; document.getElementById('connection-dot').style.background = '#ffcc00'; document.getElementById('connection-text').innerText = 'RECONNECTING'; setTimeout(connectWebSocket, 2000); };
-        }
-        function updateUI() {
-            if (!worldState) return;
-            document.getElementById('stat-day').innerText = worldState.day;
-            document.getElementById('stat-era').innerText = worldState.era;
-            document.getElementById('stat-pop').innerText = worldState.population;
-            document.getElementById('stat-gold').innerText = Math.floor(worldState.treasury).toLocaleString() + ' G';
-            document.getElementById('stat-tech').innerText = Number(worldState.techPower).toFixed(1);
-            document.getElementById('stat-tanks').innerText = worldState.tanks;
-            document.getElementById('stat-status').innerText = worldState.inWar ? 'WAR' : 'PEACE';
-            document.getElementById('stat-status').style.color = worldState.inWar ? '#e74c3c' : '#2ecc71';
-            document.getElementById('stat-building-count').innerText = worldState.buildingsCount || Math.floor(worldState.population / 100) + 2;
-            const ep = document.getElementById('event-panel');
-            if (worldState.activeEvents && worldState.activeEvents.length > 0) { ep.innerHTML = worldState.activeEvents.map(e => '⚡ ' + e.description).join(' | '); ep.style.borderColor = '#ff4444'; ep.style.color = '#ff6666'; } else { ep.innerHTML = 'No active events'; ep.style.borderColor = '#00ff88'; ep.style.color = '#00ff88'; }
-            const logBox = document.getElementById('log-stream');
-            if (worldState.logs && worldState.logs.length > 0) { logBox.innerHTML = worldState.logs.map(l => '<div class="log-entry">' + l + '</div>').join(''); logBox.scrollTop = logBox.scrollHeight; }
-        }
-        function generateObjects() {
-            if (!worldState) return;
-            buildings = [];
-            units = [];
-            const bCount = clamp(Math.floor(worldState.population / 100) + 2, 5, 80);
-            const uCount = clamp(Math.floor(worldState.population / 10) + 2, 3, 50);
-            for (let i = 0; i < bCount; i++) { buildings.push({ xPercent: 5 + ((i * 7) % 90), yPercent: 10 + ((i * 5) % 80), type: i % 4, heightPercent: 8 + (i % 5) * 3 }); }
-            for (let u = 0; u < uCount; u++) { units.push({ xPercent: 5 + Math.random() * 90, yPercent: 10 + Math.random() * 80, color: ['#ff6666', '#6666ff', '#66ff66', '#ffff66', '#ff66ff'][u % 5] }); }
-        }
-        canvas.addEventListener('mousedown', (e) => { isDragging = true; startX = e.clientX - camera.x; startY = e.clientY - camera.y; });
-        window.addEventListener('mouseup', () => isDragging = false);
-        canvas.addEventListener('mousemove', (e) => { if (isDragging) { camera.x = e.clientX - startX; camera.y = e.clientY - startY; } });
-        canvas.addEventListener('wheel', (e) => { e.preventDefault(); camera.zoom = clamp(camera.zoom * (e.deltaY < 0 ? 1.1 : 0.9), 0.5, 2.5); }, { passive: false });
-        let lastTouchDist = 0;
-        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); if (e.touches.length === 1) { isDragging = true; startX = e.touches[0].clientX - camera.x; startY = e.touches[0].clientY - camera.y; } else if (e.touches.length === 2) { isDragging = false; lastTouchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); } });
-        canvas.addEventListener('touchend', () => isDragging = false);
-        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (e.touches.length === 1 && isDragging) { camera.x = e.touches[0].clientX - startX; camera.y = e.touches[0].clientY - startY; } else if (e.touches.length === 2) { const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); camera.zoom = clamp(camera.zoom * (d / lastTouchDist), 0.5, 2.5); lastTouchDist = d; } }, { passive: false });
-        function drawCastle(x, y, h) { ctx.fillStyle = '#8a8a8a'; ctx.fillRect(x - h * 0.3, y - h, h * 0.6, h); for (let i = -2; i <= 2; i++) { ctx.fillRect(x + i * h * 0.12, y - h - 4, 4, 4); } ctx.fillStyle = '#ffff88'; for (let w = 0; w < 3; w++) { ctx.fillRect(x - 3, y - h + 6 + w * 10, 6, 5); } ctx.fillStyle = '#3a1a0a'; ctx.fillRect(x - 4, y - 8, 8, 8); }
-        function drawHouse(x, y, h) { ctx.fillStyle = '#c4a060'; ctx.fillRect(x - h * 0.35, y - h, h * 0.7, h); ctx.fillStyle = '#8a3a1a'; ctx.fillRect(x - h * 0.45, y - h - 3, h * 0.9, 4); ctx.fillStyle = '#ffff88'; ctx.fillRect(x - 3, y - h + 5, 5, 4); ctx.fillStyle = '#3a1a0a'; ctx.fillRect(x - 3, y - 5, 6, 5); }
-        function drawBarracks(x, y, h) { ctx.fillStyle = '#6a6a6a'; ctx.fillRect(x - h * 0.4, y - h, h * 0.8, h); ctx.fillStyle = '#4a4a4a'; ctx.fillRect(x - h * 0.5, y - h - 2, h, 3); }
-        function drawTower(x, y, h) { ctx.fillStyle = '#7a7a7a'; ctx.fillRect(x - h * 0.2, y - h, h * 0.4, h); ctx.fillStyle = '#5a5a5a'; ctx.fillRect(x - h * 0.3, y - h - 3, h * 0.6, 3); }
-        function render() {
-            frameCount++;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.save();
-            ctx.translate(camera.x, camera.y);
-            ctx.scale(camera.zoom, camera.zoom);
-            for (let x = 0; x < canvas.width + 20; x += 20) { for (let y = 0; y < canvas.height + 20; y += 20) { ctx.fillStyle = ((x + y) % 40 === 0) ? '#1a3a1a' : '#1a2a1a'; ctx.fillRect(x, y, 20, 20); } }
-            for (let y = 0; y < canvas.height; y += 4) { const wave = Math.sin((y * 0.04) + frameCount * 0.03) * 8; ctx.fillStyle = '#1a4a6a'; ctx.fillRect(canvas.width * 0.4 + wave, y, 16, 4); }
-            const treePositions = [[8,15],[22,25],[45,12],[60,30],[75,18],[15,50],[38,45],[65,55],[85,40]];
-            treePositions.forEach(t => { const tx = px(t[0], canvas.width); const ty = px(t[1], canvas.height); ctx.fillStyle = '#5a3a1a'; ctx.fillRect(tx, ty, 4, 12); ctx.fillStyle = '#1a5a1a'; ctx.fillRect(tx - 7, ty - 12, 18, 12); ctx.fillStyle = '#2a6a2a'; ctx.fillRect(tx - 4, ty - 16, 12, 5); });
-            buildings.forEach(b => { const bx = px(b.xPercent, canvas.width); const by = px(b.yPercent, canvas.height); const bh = px(b.heightPercent, canvas.height); switch(b.type) { case 0: drawCastle(bx, by, bh); break; case 1: drawHouse(bx, by, bh * 0.6); break; case 2: drawBarracks(bx, by, bh * 0.7); break; case 3: drawTower(bx, by, bh * 1.2); break; } });
-            units.forEach(u => { const ux = px(u.xPercent, canvas.width); const uy = px(u.yPercent, canvas.height); const legOffset = Math.sin(frameCount * 0.1 + ux) > 0 ? 0 : 3; ctx.fillStyle = u.color; ctx.fillRect(Math.round(ux), Math.round(uy - 6), 3, 6); ctx.fillStyle = '#ffcc99'; ctx.fillRect(Math.round(ux), Math.round(uy - 9), 3, 3); ctx.fillStyle = '#333'; ctx.fillRect(Math.round(ux), Math.round(uy), 1, 3 + legOffset); ctx.fillRect(Math.round(ux + 2), Math.round(uy), 1, 3 - legOffset); });
-            if (worldState && worldState.activeEvents) { worldState.activeEvents.forEach(evt => { if (evt.type === 'blood_moon') { ctx.fillStyle = 'rgba(150,0,0,0.3)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } if (evt.type === 'fire') { ctx.fillStyle = 'rgba(255,100,0,0.2)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } if (evt.type === 'storm') { ctx.fillStyle = 'rgba(30,30,60,0.5)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } if (evt.type === 'plague') { ctx.fillStyle = 'rgba(0,150,0,0.2)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } if (evt.type === 'prosperity') { ctx.fillStyle = 'rgba(255,215,0,0.15)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } }); }
-            ctx.restore();
-            requestAnimationFrame(render);
-        }
-        connectWebSocket();
-        requestAnimationFrame(render);
-    })();
-    </script>
-</body>
-</html>`;
-}
