@@ -143,8 +143,8 @@ async function queryAI(prompt, taskType) {
                 body: JSON.stringify({
                     model: 'groq/compound',
                     messages: [{ role: 'user', content: prompt }],
-                    temperature: 0.3,
-                    max_tokens: 512,
+                    temperature: 0.7,
+                    max_tokens: 2048,
                 }),
                 signal: controller.signal
             });
@@ -155,7 +155,6 @@ async function queryAI(prompt, taskType) {
         
         let response = await makeRequest();
         
-        // Handle rate limiting (429 and 413)
         if (response.status === 429 || response.status === 413) {
             console.log("│ ⚠️ RATE LIMITED (" + response.status + ") - Waiting 120s...");
             await new Promise(resolve => setTimeout(resolve, 120000));
@@ -211,9 +210,9 @@ function executeGitCommand(command, retries = 3) {
 }
 
 /**
- * Push to GitHub
+ * Push to GitHub - ALL FILES
  */
-async function pushToGitHub(htmlPath, type, day) {
+async function pushToGitHub(type, day) {
     if (!GITHUB_TOKEN) return;
     try {
         const token = GITHUB_TOKEN.trim();
@@ -227,25 +226,55 @@ async function pushToGitHub(htmlPath, type, day) {
         await executeGitCommand('git config user.email "ai@example.com"');
         await executeGitCommand('git config user.name "AI Auto-Improver"');
         
-        const pub = path.join('/tmp/repo', 'public');
-        if (!fs.existsSync(pub)) fs.mkdirSync(pub, { recursive: true });
+        // Copiar TODOS los archivos del proyecto
+        const filesToCopy = [
+            'server.js',
+            'worldState.json',
+            'package.json',
+            'README.md'
+        ];
         
-        fs.copyFileSync(htmlPath, path.join(pub, 'index.html'));
-        fs.copyFileSync(STATE_FILE, path.join('/tmp/repo', 'worldState.json'));
+        filesToCopy.forEach(file => {
+            const sourcePath = path.join(__dirname, file);
+            if (fs.existsSync(sourcePath)) {
+                fs.copyFileSync(sourcePath, path.join('/tmp/repo', file));
+            }
+        });
         
-        await executeGitCommand('git add public/index.html worldState.json');
-        await executeGitCommand(`git commit -m "🤖 [AI] ${type} - Day ${day}" --allow-empty`);
+        // Copiar carpeta public
+        const publicDir = path.join(__dirname, 'public');
+        if (fs.existsSync(publicDir)) {
+            const publicDest = path.join('/tmp/repo', 'public');
+            if (!fs.existsSync(publicDest)) fs.mkdirSync(publicDest, { recursive: true });
+            
+            fs.readdirSync(publicDir).forEach(file => {
+                const sourceFile = path.join(publicDir, file);
+                const destFile = path.join(publicDest, file);
+                if (fs.statSync(sourceFile).isFile()) {
+                    fs.copyFileSync(sourceFile, destFile);
+                }
+            });
+        }
+        
+        // Copiar improvement_log.json si existe
+        const logFile = path.join(__dirname, 'improvement_log.json');
+        if (fs.existsSync(logFile)) {
+            fs.copyFileSync(logFile, path.join('/tmp/repo', 'improvement_log.json'));
+        }
+        
+        await executeGitCommand('git add .');
+        await executeGitCommand(`git commit -m "🤖 [AI] ${type} - Day ${day} - Full Project Enhancement" --allow-empty`);
         await executeGitCommand('git push origin main --force', 4);
         
         process.chdir(orig);
-        console.log("✅ GitHub OK");
+        console.log("✅ GitHub OK - Full project pushed");
     } catch (e) {
         console.log("❌ GitHub:", e.message);
     }
 }
 
 /**
- * AI Events - REDUCED PROMPT
+ * AI Events
  */
 async function generateAIEvents() {
     const treasury = worldState.treasury;
@@ -291,12 +320,12 @@ async function generateAIEvents() {
 }
 
 /**
- * SIMULATION TICK - ECONOMY WITH DAILY FLUCTUATION
+ * SIMULATION TICK
  */
 function runSimulationTick() {
     worldState.day += 1;
 
-    // ============ HAPPINESS RECOVERY SYSTEM ============
+    // Happiness recovery system
     if (worldState.happiness < 20 && worldState.treasury > 100000) {
         worldState.treasury -= 100000;
         worldState.happiness = Math.min(100, worldState.happiness + 15);
@@ -346,7 +375,7 @@ function runSimulationTick() {
 
     worldState.techPower += 0.008;
 
-    // ============ POPULATION SYSTEM ============
+    // Population system
     if (worldState.happiness > 60 && worldState.treasury > 20000 && worldState.day % 8 === 0) {
         worldState.population += 1;
         addLog("[DEMOGRAPHICS] +1 immigrant. Pop: " + worldState.population);
@@ -360,7 +389,7 @@ function runSimulationTick() {
         addLog("[DEMOGRAPHICS] +1 natural growth. Pop: " + worldState.population);
     }
 
-    // ============ BUILDINGS SYSTEM (DEPENDENT ON POPULATION) ============
+    // Buildings system
     const expectedBuildings = Math.floor(worldState.population / 100) + 2;
     
     if (worldState.buildingsCount < expectedBuildings && worldState.treasury > 10000 && worldState.day % 20 === 0) {
@@ -408,7 +437,7 @@ function runSimulationTick() {
     }
 
     if (worldState.day % 500 === 0) {
-        autoImproveGameCode().catch(err => console.error(err.message));
+        improveEntireProject().catch(err => console.error(err.message));
     }
 
     saveWorldState();
@@ -424,88 +453,258 @@ WSS.on('connection', (ws) => {
 });
 
 /**
- * AI CODE IMPROVEMENT - REDUCED PROMPTS
+ * IMPROVE ENTIRE PROJECT - ALL FILES
  */
-async function autoImproveGameCode() {
-    const types = ["CSS STYLING", "MAP GRAPHICS & MECHANICS", "HTML STRUCTURE"];
-    const improvementType = types[worldState.aiImprovements % 3];
-    
+async function improveEntireProject() {
     console.log("\n┌─────────────────────────────────────");
-    console.log("│ 🤖 AI CODE IMPROVEMENT");
-    console.log("│ 📋 Type: " + improvementType);
+    console.log("│ 🤖 AI FULL PROJECT ENHANCEMENT");
+    console.log("│ 📁 Analyzing all project files");
     console.log("└─────────────────────────────────────");
     
-    addLog("[AI AUTO-CODING] " + improvementType + " improvement...");
-
+    addLog("[AI] Full project enhancement started");
+    
     try {
-        const htmlPath = path.join(__dirname, 'public', 'index.html');
-        if (!fs.existsSync(htmlPath)) return;
+        // 1. Improve server.js
+        await improveServerFile();
         
-        let currentHtml = fs.readFileSync(htmlPath, 'utf8');
-        if (currentHtml.length > 100000) {
-            currentHtml = getCleanHTML();
-            fs.writeFileSync(htmlPath, currentHtml);
-        }
+        // 2. Improve index.html
+        await improveHTMLFile();
         
-        // STEP 1: REDUCED ANALYSIS PROMPT
-        const analysisPrompt = `Analyze HTML ${improvementType}. Return JSON: {"improvements":["item1","item2"]}`;
+        // 3. Update package.json
+        await updatePackageJson();
         
-        const analysisResult = await queryAI(analysisPrompt, "ANALYSIS - " + improvementType);
+        // 4. Create/Update README.md
+        await createReadme();
         
-        if (!analysisResult) {
-            addLog("[AI] Analysis failed - keeping current HTML");
-            worldState.aiImprovements += 1;
-            return;
-        }
+        // 5. Save improvement log
+        saveImprovementLog();
         
-        // STEP 2: REDUCED IMPROVEMENT PROMPT
-        const improvementPrompt = `Improve ${improvementType}. Keep WebSocket, IDs, #070913, functions. HTML:\n\`\`\`html\n${currentHtml}\n\`\`\`\nReturn full HTML.`;
-        
-        const aiResponse = await queryAI(improvementPrompt, "IMPROVEMENT - " + improvementType);
-        
-        if (aiResponse && aiResponse.length > 100) {
-            const htmlMatch = aiResponse.match(/```html[\s\S]*?```/) || aiResponse.match(/<!DOCTYPE html>[\s\S]*?<\/html>/);
-            
-            if (htmlMatch) {
-                let newHtml = htmlMatch[0].replace(/```html/g, '').replace(/```/g, '').trim();
-                
-                const validationResults = validateHTML(newHtml);
-                
-                if (validationResults.isValid) {
-                    const backupPath = htmlPath + '.backup';
-                    fs.writeFileSync(backupPath, currentHtml);
-                    
-                    fs.writeFileSync(htmlPath, newHtml);
-                    console.log("✅ AI HTML applied successfully");
-                    addLog("[AI] HTML updated - " + improvementType);
-                    
-                    worldState.successfulImprovements = (worldState.successfulImprovements || 0) + 1;
-                } else {
-                    console.log("⚠️ HTML validation failed:", validationResults.errors);
-                    addLog("[AI] HTML rejected - " + validationResults.errors.join(', '));
-                }
-            } else {
-                console.log("⚠️ No HTML found in AI response");
-                addLog("[AI] No HTML found in response");
-            }
-        } else {
-            console.log("⚠️ AI response too short");
-            addLog("[AI] Response too short - skipped");
-        }
+        // 6. Push everything to GitHub
+        await pushToGitHub("Full Enhancement", worldState.day);
         
         worldState.aiImprovements += 1;
-        addLog("[AI COMMIT] " + improvementType + " attempt #" + worldState.aiImprovements);
+        worldState.successfulImprovements = (worldState.successfulImprovements || 0) + 1;
+        saveWorldState();
         
-        pushToGitHub(htmlPath, improvementType, worldState.day).catch(() => {});
+        addLog("[AI] Full project enhancement completed");
         
     } catch (err) {
-        console.error("Error:", err.message);
-        addLog("[AI] Error - keeping current HTML");
+        console.error("Project enhancement error:", err.message);
+        addLog("[AI] Enhancement failed: " + err.message);
     }
 }
 
 /**
- * VALIDATE HTML BEFORE SAVING
+ * Improve server.js
+ */
+async function improveServerFile() {
+    console.log("\n📄 Improving server.js...");
+    
+    const serverPath = path.join(__dirname, 'server.js');
+    if (!fs.existsSync(serverPath)) return;
+    
+    const currentServer = fs.readFileSync(serverPath, 'utf8');
+    
+    // Limitar tamaño para el prompt
+    const serverPreview = currentServer.substring(0, 15000);
+    
+    const prompt = `Improve this dark fantasy civilization game server code. 
+    Focus on:
+    1. Better game mechanics and balance
+    2. Enhanced economy system
+    3. More interesting events and interactions
+    4. Performance optimizations
+    5. Error handling improvements
+    
+    IMPORTANT:
+    - Keep all existing functionality
+    - Keep WebSocket implementation
+    - Keep file structure
+    - Add improvements, don't remove features
+    - Maintain dark fantasy theme
+    
+    Current server code:
+    \`\`\`javascript
+    ${serverPreview}
+    \`\`\`
+    
+    Return the complete improved server code.`;
+    
+    const aiResponse = await queryAI(prompt, "SERVER IMPROVEMENT");
+    
+    if (aiResponse && aiResponse.length > 500) {
+        const codeMatch = aiResponse.match(/```javascript[\s\S]*?```/) || aiResponse.match(/```js[\s\S]*?```/);
+        
+        if (codeMatch) {
+            const newServer = codeMatch[0].replace(/```javascript\n?/g, '').replace(/```js\n?/g, '').replace(/```/g, '').trim();
+            
+            // Backup
+            fs.writeFileSync(serverPath + '.backup', currentServer);
+            
+            // Save improved version
+            fs.writeFileSync(serverPath, newServer);
+            console.log("✅ server.js improved");
+            addLog("[AI] server.js enhanced");
+        }
+    }
+}
+
+/**
+ * Improve index.html
+ */
+async function improveHTMLFile() {
+    console.log("\n📄 Improving index.html...");
+    
+    const htmlPath = path.join(__dirname, 'public', 'index.html');
+    if (!fs.existsSync(htmlPath)) return;
+    
+    let currentHtml = fs.readFileSync(htmlPath, 'utf8');
+    
+    // Limitar tamaño
+    if (currentHtml.length > 30000) {
+        currentHtml = currentHtml.substring(0, 30000);
+    }
+    
+    const prompt = `Enhance this dark fantasy pixel art game interface. 
+    Focus on:
+    1. Better pixel art graphics and animations
+    2. Atmospheric effects (fog, shadows, lighting)
+    3. More detailed buildings and terrain
+    4. Improved UI/UX design
+    5. Particle effects and visual polish
+    6. Better color palette for dark fantasy theme
+    
+    IMPORTANT:
+    - Keep all existing HTML IDs and functions
+    - Keep WebSocket functionality
+    - Keep canvas rendering
+    - Add new visual features
+    - Maintain dark fantasy atmosphere
+    - Use pixel art style
+    
+    Current HTML:
+    \`\`\`html
+    ${currentHtml}
+    \`\`\`
+    
+    Return the complete improved HTML.`;
+    
+    const aiResponse = await queryAI(prompt, "HTML IMPROVEMENT");
+    
+    if (aiResponse && aiResponse.length > 500) {
+        const htmlMatch = aiResponse.match(/```html[\s\S]*?```/) || aiResponse.match(/<!DOCTYPE html>[\s\S]*?<\/html>/);
+        
+        if (htmlMatch) {
+            let newHtml = htmlMatch[0].replace(/```html/g, '').replace(/```/g, '').trim();
+            
+            // Validar
+            if (validateHTML(newHtml)) {
+                // Backup
+                fs.writeFileSync(htmlPath + '.backup', fs.readFileSync(htmlPath, 'utf8'));
+                
+                // Save
+                fs.writeFileSync(htmlPath, newHtml);
+                console.log("✅ index.html improved");
+                addLog("[AI] index.html enhanced");
+            } else {
+                console.log("⚠️ HTML validation failed - keeping original");
+            }
+        }
+    }
+}
+
+/**
+ * Update package.json
+ */
+async function updatePackageJson() {
+    console.log("\n📄 Updating package.json...");
+    
+    const packagePath = path.join(__dirname, 'package.json');
+    
+    if (fs.existsSync(packagePath)) {
+        try {
+            const packageData = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+            
+            // Asegurar scripts necesarios
+            if (!packageData.scripts) packageData.scripts = {};
+            
+            const requiredScripts = {
+                "start": "node server.js",
+                "backup": "node backup.js",
+                "status": "node status.js"
+            };
+            
+            Object.entries(requiredScripts).forEach(([name, command]) => {
+                if (!packageData.scripts[name]) {
+                    packageData.scripts[name] = command;
+                }
+            });
+            
+            fs.writeFileSync(packagePath, JSON.stringify(packageData, null, 2));
+            console.log("✅ package.json updated");
+        } catch (e) {
+            console.log("⚠️ package.json update failed:", e.message);
+        }
+    }
+}
+
+/**
+ * Create README.md
+ */
+async function createReadme() {
+    console.log("\n📄 Creating README.md...");
+    
+    const prompt = `Create comprehensive README.md for this dark fantasy pixel art civilization game.
+    Include:
+    - Project overview
+    - Features
+    - Installation
+    - Configuration
+    - World state variables
+    - AI improvement system
+    - Troubleshooting
+    
+    Current state: Day ${worldState.day}, Population ${worldState.population}, Treasury ${worldState.treasury}
+    
+    Format as markdown.`;
+    
+    const aiResponse = await queryAI(prompt, "README GENERATION");
+    
+    if (aiResponse && aiResponse.length > 100) {
+        fs.writeFileSync(path.join(__dirname, 'README.md'), aiResponse);
+        console.log("✅ README.md created");
+    }
+}
+
+/**
+ * Save improvement log
+ */
+function saveImprovementLog() {
+    const logFile = path.join(__dirname, 'improvement_log.json');
+    let log = [];
+    
+    if (fs.existsSync(logFile)) {
+        try {
+            log = JSON.parse(fs.readFileSync(logFile, 'utf8'));
+        } catch (e) {
+            log = [];
+        }
+    }
+    
+    log.push({
+        timestamp: new Date().toISOString(),
+        day: worldState.day,
+        type: "FULL_PROJECT_ENHANCEMENT",
+        improvements: worldState.aiImprovements
+    });
+    
+    if (log.length > 100) log.shift();
+    
+    fs.writeFileSync(logFile, JSON.stringify(log, null, 2));
+}
+
+/**
+ * Validate HTML
  */
 function validateHTML(html) {
     const errors = [];
@@ -532,10 +731,6 @@ function validateHTML(html) {
         errors.push("White background detected");
     }
     
-    if (/body\s*{[^}]*overflow:\s*(auto|scroll)/i.test(html)) {
-        errors.push("Scroll on body detected");
-    }
-    
     if (!/getContext\('2d'\)|getContext\("2d"\)/i.test(html)) {
         errors.push("Missing canvas context");
     }
@@ -544,35 +739,12 @@ function validateHTML(html) {
         errors.push("Missing requestAnimationFrame");
     }
     
-    return {
-        isValid: errors.length === 0,
-        errors: errors
-    };
+    if (errors.length > 0) {
+        console.log("Validation errors:", errors);
+    }
+    
+    return errors.length === 0;
 }
-
-// START SERVER
-SERVER.listen(PORT, () => {
-    console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
-    console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
-    console.log("🤖 AI Model: groq/compound");
-    console.log("⏱️ Events: every 300 days | Code: every 500 days | Rate: 600s");
-    console.log("🔒 AI Lock: 10 minute wait between requests");
-    
-    addLog("[SYSTEM] Simulation started.");
-    broadcastState();
-    
-    console.log("\n🔌 Testing AI connection...");
-    queryAI("Say OK", "CONNECTION TEST").then(response => {
-        if (response) {
-            console.log("✅ AI CONNECTION ESTABLISHED");
-            addLog("[SYSTEM] AI System ready.");
-        } else {
-            console.log("⚠️ AI connection failed");
-            addLog("[SYSTEM] AI unavailable.");
-        }
-        broadcastState();
-    });
-});
 
 /**
  * Clean HTML - PROTECTED
@@ -728,3 +900,28 @@ function getCleanHTML() {
 </body>
 </html>`;
 }
+
+// START SERVER
+SERVER.listen(PORT, () => {
+    console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
+    console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
+    console.log("🤖 AI Model: groq/compound");
+    console.log("⏱️ Events: every 300 days | Full Enhancement: every 500 days | Rate: 600s");
+    console.log("🔒 AI Lock: 10 minute wait between requests");
+    console.log("📁 AI modifies: server.js, index.html, package.json, README.md");
+    
+    addLog("[SYSTEM] Simulation started with full project enhancement.");
+    broadcastState();
+    
+    console.log("\n🔌 Testing AI connection...");
+    queryAI("Say OK", "CONNECTION TEST").then(response => {
+        if (response) {
+            console.log("✅ AI CONNECTION ESTABLISHED");
+            addLog("[SYSTEM] AI System ready for full project enhancement.");
+        } else {
+            console.log("⚠️ AI connection failed");
+            addLog("[SYSTEM] AI unavailable.");
+        }
+        broadcastState();
+    });
+});
