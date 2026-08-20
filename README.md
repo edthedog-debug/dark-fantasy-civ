@@ -1,4 +1,7 @@
 # Dark Fantasy Pixel Art Civilization Game  
+*Comprehensive README*
+
+---
 
 ## Table of Contents
 1. [Project Overview](#project-overview)  
@@ -8,187 +11,221 @@
 5. [World State Variables](#world-state-variables)  
 6. [AI Improvement System](#ai-improvement-system)  
 7. [Troubleshooting & FAQ](#troubleshooting--faq)  
-8. [Current Game State](#current-game-state)  
+8. [Contributing](#contributing)  
+9. [License](#license)  
 
----  
+---
 
-## Project Overview  
-Welcome to **Dark Fantasy Pixel Art Civilization**, a strategy‑simulation game that blends classic city‑building mechanics with a brooding, hand‑crafted pixel‑art world. As the ruler of a fledgling realm, you must balance resource management, technological progress, and the ever‑looming threats of a dark fantasy setting.  
+## Project Overview
+**Dark Fantasy Pixel Art Civilization** is a hybrid strategy‑city‑builder set in a brooding, hand‑crafted pixel‑art world. You assume the role of a fledgling ruler tasked with guiding a nascent civilization through centuries of hardship, war, and mystic intrigue.  
 
-Key goals for the player:  
+- **Atmosphere:** Dark fantasy lore, ominous music, and atmospheric lighting.  
+- **Gameplay Loop:** Gather resources → Build/upgrade structures → Expand territory → Explore dangerous locales → Defend against ever‑evolving AI threats.  
+- **Goal:** Grow your population, amass wealth, and ultimately dominate the continent while surviving the relentless encroachment of supernatural forces.
 
-* Grow the **population** from a modest settlement to a thriving empire.  
-* Keep the **treasury** healthy while funding construction, research, and defense.  
-* Navigate a dynamic world that evolves day by day, presenting new challenges and opportunities.  
+Current in‑game snapshot (as of the latest save):  
 
-The game is built with Python, uses the **Pygame** library for rendering, and stores persistent data in JSON files for easy modding.  
+| Variable | Value |
+|----------|-------|
+| **Day** | **65790** |
+| **Population** | **7 670** |
+| **Treasury** | **42 300 925 201** |
 
----  
+These numbers are automatically persisted in `savegame.json` and displayed on the main HUD.
 
-## Features  
+---
 
+## Features
 | Feature | Description |
 |---------|-------------|
-| **Pixel‑Art Visuals** | Hand‑drawn 16‑bit style sprites, tilesets, and UI elements that evoke a grim, atmospheric world. |
-| **Deep City‑Building** | Construct residential, industrial, military, and magical structures; each building influences multiple world variables. |
-| **Resource Management** | Track food, wood, stone, mana, and gold. Trade routes and market dynamics add strategic depth. |
-| **Dynamic World Clock** | The game runs on a day‑based clock (currently **Day 64229**). Seasonal events, festivals, and calamities trigger automatically. |
-| **AI Improvement System** | Research tree and upgrade path that enhances the AI’s decision‑making, automation, and efficiency. |
-| **Mod‑Friendly Architecture** | All game data (buildings, techs, events) lives in JSON/YAML files; community mods are encouraged. |
-| **Save/Load** | Multiple save slots; auto‑save every 100 in‑game days. |
-| **Cross‑Platform** | Runs on Windows, macOS, and Linux (requires Python 3.9+). |
+| **Pixel‑Art Graphics** | 32‑bit style sprites, animated tiles, and hand‑drawn UI elements that evoke classic RPG aesthetics. |
+| **Dynamic City‑Building** | Construct residential, military, magical, and economic districts. Each building influences multiple world‑state variables (e.g., food production, morale, research). |
+| **Exploration & Dungeons** | Procedurally generated forests, ruins, and underground catacombs filled with loot, lore, and hostile entities. |
+| **Resource Management** | Manage food, wood, stone, mana, and gold. Trade routes can be opened with neighboring AI factions. |
+| **Population Mechanics** | Birth, death, migration, and morale affect growth. Special events (plagues, festivals) modify the population curve. |
+| **AI Improvement System** *(see section below)* | The AI adapts its strategies based on your playstyle, scaling difficulty and introducing new challenges. |
+| **Mod‑Friendly Architecture** | All game data (units, buildings, events) lives in JSON/YAML files, making it easy to add custom content. |
+| **Save/Load System** | Automatic daily snapshots and manual save slots. |
+| **Cross‑Platform** | Runs on Windows, macOS, and Linux via Python + Pygame. |
 
----  
+---
 
-## Installation  
+## Installation
+### Prerequisites
+- **Python** ≥ 3.8 (tested on 3.8‑3.12)  
+- **Pygame** ≥ 2.0  
+- Optional: **Git** (for cloning the repo)  
 
-### Prerequisites  
-* **Python 3.9** or newer (https://www.python.org/downloads/)  
-* **Git** (optional, for cloning the repo)  
-* **Pygame** – will be installed automatically via `requirements.txt`  
-
-### Steps  
-
+### Step‑by‑Step Guide
 ```bash
-# 1️⃣ Clone the repository (or download the zip)
-git clone https://github.com/your‑username/dark‑fantasy‑pixel‑civilization.git
-cd dark-fantasy-pixel-civilization
+# 1️⃣ Clone the repository
+git clone https://github.com/your-username/dark-fantasy-pixel-civ.git
+cd dark-fantasy-pixel-civ
 
 # 2️⃣ Create a virtual environment (recommended)
 python -m venv venv
-# Activate:
-#   Windows: venv\Scripts\activate
-#   macOS/Linux: source venv/bin/activate
+source venv/bin/activate   # On Windows: venv\Scripts\activate
 
 # 3️⃣ Install dependencies
 pip install -r requirements.txt
 
-# 4️⃣ Run the game
+# 4️⃣ Verify the installation (runs a quick sanity check)
+python -m pytest tests/   # optional but recommended
+
+# 5️⃣ Launch the game
 python main.py
 ```
 
-*If you prefer not to use a virtual environment, simply run `pip install -r requirements.txt` globally.*  
+**Alternative (no Git):** Download the ZIP from the GitHub releases page, extract it, and run the same `pip install -r requirements.txt` + `python main.py` steps.
 
----  
+---
 
-## Configuration  
-
-All configurable options live in **`config.json`** (generated on first launch). Below is a sample with explanations:
+## Configuration
+All configurable options live in `config.json`. The file is loaded at startup; missing keys fall back to defaults.
 
 ```json
 {
-  "game_speed": 1.0,               // 0.5 = half‑speed, 2.0 = double‑speed
-  "ai_difficulty": "hard",         // easy | normal | hard | nightmare
-  "graphics_quality": "high",      // low | medium | high (affects particle effects)
-  "audio_volume": 0.8,             // 0.0 – 1.0
-  "autosave_interval_days": 100,   // Auto‑save every N in‑game days
-  "enable_mods": true,             // Load mods from the /mods folder
-  "language": "en-US"
+  "difficulty": "medium",          // Options: "easy", "medium", "hard"
+  "starting_population": 1500,
+  "starting_treasury": 500000,
+  "starting_day": 1,
+  "autosave_interval_days": 7,
+  "enable_mods": true,
+  "mod_folder": "mods/",
+  "audio": {
+    "music_volume": 0.7,
+    "sfx_volume": 0.8
+  },
+  "graphics": {
+    "resolution": [1280, 720],
+    "fullscreen": false,
+    "pixel_scaling": 2
+  }
 }
 ```
 
-* To change a setting, edit the file and restart the game.  
-* Invalid values will revert to defaults and a warning will be logged to `logs/debug.log`.  
+### Common Tweaks
+| Setting | Effect | Typical Values |
+|---------|--------|----------------|
+| `difficulty` | Determines AI aggression, resource scarcity, and event frequency. | `easy` (generous resources), `medium` (balanced), `hard` (scarce). |
+| `autosave_interval_days` | How many in‑game days between automatic saves. | `1–30`. |
+| `enable_mods` | Turns the mod loader on/off. | `true` / `false`. |
+| `pixel_scaling` | Upscales the pixel art for modern displays. | `1` (native), `2`, `3`, `4`. |
 
----  
+After editing `config.json`, restart the game for changes to take effect.
 
-## World State Variables  
+---
 
-The engine tracks a set of core variables that define the current state of your civilization. They are persisted in `save/<slot>.json`.
+## World State Variables
+The engine tracks a set of core variables that drive gameplay. They are persisted in `savegame.json` and can be inspected via the debug console (`~` key).
 
-| Variable | Type | Description | Example (Current) |
-|----------|------|-------------|-------------------|
-| `day` | integer | Current in‑game day count | **64229** |
-| `population` | integer | Number of living citizens (including slaves, soldiers, etc.) | **7420** |
-| `treasury` | integer | Gold reserves (raw integer; UI formats with commas) | **39 414 953 769** |
-| `food_stock` | integer | Units of food stored | 12 340 |
-| `mana_pool` | integer | Magical energy available for spells/research | 5 210 |
-| `happiness` | float (0‑1) | Overall citizen satisfaction | 0.73 |
-| `military_strength` | integer | Combined combat power of all units | 1 845 |
-| `technology_level` | integer | Highest tier of tech unlocked | 7 |
+| Variable | Type | Description | Current Value |
+|----------|------|-------------|---------------|
+| `day` | Integer | In‑game day counter (starts at 1). | **65790** |
+| `population` | Integer | Total number of citizens (including children). | **7 670** |
+| `treasury` | Integer | Gold reserves (raw integer, displayed with commas). | **42 300 925 201** |
+| `food_stock` | Integer | Units of food stored; affects starvation risk. | (dynamic) |
+| `mana_pool` | Integer | Magical energy available for spells & research. | (dynamic) |
+| `morale` | Float (0‑1) | Overall citizen happiness; influences growth rate. | (dynamic) |
+| `military_strength` | Integer | Sum of combat power of all units. | (dynamic) |
+| `tech_level` | Integer | Current tier of research unlocked. | (dynamic) |
+| `dungeon_explored` | Integer | Number of unique dungeons cleared. | (dynamic) |
 
-These variables can be accessed by mods via the `GameState` API (`game_state.population`, etc.).  
+### Accessing Variables Programmatically
+```python
+from game.state import WorldState
 
----  
+ws = WorldState.load('savegame.json')
+print(ws.day, ws.population, ws.treasury)
+```
 
-## AI Improvement System  
+---
 
-The AI improvement system is a **research tree** that unlocks both *civil* and *military* AI upgrades. Each node requires a combination of **gold**, **mana**, and **research points** (generated by libraries and academies).  
+## AI Improvement System
+The AI is not a static script; it evolves based on a **multi‑layered adaptation loop**:
 
-### Core Branches  
+1. **Data Collection** – Every 24 in‑game hours the AI logs:
+   * Player building patterns (e.g., heavy focus on military vs. economy).
+   * Resource flow (which resources you hoard or neglect).
+   * Tactical choices in combat (unit composition, spell usage).
 
-| Branch | Sample Upgrades | Effect |
-|--------|----------------|--------|
-| **Governance** | *Efficient Taxation* – +10 % treasury income; *Population Forecast* – reduces random population loss | Improves economic decision‑making. |
-| **Logistics** | *Automated Resource Transport* – eliminates manual hauling; *Supply Chain Optimization* – reduces building construction time | Speeds up resource flow. |
-| **Military Tactics** | *Adaptive Combat AI* – units react to enemy composition; *Siege Mastery* – reduces siege duration | Boosts combat effectiveness. |
-| **Arcane Insight** | *Mana‑Efficient Spells* – spells cost 15 % less mana; *Predictive Weather* – reduces crop failure chance | Enhances magical aspects. |
+2. **Pattern Analysis** – A lightweight decision‑tree evaluates the logs and assigns a *playstyle score* (e.g., “Aggressive Builder”, “Economic Hoarder”).
 
-### How to Use  
+3. **Difficulty Scaling** – Based on the score:
+   * **Aggressive Builder** → AI increases raid frequency, adds elite units.
+   * **Economic Hoarder** → AI imposes trade embargoes, raises market prices.
+   * **Balanced** → AI introduces mixed challenges (random events, hidden monsters).
 
-1. Build **Academies** and **Libraries** to generate **Research Points** each day.  
-2. Open the **Research UI** (`R` key) and allocate points to desired upgrades.  
-3. Once an upgrade is fully funded, it unlocks automatically and its effect is applied globally.  
+4. **Dynamic Event Generation** – The AI can spawn custom events (plagues, bandit raids, magical storms) that directly counter the player’s current strengths.
 
-### Balancing  
+5. **Learning Persistence** – The AI’s learned model is saved in `ai_state.json`. When you load a save, the AI resumes from its last adaptation point, ensuring continuity across play sessions.
 
-* Upgrades have diminishing returns to prevent runaway scaling.  
-* Certain high‑tier upgrades require prerequisite technologies from multiple branches, encouraging diversified development.  
+### Tuning the AI (Advanced)
+If you wish to modify the AI’s behavior, edit `ai_rules.yaml`. Example snippet:
 
----  
+```yaml
+aggressive_builder:
+  raid_chance: 0.25   # 25% chance per day
+  elite_unit_spawn: true
+  resource_tax: 0.05 # 5% tax on gold income
 
-## Troubleshooting & FAQ  
+economic_hoarder:
+  trade_embargo: true
+  market_price_multiplier: 1.3
+```
 
-| Issue | Possible Cause | Solution |
-|-------|----------------|----------|
-| **Game crashes on launch** | Missing Python version or Pygame dependency | Verify Python ≥ 3.9, reinstall dependencies: `pip install -r requirements.txt`. |
-| **Graphics appear garbled** | `graphics_quality` set to an unsupported value or outdated GPU driver | Set `"graphics_quality": "medium"` in `config.json` and update GPU drivers. |
-| **Save file won't load** | Corrupted JSON (e.g., manual edit) | Delete the problematic `save/*.json` and start a new game, or restore from a backup in `save/backups/`. |
-| **AI not improving after research** | Research points not being generated (no Academy/Library) | Build at least one Academy and one Library; ensure they have power (connected to the grid). |
-| **Audio missing or static** | System audio drivers or missing `pygame.mixer` init | Reinstall Pygame (`pip uninstall pygame && pip install pygame`) and ensure your OS audio works with other apps. |
-| **Mod conflicts** | Two mods editing the same JSON key | Disable one mod via `config.json` → `"enable_mods": false` or move offending mod to a separate folder. |
+> **Note:** Changing AI rules may unbalance the game. Keep a backup of the original file.
 
-### Common Commands  
+---
 
-| Command | Action |
-|---------|--------|
-| `Ctrl+S` | Quick‑save current slot |
-| `F5` | Reload configuration without restarting |
-| `Esc` | Open pause menu (access settings, save, quit) |
-| `M` | Toggle music on/off |
-| `V` | Show debug overlay (FPS, variable values) – useful for troubleshooting |
+## Troubleshooting & FAQ
+### The game crashes on startup
+1. Verify Python version (`python --version`). Must be ≥ 3.8.  
+2. Ensure Pygame is correctly installed: `pip show pygame`. If missing, run `pip install pygame`.  
+3. Check the console for an error trace. Common culprits:
+   * Missing `SDL` libraries on Linux (`sudo apt-get install libsdl2-dev`).
+   * Incompatible graphics driver (update GPU drivers).
 
----  
+### Performance is sluggish
+* Reduce `graphics.pixel_scaling` to `1`.  
+* Disable fullscreen (`graphics.fullscreen: false`).  
+* Close other CPU‑intensive applications.
 
-## Current Game State  
+### Save files become corrupted
+* The game writes a temporary file (`savegame.tmp`) before overwriting the main save. If the process is interrupted, the temp file may be left behind. Delete `savegame.tmp` and reload the last good `savegame.json`.  
+* Enable `autosave_interval_days` to a lower value to minimize data loss.
 
-| Variable | Value |
-|----------|-------|
-| **Day** | **64229** |
-| **Population** | **7420** |
-| **Treasury** | **39 414 953 769** gold |
+### AI becomes “impossible” after a few days
+* The AI adapts to your dominant strategy. Try varying your playstyle (e.g., focus on research for a few days, then shift to military).  
+* You can manually reset AI learning by deleting `ai_state.json` (the AI will start from default difficulty).
 
-These numbers are displayed in the top‑right HUD during gameplay and are also written to the active save file each autosave interval.  
+### Mod loading fails
+* Ensure each mod folder contains a valid `mod.json` manifest.  
+* Check the console for JSON parsing errors; fix malformed syntax.  
+* Verify that `config.json` has `"enable_mods": true` and that the `mod_folder` path is correct.
 
----  
+### I want to run the game on macOS with Apple Silicon
+* Use the universal Python installer from python.org (or Homebrew `brew install python`).  
+* Pygame 2.0+ provides native ARM builds; if you encounter issues, install from source: `pip install --no-binary :all: pygame`.
 
-## Contributing  
+---
 
-We welcome community contributions!  
+## Contributing
+We welcome community contributions! Follow these steps:
 
-1. Fork the repository.  
-2. Create a feature branch (`git checkout -b feature/awesome‑feature`).  
-3. Follow the existing code style (PEP‑8, docstrings).  
-4. Submit a Pull Request with a clear description of changes.  
+1. **Fork** the repository.  
+2. Create a **feature branch**: `git checkout -b feature/awesome-feature`.  
+3. Make your changes, ensuring they pass existing tests (`pytest`).  
+4. Update documentation (README, docstrings).  
+5. Submit a **Pull Request** with a clear description of the change.  
 
-Please read `CONTRIBUTING.md` for detailed guidelines on asset creation, localization, and testing.  
+Please read `CONTRIBUTING.md` for coding standards, commit message guidelines, and the review process.
 
----  
+---
 
-## License  
+## License
+This project is licensed under the **MIT License**. See the `LICENSE` file for full terms.
 
-This project is licensed under the **MIT License** – see `LICENSE` for full text.  
+---
 
----  
-
-**Enjoy building your dark empire!** If you have any questions, suggestions, or bug reports, open an issue on GitHub or join our Discord community (link in the repository README).
+*Happy building, explorer! May your civilization thrive amidst the shadows.*
