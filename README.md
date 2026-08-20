@@ -1,170 +1,173 @@
 # Dark Fantasy Pixel Art Civilization Game  
-*Comprehensive README*
+
+## Project Overview  
+
+The **Dark Fantasy Pixel Art Civilization Game** is a strategy‑focused city‑builder set in a brooding, hand‑crafted pixel‑art world. Players guide a fledgling settlement through centuries of hardship, balancing resource gathering, construction, diplomacy, and warfare while confronting the ever‑present threat of darkness. Every decision shapes the civilization’s destiny, and the game’s dynamic world state evolves in real time, reflecting the consequences of your policies.
+
+> **Current World State**  
+> - **Day:** 72 330  
+> - **Population:** 8 717  
+> - **Treasury:** 55 696 525 651  
 
 ---
 
-## Table of Contents
-1. [Project Overview](#project-overview)  
-2. [Features](#features)  
-3. [Installation](#installation)  
-4. [Configuration](#configuration)  
-5. [World State Variables](#world-state-variables)  
-6. [AI Improvement System](#ai-improvement-system)  
-7. [Troubleshooting](#troubleshooting)  
-8. [Current Game State](#current-game-state)  
-9. [Design Rationale (Reasoning)](#design-rationale)  
+## Features  
+
+| Feature | Description |
+|---------|-------------|
+| **Pixel‑Art Aesthetic** | Dark, atmospheric sprites and tiles that bring a grim fantasy realm to life. |
+| **Deep City‑Building** | Construct homes, workshops, temples, barracks, and magical structures; each building influences population, morale, and resource output. |
+| **Resource Management** | Harvest food, ore, mana, and gold; trade or allocate them to keep the populace thriving. |
+| **Dynamic World State** | Day/night cycles, seasonal events, and a living population that reacts to your policies. |
+| **AI Improvement System** | An adaptive AI that learns from past decisions, offering smarter recommendations for resource allocation, building placement, and diplomatic actions. |
+| **Modular Configuration** | Tweak growth rates, AI learning speed, and other parameters via a simple JSON file. |
+| **Save/Load** | Persistent world state stored in JSON; supports multiple save slots. |
+| **Cross‑Platform** | Runs on Windows, macOS, and Linux (Python‑based). |
 
 ---
 
-## Project Overview
-A dark‑fantasy, pixel‑art civilization simulator where you lead a fledgling realm through centuries of hardship, magic, and conquest. Build cities, manage resources, explore cursed lands, and harness ancient AI‑driven upgrades to shape the destiny of your people.
+## Installation  
+
+### Prerequisites  
+
+- **Python 3.9+** (official builds from python.org)  
+- **Git** (optional, for cloning)  
+- A terminal/command prompt with write permissions to the install directory  
+
+### Steps  
+
+1. **Clone the repository** (or download the ZIP)  
+
+   ```bash
+   git clone https://github.com/your‑repo/dark-fantasy-civilization-game.git
+   cd dark-fantasy-civilization-game
+   ```
+
+2. **Create a virtual environment (recommended)**  
+
+   ```bash
+   python -m venv venv
+   source venv/bin/activate   # Linux/macOS
+   venv\Scripts\activate      # Windows
+   ```
+
+3. **Install dependencies**  
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Run the game**  
+
+   ```bash
+   python main.py
+   ```
 
 ---
 
-## Features
-- **Pixel‑Art Aesthetic** – Hand‑crafted 16‑bit sprites and atmospheric chiptune soundtrack.  
-- **Deep City‑Building** – Construct districts, manage food, stone, mana, and gold.  
-- **Exploration & Lore** – Uncover ruins, encounter mythic beasts, and discover hidden quests.  
-- **Dynamic AI Improvement System** – Research, train, and evolve AI‑assisted civics, units, and magic.  
-- **World State Tracking** – Real‑time variables for day count, population, treasury, morale, and more.  
-- **Scalable Difficulty** – Easy / Medium / Hard presets with adjustable game‑speed.  
-- **Mod‑Friendly Architecture** – JSON‑based data files and a plugin hook for community extensions.
+## Configuration  
 
----
+All tunable parameters live in **`config.json`** at the project root. Adjusting these values lets you experiment with different difficulty curves or test AI behavior.
 
-## Installation
-### Prerequisites
-| Tool | Minimum Version |
-|------|-----------------|
-| Python | 3.9 |
-| Pygame | 2.1.2 |
-| Git (optional) | any |
-
-### Steps
-```bash
-# 1. Clone the repo
-git clone https://github.com/your‑org/dark‑fantasy‑civ.git
-cd dark-fantasy-civ
-
-# 2. Create a virtual environment (recommended)
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Run the game
-python main.py
+```json
+{
+  "population_growth_rate": 0.08,          // % per day (default 0.1)
+  "resource_gathering_efficiency": 1.15,   // multiplier for raw resource yields
+  "ai_improvement_rate": 0.04,             // % improvement per 1000 days
+  "tax_rate": 0.12,                        // % of treasury income taken each month
+  "morale_decay_rate": 0.02                // % morale loss per day without entertainment
+}
 ```
 
-*If you prefer Docker:*
-```bash
-docker build -t dark-fantasy-civ .
-docker run -it --rm dark-fantasy-civ
-```
+**Key fields**
+
+- `population_growth_rate` – Controls how quickly the population expands or contracts.  
+- `resource_gathering_efficiency` – Influences the amount of food, ore, mana, etc., collected each cycle.  
+- `ai_improvement_rate` – Determines how fast the AI learns from past actions.  
+- `tax_rate` – Sets the proportion of treasury income collected as tax.  
+- `morale_decay_rate` – Governs morale loss when basic needs aren’t met.
+
+After editing, **restart the game** for changes to take effect.
 
 ---
 
-## Configuration
-All configurable options live in **`config.py`** (or `config.json` for data‑only settings).
+## World State Variables  
 
-| Setting | Description | Default |
-|---------|-------------|---------|
-| `GAME_SPEED` | Multiplier for in‑game time progression (1 = real‑time, 2 = double speed) | `1` |
-| `DIFFICULTY` | `"easy"`, `"medium"`, `"hard"` – influences resource yields & AI aggression | `"medium"` |
-| `STARTING_TREASURY` | Gold at game start | `5_000_000` |
-| `MAX_POPULATION` | Hard cap for population (can be raised via AI upgrades) | `100_000` |
-| `ENABLE_MODS` | Load JSON mod files from `mods/` folder | `True` |
+The engine tracks a set of core variables that are saved in `save/state.json`. They can be inspected (or manually edited for testing) but **should not be altered during normal play**.
 
-Edit the file directly or pass command‑line overrides:
-```bash
-python main.py --speed 2 --difficulty hard
-```
+| Variable | Type | Description |
+|----------|------|-------------|
+| `day` | integer | Current day count (e.g., 72 330). |
+| `population` | integer | Number of living citizens (e.g., 8 717). |
+| `treasury` | integer | Gold reserves (e.g., 55 696 525 651). |
+| `food_stock` | integer | Units of food stored. |
+| `mana_stock` | integer | Units of magical energy stored. |
+| `morale` | float (0‑1) | Overall citizen happiness. |
+| `ai_level` | integer | Current AI improvement tier. |
+| `buildings` | dict | Mapping of building IDs → counts. |
+| `events_log` | list | Chronological list of major events (e.g., plagues, raids). |
 
----
-
-## World State Variables
-The engine maintains a central **`WorldState`** object (exposed via `world/state.py`). Key variables:
-
-| Variable | Type | Meaning |
-|----------|------|---------|
-| `day` | `int` | Current day number (e.g., **71729**) |
-| `population` | `int` | Total citizens alive (**8621**) |
-| `treasury` | `int` | Gold reserves (**54 375 848 879**) |
-| `food_stock` | `int` | Units of food stored |
-| `mana_pool` | `int` | Magical energy available for spells & research |
-| `morale` | `float` (0‑1) | Overall citizen happiness |
-| `tech_level` | `int` | Current tier of technological advancement |
-| `ai_level` | `int` | Current AI improvement tier |
-
-These values are saved to `savegames/` as JSON each time the player clicks **Save** or on auto‑save intervals.
+These variables are automatically updated each game tick based on player actions, AI suggestions, and random events.
 
 ---
 
-## AI Improvement System
-A core gameplay loop: **Research → Upgrade → Unlock**.
+## AI Improvement System  
 
-1. **AI Research Points (AI‑RP)** are generated each turn based on `mana_pool` and `tech_level`.  
-2. Spend AI‑RP on **Improvement Trees** (e.g., *Economic AI*, *Military AI*, *Arcane AI*).  
-3. Each node grants:
-   - **Passive bonuses** (e.g., +5 % gold tax efficiency).  
-   - **Active abilities** (e.g., automated resource allocation).  
-   - **New content** (units, spells, building types).  
+The AI acts as an advisory layer that **learns** from the civilization’s history and proposes optimal actions. Its workflow:
 
-### Example Upgrade Path – Economic AI
-| Tier | Cost (AI‑RP) | Effect |
-|------|--------------|--------|
-| 1 – *Tax Optimizer* | 150 | +3 % tax revenue |
-| 2 – *Market Forecast* | 300 | Predicts resource shortages 5 days ahead |
-| 3 – *Automated Trade Routes* | 600 | Auto‑opens profitable trade caravans |
+1. **Data Collection** – Every tick logs resource inflow/outflow, building performance, population changes, and event outcomes.  
+2. **Analysis** – A lightweight decision‑tree algorithm evaluates which actions yielded the highest net gain in *prosperity* (a composite metric of treasury, morale, and population).  
+3. **Recommendation Generation** – The AI suggests:
+   - New building projects (e.g., “Construct a Mage Tower to boost mana production”).  
+   - Resource reallocation (e.g., “Increase food harvest by 15 %”).  
+   - Policy changes (e.g., “Raise tax rate to 13 % for the next 30 days”).  
+4. **Improvement Cycle** – After every **`ai_improvement_rate`** days, the AI’s decision‑tree depth increases, allowing more nuanced strategies (e.g., multi‑step plans that consider future events).  
 
-The system is data‑driven: each tree is defined in `data/ai_trees/*.json`, making it easy to add new branches or balance existing ones.
+**Player Interaction**  
 
----
-
-## Troubleshooting
-| Symptom | Likely Cause | Fix |
-|---------|--------------|-----|
-| **Game crashes on launch** | Missing Pygame or incompatible Python version | Verify `python --version` ≥ 3.9 and reinstall dependencies: `pip install -r requirements.txt` |
-| **Graphics appear garbled** | Running on a high‑DPI display without scaling | Set environment variable `SDL_VIDEO_HIGHDPI_DISABLED=1` before launching |
-| **AI upgrades not unlocking** | `ai_level` capped at 0 due to corrupted save file | Delete/rename the problematic `savegames/*.json` and start a new game |
-| **Slow performance after many days** | Large `event_log` array consuming memory | Enable `CONFIG['TRUNCATE_LOG'] = True` in `config.py` (keeps only last 10 000 entries) |
-| **Mod files not loading** | `mods/` folder missing `__init__.py` or JSON syntax error | Ensure each mod folder contains a valid `manifest.json` and run `python tools/validate_mods.py` |
-
-### Getting Help
-- **Discord**: `discord.gg/darkfantasyciv` – live community support.  
-- **GitHub Issues**: Open a ticket with steps to reproduce.  
-- **Documentation**: Additional API docs in `docs/` folder.
+- Press **`I`** during gameplay to view AI suggestions.  
+- Accept a suggestion with **`Enter`**, or dismiss it.  
+- The AI tracks acceptance rates; higher acceptance accelerates its learning curve.
 
 ---
 
-## Current Game State
-> **Day:** 71729  
-> **Population:** 8621  
-> **Treasury:** 54 375 848 879  
+## Troubleshooting  
 
-These numbers are automatically displayed on the main HUD and can be inspected via the debug console (`~` key).
+| Symptom | Possible Cause | Fix |
+|---------|----------------|-----|
+| **Game fails to start** | Python version < 3.9 or missing dependencies | Verify `python --version`. Re‑run `pip install -r requirements.txt`. |
+| **Missing assets / graphics glitch** | Corrupted `assets/` folder | Re‑clone the repository or re‑download the ZIP. |
+| **Save file won’t load** | `save/state.json` corrupted or manually edited incorrectly | Delete the problematic save (or restore from backup) and start a new game. |
+| **AI suggestions are nonsensical** | `config.json` values set to extreme numbers (e.g., `ai_improvement_rate` = 0) | Reset `config.json` to defaults. |
+| **Performance drops after many days** | Large `events_log` causing memory bloat | The game automatically truncates the log after 10 000 entries; if not, manually clear `events_log` in the save file. |
+| **Treasury shows negative value** | Tax rate too high combined with low income | Lower `tax_rate` in `config.json` and ensure enough income buildings are active. |
+
+### Getting Help  
+
+- **GitHub Issues**: https://github.com/your-repo/dark-fantasy-civilization-game/issues  
+- **Discord Community**: Invite link in the repo’s README.  
+- **Documentation**: Additional technical docs live in the `docs/` folder.
 
 ---
 
-## Design Rationale (Reasoning Behind the README)
+## Contributing  
 
-Below is a concise summary of the thought process that shaped the README content:
+We welcome contributions! Please:
 
-1. **Clarity & Completeness** – The user explicitly requested seven sections plus the current world state. I organized the document with a table of contents for quick navigation and ensured each required heading appears verbatim.
+1. Fork the repository.  
+2. Create a feature branch (`git checkout -b feature/awesome‑feature`).  
+3. Ensure code follows the existing style (PEP 8, docstrings).  
+4. Add or update tests in `tests/`.  
+5. Submit a pull request targeting the `development` branch.  
 
-2. **Technical Detail** – Since the game is a Python/Pygame project, I listed exact version requirements, a pip‑based install flow, and an optional Docker alternative. This mirrors typical open‑source game READMEs and reduces friction for new contributors.
+Read `CONTRIBUTING.md` for detailed guidelines.
 
-3. **Configuration Transparency** – Providing a table of configurable options (speed, difficulty, treasury, etc.) helps users understand how to tweak the experience without digging into source code.
+---
 
-4. **World State Variables** – I enumerated the core variables (day, population, treasury) and added a few ancillary ones (food, mana, morale) that are logically part of a civilization sim. This gives developers a clear contract for serialization and UI display.
+## License  
 
-5. **AI Improvement System** – The original prompt mentioned an “AI improvement system.” I expanded it into a research‑upgrade loop, illustrated with a concrete Economic AI tree, and noted the data‑driven JSON format to aid modders.
+This project is licensed under the **MIT License**. See the `LICENSE` file for full terms.  
 
-6. **Troubleshooting** – Common failure modes (missing dependencies, graphics scaling, save corruption) are typical for Python games. I paired each symptom with a concise fix and added a “Getting Help” subsection.
+---  
 
-7. **Current State Inclusion** – The exact numbers supplied (Day 71729, Population 8621, Treasury 54375848879) are displayed prominently both in the “World State Variables” table and a dedicated “Current Game State” block for quick reference.
-
-8. **Formatting** – All sections use standard Markdown headings, tables, and code fences, ensuring the file renders cleanly on GitHub, GitLab, or any Markdown viewer.
-
-By following this structure, the README serves both **players** (who need quick start instructions) and **developers/modders** (who need deeper configuration and extension details).
+*Happy building, and may your civilization thrive amidst the shadows!*
