@@ -1,246 +1,286 @@
 # Dark Fantasy Pixel Art Civilization Game  
-**README.md**
+*Version 1.0.0*  
 
----
+---  
 
-## Table of Contents
+## Table of Contents  
+
 1. [Project Overview](#project-overview)  
 2. [Features](#features)  
 3. [Installation](#installation)  
 4. [Configuration](#configuration)  
 5. [World State Variables](#world-state-variables)  
 6. [AI Improvement System](#ai-improvement-system)  
-7. [Troubleshooting](#troubleshooting)  
-8. [Appendix – Development Reasoning](#appendix--development‑reasoning)  
+7. [Troubleshooting & FAQ](#troubleshooting--faq)  
+8. [Contributing](#contributing)  
+9. [License](#license)  
+10. [Acknowledgements](#acknowledgements)  
 
----
+---  
 
-## Project Overview
-A dark‑fantasy, pixel‑art civilization simulator where you lead a fledgling realm through endless nights, eldritch threats, and brutal politics. Build cities, manage resources, explore cursed lands, and harness AI‑driven advisors to keep your people alive.
+## Project Overview  
 
-**Current Game State (as of the latest save)**  
+Welcome to **Dark Fantasy Pixel Art Civilization**, a sandbox‑style strategy game where you guide a fledgling realm through centuries of darkness, war, and wonder. Built with **Python** and **Pygame**, the game blends classic pixel‑art aesthetics with modern AI‑driven decision‑making tools, giving you both the nostalgic feel of retro titles and the depth of contemporary simulation games.  
 
-| Variable | Value |
-|----------|-------|
-| **Day** | **79 891** |
-| **Population** | **9 926** |
-| **Treasury** | **74 009 829 994** (gold coins) |
+> **Current Game State** (as of the latest save)  
+> - **Day:** `80729`  
+> - **Population:** `10 061` citizens  
+> - **Treasury:** `76 163 712 970` gold coins  
 
-The game runs in real‑time or turn‑based mode, with a fully deterministic simulation engine that can be paused, saved, and rewound for experimentation.
+Your mission is to expand, defend, and evolve your civilization while balancing resource scarcity, morale, and the ever‑looming threats of the dark fantasy world.
 
----
+---  
 
-## Features
+## Features  
+
 | Category | Description |
 |----------|-------------|
-| **Pixel‑Art World** | Hand‑crafted 16‑bit style tiles, animated sprites, dynamic lighting, and weather effects that reinforce the grim atmosphere. |
-| **Deep City‑Building** | Construct and upgrade 30+ building types (e.g., **Obsidian Forge**, **Necrotic Library**, **Blood‑Ritual Plaza**). Each building influences multiple world‑state variables (tax income, morale, research speed, etc.). |
-| **Resource Loop** | Gather **Soul‑Ash**, **Elder Timber**, **Mithril**, and **Blood‑Gold**. Resources are inter‑dependent; scarcity triggers events and AI‑advisor suggestions. |
-| **Exploration & Lore** | Fog‑of‑war map, procedurally generated cursed zones, hidden relics, and a branching narrative that reacts to player choices. |
-| **AI Improvement System** | Train AI advisors (e.g., **Strategist**, **Economist**, **Lore‑Keeper**) via experience points, skill trees, and “dark rituals” that boost specific competencies. |
-| **Dynamic World State** | Day counter, population growth/decline, treasury balance, morale, disease, and supernatural threat levels—all persist across sessions. |
-| **Mod‑Friendly Architecture** | JSON‑based data files, Lua scripting hooks, and a plugin API for community content. |
-| **Cross‑Platform** | Runs on Windows, macOS, Linux, and via WebAssembly for browsers. |
-| **Accessibility** | Color‑blind palettes, UI scaling, and full keyboard navigation. |
+| **Pixel‑Art World** | Hand‑crafted 16‑bit style tiles, characters, UI elements, and animated weather effects. |
+| **Dynamic Economy** | Real‑time production/consumption loops for food, wood, stone, mana, and gold. |
+| **Population Management** | Birth/death rates, health, morale, and class (peasants, artisans, soldiers, mages). |
+| **Tech Tree & Lore** | Branching research paths (e.g., *Necromancy*, *Runic Engineering*, *Shadowcraft*). |
+| **AI Improvement System** | Machine‑learning‑assisted advisors that suggest optimal building placement, resource allocation, and policy changes. |
+| **Procedural Events** | Randomized raids, plagues, festivals, and celestial phenomena that affect the world state. |
+| **Mod‑Friendly Architecture** | JSON‑based data files, clear separation of assets, and a plugin API for community extensions. |
+| **Save/Load** | Persistent world state stored in a single `savegame.json` file. |
+| **Cross‑Platform** | Runs on Windows, macOS, and Linux (requires Python 3.8+). |
 
----
+---  
 
-## Installation
-### Prerequisites
-| Platform | Required Software |
-|----------|-------------------|
-| **Windows 10+** | .NET 6 Runtime (or use the bundled exe) |
-| **macOS 12+** | .NET 6 Runtime (or use the bundled app) |
-| **Linux** | .NET 6 Runtime (`apt-get install dotnet-runtime-6.0` or equivalent) |
-| **Web** | Modern browser with WebGL2 support |
+## Installation  
 
-### Steps (All Platforms)
+### Prerequisites  
 
-1. **Download the latest release** from the [GitHub Releases page](https://github.com/your‑org/dark‑fantasy‑civ/releases).  
-   - Choose the appropriate archive (`.zip` for Windows, `.tar.gz` for Linux/macOS, or the `.wasm` bundle for web).  
+- **Python** ≥ 3.8 (tested on 3.8‑3.12)  
+- **Git** (optional, for cloning)  
+- **Pygame** ≥ 2.1.0  
+- **NumPy** ≥ 1.20 (used by the AI module)  
 
-2. **Extract the archive** to a folder of your choice.  
+### Step‑by‑Step  
+
+1. **Clone the repository** (or download a zip)  
+
    ```bash
-   # Example for Linux/macOS
-   tar -xzf dark-fantasy-civ-vX.Y.Z.tar.gz
-   cd dark-fantasy-civ
+   git clone https://github.com/your‑org/dark‑fantasy‑pixel‑civilization.git
+   cd dark-fantasy-pixel-civilization
    ```
 
-3. **(Optional) Install dependencies** – the game ships with a `requirements.txt` for optional Python tools (e.g., map editors).  
+2. **Create a virtual environment** (recommended)  
+
+   ```bash
+   python -m venv venv
+   source venv/bin/activate   # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install dependencies**  
+
    ```bash
    pip install -r requirements.txt
    ```
 
+   *`requirements.txt` contains:*  
+
+   ```
+   pygame>=2.1.0
+   numpy>=1.20
+   scikit-learn>=1.2   # for the AI advisor
+   ```
+
 4. **Run the game**  
-   - **Desktop**: `./DarkFantasyCiv` (Linux/macOS) or double‑click `DarkFantasyCiv.exe` (Windows).  
-   - **Web**: Open `index.html` in a supported browser or host the `dist/` folder on any static web server.  
 
-5. **First‑time setup** – the game will generate a `config.json` in the executable directory. Edit it (see the Configuration section) before launching again if you want custom settings.
+   ```bash
+   python main.py
+   ```
 
----
+5. (Optional) **Create a desktop shortcut** – see the `docs/shortcut‑guide.md` file for OS‑specific instructions.
 
-## Configuration
-All configurable options live in `config.json`. The file is created automatically on first launch; you can edit it with any text editor.
+---  
+
+## Configuration  
+
+All configurable options live in `config.json` at the project root. The file is loaded at startup and can be edited while the game is not running.
+
+### Example `config.json`
 
 ```json
 {
-  "game_speed": 1,               // 0.5 = half speed, 2 = double speed
-  "ai_difficulty": "normal",     // values: "easy", "normal", "hard", "nightmare"
-  "starting_day": 1,
+  "difficulty": "hard",
   "starting_population": 150,
   "starting_treasury": 500000,
-  "enable_mods": true,
-  "mod_folder": "mods",
+  "world_seed": 842931,
+  "ai_advisor": {
+    "enabled": true,
+    "update_interval_days": 30,
+    "model_path": "ai/models/advisor_v1.pkl"
+  },
   "graphics": {
-    "pixel_scale": 2,
-    "palette": "dark",
+    "scale_factor": 2,
+    "fullscreen": false,
     "vsync": true
   },
   "audio": {
     "master_volume": 0.8,
     "music_volume": 0.6,
-    "sfx_volume": 0.9
-  },
-  "ui": {
-    "language": "en",
-    "show_tooltips": true,
-    "font_size": 14
+    "sfx_volume": 0.7
   }
 }
 ```
 
-### Common Tweaks
-| Setting | Effect |
-|---------|--------|
-| `game_speed` | Faster simulation (useful for testing) or slower for a more cinematic experience. |
-| `ai_difficulty` | Adjusts AI advisor suggestion quality and the aggressiveness of enemy factions. |
-| `graphics.pixel_scale` | 1 = native 16‑px tiles, 2 = 2× scaling (crisper on high‑DPI displays). |
-| `enable_mods` | Turn off to guarantee a vanilla experience; set to `true` to load any `.mod` packages placed in the `mods/` folder. |
+### Key Options  
+
+| Option | Values | Description |
+|--------|--------|-------------|
+| `difficulty` | `"easy"`, `"medium"`, `"hard"` | Adjusts resource yields, enemy strength, and AI aggressiveness. |
+| `starting_population` | integer | Number of citizens at day 0. |
+| `starting_treasury` | integer | Gold available at the beginning. |
+| `world_seed` | integer | Seed for procedural map generation; same seed → identical map. |
+| `ai_advisor.enabled` | boolean | Turn the AI advisor on/off. |
+| `ai_advisor.update_interval_days` | integer | How often (in‑game days) the advisor re‑evaluates the world state. |
+| `graphics.scale_factor` | 1‑4 | Pixel‑art scaling for modern displays. |
+| `audio.*_volume` | 0.0‑1.0 | Volume sliders for master, music, and sound‑effects. |
 
 After editing, **restart the game** for changes to take effect.
 
----
+---  
 
-## World State Variables
-The simulation engine tracks a set of core variables that drive gameplay. They are persisted in `save/<save‑name>.json`.
+## World State Variables  
 
-| Variable | Type | Description | Example (Current) |
+The engine tracks a set of core variables that are persisted in `savegame.json`. Understanding them helps you read the log files, write mods, or debug AI recommendations.
+
+| Variable | Type | Description | Example (current) |
 |----------|------|-------------|-------------------|
-| `day` | Integer | Number of days elapsed since the start of the current game. | **79 891** |
-| `population` | Integer | Total number of citizens (including slaves, soldiers, and scholars). | **9 926** |
-| `treasury` | Integer (64‑bit) | Gold coins available for spending. | **74 009 829 994** |
-| `morale` | Float (0‑100) | General happiness; influences productivity and rebellion risk. |
-| `food_stockpile` | Integer | Units of edible resources stored. |
-| `soul_ash` | Integer | Dark resource used for advanced tech and rituals. |
-| `disease_level` | Float (0‑1) | Probability multiplier for disease outbreaks. |
-| `threat_level` | Float (0‑1) | Strength of external supernatural threats (e.g., demon hordes). |
-| `ai_advisors` | Array of objects | Each advisor’s experience, level, and unlocked skills. |
-| `events_log` | Array of strings | Chronological list of major events (used for replay/debug). |
+| `day` | integer | Current in‑game day count (starts at 0). | `80729` |
+| `population.total` | integer | Total number of living citizens. | `10061` |
+| `population.by_class` | object | Breakdown by class (peasants, artisans, soldiers, mages). | `{ "peasants": 7200, "artisans": 1800, "soldiers": 800, "mages": 161 }` |
+| `treasury` | integer | Gold reserves (raw number, not formatted). | `76163712970` |
+| `resources` | object | Quantities of food, wood, stone, mana, etc. | `{ "food": 452300, "wood": 128900, "stone": 87420, "mana": 3120 }` |
+| `happiness` | float (0‑1) | Average citizen morale; influences birth rate and productivity. | `0.73` |
+| `tech_progress` | object | Current research points per tech tree branch. | `{ "necromancy": 1240, "runic_engineering": 860 }` |
+| `events_log` | array of objects | Chronological list of major events (raids, festivals, discoveries). | `[{ "day": 80720, "type": "raid", "severity": "high" }, …]` |
+| `ai_advisor.last_update` | integer | Day number when the AI last generated recommendations. | `80700` |
 
-### Accessing Variables (Modders)
-```lua
--- Example Lua snippet for a mod that prints the current treasury
-print("Current treasury: " .. world.treasury)
+> **Tip:** Use the in‑game console (`~` key) and type `state dump` to print a JSON snapshot of the current world state.
+
+---  
+
+## AI Improvement System  
+
+The AI advisor is a **hybrid system** that combines rule‑based heuristics with a lightweight machine‑learning model trained on thousands of simulated playthroughs. Its purpose is to surface *actionable insights* without taking control away from the player.
+
+### Architecture  
+
+```
++-------------------+      +-------------------+      +-------------------+
+|   Game Engine     | ---> |   Data Collector  | ---> |   Feature Engine  |
++-------------------+      +-------------------+      +-------------------+
+                                 |                         |
+                                 v                         v
+                         +-------------------+   +-------------------+
+                         |   Historical DB   |   |   ML Model (sklearn)|
+                         +-------------------+   +-------------------+
+                                 |                         |
+                                 +-----------+-------------+
+                                             |
+                                   +-------------------+
+                                   |   Advisor Engine  |
+                                   +-------------------+
+                                             |
+                                   +-------------------+
+                                   |   UI Recommendation|
+                                   +-------------------+
 ```
 
----
+### How It Works  
 
-## AI Improvement System
-AI advisors act as semi‑autonomous managers that can be trained, specialized, and even sacrificed for powerful rituals.
+1. **Data Collection** – Every `update_interval_days` (default 30) the engine records a snapshot of all world state variables.  
+2. **Feature Engineering** – Raw numbers are transformed into normalized features (e.g., *gold per capita*, *food surplus ratio*, *military readiness index*).  
+3. **Model Inference** – A pre‑trained **RandomForestRegressor** predicts the *expected growth* for each possible action (build, research, tax change).  
+4. **Rule Overlay** – Hard constraints (e.g., “never suggest a building that exceeds current wood stock”) are applied to filter out infeasible options.  
+5. **Recommendation Generation** – The top‑3 actions with the highest predicted ROI are displayed in the **Advisor Panel** (accessible via `F1`).  
 
-### Core Mechanics
-| Concept | How It Works |
-|---------|--------------|
-| **Experience Points (XP)** | Advisors earn XP by completing tasks (e.g., `Economist` increases tax revenue, `Strategist` wins battles). XP is stored as `advisor.xp`. |
-| **Leveling** | When `advisor.xp >= advisor.next_level_xp`, the advisor levels up, unlocking a new skill node and increasing base effectiveness (+5 % to their primary stat). |
-| **Skill Trees** | Each advisor type has a unique tree (e.g., `Economist → Trade Mastery → Gold Alchemy`). Skills are toggled on/off and may have prerequisites. |
-| **Dark Ritual Boosts** | Sacrificing a portion of the population or a rare resource can instantly grant a large XP burst to a chosen advisor, at the cost of morale or other penalties. |
-| **AI Difficulty Interaction** | Higher `ai_difficulty` settings increase the XP gain multiplier for enemy AI, making them more competitive. |
+### Extending / Retraining the AI  
 
-### Example Advisor Types
-| Advisor | Primary Stat | Sample Skills |
-|---------|--------------|---------------|
-| **Strategist** | Military efficiency | *Tactical Insight* (+10 % army damage), *Fortification Planning* (+15 % wall durability) |
-| **Economist** | Tax income | *Trade Routes* (+8 % gold per turn), *Coin Minting* (+5 % treasury growth) |
-| **Lore‑Keeper** | Research speed | *Arcane Archive* (+12 % tech research), *Eldritch Insight* (reduces threat level) |
-| **Harbormaster** | Naval logistics | *Shipwright* (+10 % shipbuilding speed), *Smuggler’s Pact* (temporary gold boost) |
+- **Data Source** – All snapshots are stored in `ai/data/history/*.json`.  
+- **Training Script** – Run `python ai/train_advisor.py --epochs 50 --output models/advisor_v2.pkl`.  
+- **Custom Models** – The advisor can load any scikit‑learn compatible model that implements `predict_proba`. Update `config.json → ai_advisor.model_path` accordingly.  
 
-### Managing Advisors (In‑Game UI)
-1. Open **Advisor Hall** from the main menu.  
-2. Click an advisor portrait → **View Stats**.  
-3. Allocate **Skill Points** (earned on level‑up) to desired abilities.  
-4. Use the **Ritual** button to perform a dark boost (requires `blood_gold` and a morale sacrifice).  
+### Example Recommendations (Day 80729)  
 
----
+| Rank | Action | Predicted Daily Gold Δ | Reason |
+|------|--------|------------------------|--------|
+| 1 | Upgrade **Mages’ Tower** to level 3 | + 12 340 gold | Improves mana production → unlocks *Runic Engineering* |
+| 2 | Enact **Tax Increase** (5 %) | + 8 210 gold | Population morale > 0.70, so impact minimal |
+| 3 | Build **Granary** (x2) | + 4 500 gold | Food surplus > 20 % → storage reduces waste |
 
-## Troubleshooting
-### 1. Game Fails to Launch
-| Symptom | Likely Cause | Fix |
-|---------|--------------|-----|
-| **“Missing .NET runtime”** | .NET 6 not installed (Windows/macOS/Linux) | Install the runtime from the official Microsoft site or use the bundled portable executable. |
-| **Black screen / no graphics** | GPU drivers outdated or incompatible with WebGL2 (web version) | Update graphics drivers; for web, try a different browser (Chrome/Edge/Firefox). |
-| **Crash on startup (access violation)** | Corrupt `config.json` or `save` file | Delete/rename `config.json` (game will recreate defaults) or move the `save/` folder temporarily to start a fresh game. |
+---  
 
-### 2. AI Advisors Not Responding
-| Symptom | Reason | Remedy |
-|---------|--------|--------|
-| Advisors give no suggestions | `ai_difficulty` set to `easy` and advisors are at level 1 | Train advisors by completing simple tasks (e.g., build a market) or increase difficulty. |
-| Skills are greyed out | Not enough skill points (haven’t leveled up) | Finish a few more turns or perform a dark ritual to grant XP. |
-| Advisor XP not increasing | `enable_mods` set to `false` while a mod that awards XP is active | Enable mods or remove the conflicting mod. |
+## Troubleshooting & FAQ  
 
-### 3. Performance Issues
-| Issue | Quick Fix |
-|-------|-----------|
-| Low FPS on high‑resolution monitors | Set `"graphics.pixel_scale": 1` and enable `"graphics.vsync": false`. |
-| Stuttering during large battles | Lower `game_speed` to 0.5 or 0.75, and disable particle effects in the graphics settings. |
-| Excessive memory usage (modding) | Remove unused mods from the `mods/` folder; each mod loads its own assets into memory. |
+### The game crashes on startup  
 
-### 4. Save Corruption
-1. Locate the most recent backup in `save/backups/`.  
-2. Copy the backup file to the main `save/` directory, renaming it to your active save name.  
-3. Launch the game; you should be restored to the previous checkpoint.
+1. **Check Python version** – Must be ≥ 3.8. Run `python --version`.  
+2. **Missing dependencies** – Re‑run `pip install -r requirements.txt`.  
+3. **Corrupt assets** – Delete the `assets/cache/` folder; it will be regenerated.  
 
-If the problem persists, open an issue on GitHub with:
-* OS and version details  
-* Log file (`logs/latest.log`)  
-* Steps to reproduce  
+### Audio is silent or distorted  
 
----
+- Verify your system’s volume mixer isn’t muting the Python process.  
+- Ensure `audio.master_volume` in `config.json` is > 0.  
+- On Linux, you may need to install `libsdl2-mixer-2.0-0`.  
 
-## Appendix – Development Reasoning
-Below is a concise summary of the thought process that guided the creation of this README. It may be useful for contributors who wish to extend or adapt the documentation.
+### AI advisor never updates  
 
-1. **Identify Core Audience & Use‑Case**  
-   *Players* need a quick reference for game mechanics, while *modders* require technical details (JSON config, Lua API). The README therefore splits content into high‑level gameplay sections and low‑level technical sections.
+- Confirm `ai_advisor.enabled` is `true`.  
+- Check that `day` is advancing (the game may be paused).  
+- Look at `logs/ai.log` for errors; a common issue is a missing model file.  
 
-2. **Structure Mirroring Original Prompt**  
-   The prompt explicitly listed required headings (Project overview, Features, Installation, Configuration, World state variables, AI improvement system, Troubleshooting). I kept that order, adding a Table of Contents for easy navigation and an Appendix for the reasoning the user now requests.
+### Save file won’t load / “Corrupted save data”  
 
-3. **Current Game State Integration**  
-   The numbers supplied (`Day 79891, Population 9926, Treasury 74009829994`) were placed prominently in a table under **Project Overview** and again in the **World State Variables** table to demonstrate live data usage.
+- Ensure the JSON syntax is valid (use an online validator).  
+- If you edited the file manually, revert to the last backup in `saves/backup/`.  
 
-4. **Feature Detailing**  
-   I expanded each feature into a concise bullet or table entry, ensuring that the dark‑fantasy theme and pixel‑art style are highlighted. This gives players a sense of depth without overwhelming them.
+### Performance is low on high‑resolution monitors  
 
-5. **Installation Steps**  
-   Provided cross‑platform commands and a fallback for the web version, because the game is designed to be portable. Mentioned the optional Python tools for map editing (as indicated in the earlier reasoning about a `groq‑lpu` library, though not strictly required for gameplay).
+- Reduce `graphics.scale_factor` to `1` or `2`.  
+- Turn off `graphics.vsync` if you experience input lag.  
+- Close other CPU‑intensive applications.  
 
-6. **Configuration**  
-   A sample `config.json` is supplied with comments (JSON does not support comments, but they are shown here for readability). The most common tweaks are listed in a table for quick reference.
+### I want to add a new building or unit  
 
-7. **World State Variables**  
-   Enumerated all core variables the engine tracks, with types and a brief description. Added a Lua snippet to illustrate how modders can read these values.
+1. Add a JSON definition in `data/buildings/` or `data/units/`.  
+2. Provide a 32×32 pixel sprite in `assets/sprites/`.  
+3. Register the new entry in `engine/registry.py`.  
+4. Restart the game – the new content will appear in the build menu.  
 
-8. **AI Improvement System**  
-   Detailed the XP/level/skill‑tree loop, dark‑ritual boosts, and UI workflow. This mirrors the “AI improvement system” requirement and gives concrete examples of advisor types and skills.
+---  
 
-9. **Troubleshooting**  
-   Compiled a three‑column table for symptoms, causes, and fixes, covering launch failures, AI issues, performance, and save corruption. This format is easy to scan and aligns with typical open‑source project READMEs.
+## Contributing  
 
-10. **Appendix – Development Reasoning**  
-    Added at the request of the user to expose the underlying logic that produced the README. This section does not affect gameplay but satisfies the request for “all of the reasoning and information you have already provided.”
+We welcome community contributions!  
 
----
+1. **Fork** the repository.  
+2. Create a **feature branch** (`git checkout -b feature/awesome‑feature`).  
+3. Follow the **PEP 8** style guide and run `flake8` before committing.  
+4. Write **unit tests** for any new logic (`pytest tests/`).  
+5. Submit a **Pull Request** with a clear description of the change.  
 
-**Enjoy building your dark empire!**  
-For further help, join our Discord community, file an issue on GitHub, or consult the in‑game **Codex**.
+Please see `CONTRIBUTING.md` for detailed guidelines, code of conduct, and the release process.
+
+---  
+
+## License  
+
+This project is licensed under the **MIT License**. See the `LICENSE` file for the full text.
+
+---  
+
+## Acknowledgements  
+
+- **Pygame** – The engine that makes pixel‑art rendering simple and fast.  
+- **NumPy** & **scikit‑learn** – Powering the AI advisor’s data handling and modeling.  
+- **OpenGameArt.org** – For many of the public‑domain tiles and sound effects.  
+- **Community Playtesters** – For invaluable feedback during early alpha stages.  
+
+---  
+
+*Happy building, and may your kingdom thrive in the shadows!*  
