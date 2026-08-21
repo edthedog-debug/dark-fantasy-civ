@@ -1,5 +1,5 @@
 # Dark Fantasy Pixel Art Civilization Game  
-**README.md**
+*Comprehensive README*
 
 ---
 
@@ -11,42 +11,49 @@
 5. [World State Variables](#world-state-variables)  
 6. [AI Improvement System](#ai-improvement-system)  
 7. [Troubleshooting & FAQ](#troubleshooting--faq)  
-8. [Current Game State](#current-game-state)  
-9. [Contributing](#contributing)  
-10. [License](#license)  
+8. [Contributing](#contributing)  
+9. [License](#license)  
 
 ---
 
 ## Project Overview
-**Dark Fantasy Pixel Art Civilization** is a strategy‑city‑builder set in a brooding, hand‑crafted pixel‑art world. Players assume the role of a fledgling ruler tasked with guiding a nascent civilization through centuries of hardship, magic, and war. The game blends classic city‑building mechanics with a living, evolving AI system that reacts to player decisions, making each play‑through unique.
+**Dark Fantasy Pixel Art Civilization** is a strategy‑city‑builder set in a brooding, hand‑crafted pixel‑art world. Players assume the role of a fledgling ruler tasked with guiding a civilization through centuries of hardship, magic, and intrigue. The game blends classic city‑building mechanics with RPG‑style exploration, dynamic world events, and a deep AI‑driven technology tree.
 
 Key themes:
-- **Gothic atmosphere** – moody lighting, cursed forests, and towering citadels.
-- **Deep lore** – ancient tomes, hidden relics, and mythic beasts that shape the world.
-- **Strategic depth** – resource management, diplomacy, research, and military conquest.
+
+- **Gothic atmosphere** – moody lighting, cursed forests, and towering citadels.  
+- **Strategic depth** – balance resources, population, military, and mystical research.  
+- **Emergent storytelling** – random events, lore fragments, and player‑driven narratives.
+
+Current in‑game snapshot (as of the latest save):
+
+- **Day:** `77729`  
+- **Population:** `9 581`  
+- **Treasury:** `68 361 284 799` gold coins  
 
 ---
 
 ## Features
-| Feature | Description |
-|---------|-------------|
-| **Pixel‑Art Graphics** | 32‑bit style sprites, animated tiles, and atmospheric effects that evoke classic dark‑fantasy aesthetics. |
-| **Dynamic City‑Building** | Build, upgrade, and specialize districts (e.g., Necropolis, Arcane Academy, Blacksmith’s Forge). |
-| **Exploration & Discovery** | Fog‑of‑war map, procedurally generated ruins, and hidden quests. |
-| **AI Improvement System** | A modular AI that learns from player actions, unlocking new tech trees, policies, and adaptive enemy behavior. |
-| **World State Variables** | Persistent variables (day count, population, treasury, morale, magic flux, etc.) that influence events and AI decisions. |
-| **Event Engine** | Random and scripted events (plagues, invasions, celestial alignments) that react to world state. |
-| **Mod‑Friendly Architecture** | JSON‑based data files, script hooks, and a clear API for community extensions. |
-| **Save/Load System** | Automatic snapshots, manual saves, and cloud sync (optional). |
-| **Cross‑Platform** | Runs on Windows, macOS, and Linux (via Python + Pygame). |
+| Category | Description |
+|----------|-------------|
+| **Pixel‑Art Visuals** | 32‑bit style sprites, animated tiles, day/night cycle, weather effects. |
+| **City‑Building Core** | Build houses, farms, workshops, temples, and defensive structures. |
+| **Resource Management** | Food, wood, stone, iron, mana, and exotic relics. |
+| **Exploration & Quests** | Send scouts to uncover ruins, hidden vaults, and mythic beasts. |
+| **Dynamic World State** | Seasonal changes, random calamities (plagues, demon raids), and evolving political borders. |
+| **AI Improvement System** | Tiered research tree that unlocks new technologies, magical abilities, and civilization bonuses. |
+| **Mod‑Friendly Architecture** | JSON‑based data files, scriptable events, and a plug‑in API for community extensions. |
+| **Save/Load Anywhere** | Auto‑save every 10 in‑game days; manual slots up to 10. |
+| **Multilingual Support** | English, Spanish, Japanese (community‑contributed). |
 
 ---
 
 ## Installation
+
 ### Prerequisites
-- **Python** ≥ 3.8 (recommended 3.11)  
-- **Pygame** ≥ 2.0  
-- Optional: **Git** (for cloning the repo)  
+- **Python 3.10+** (or later)  
+- **Pygame 2.5+** (installed automatically via `requirements.txt`)  
+- **Git** (optional, for cloning the repo)
 
 ### Steps
 ```bash
@@ -54,167 +61,136 @@ Key themes:
 git clone https://github.com/your-username/dark-fantasy-pixel-civ.git
 cd dark-fantasy-pixel-civ
 
-# 2️⃣ Create a virtual environment (highly recommended)
+# 2️⃣ Create a virtual environment (recommended)
 python -m venv venv
-# Windows
-venv\Scripts\activate
-# macOS / Linux
-source venv/bin/activate
+source venv/bin/activate   # On Windows: venv\Scripts\activate
 
-# 3️⃣ Install required Python packages
+# 3️⃣ Install dependencies
 pip install -r requirements.txt
 
 # 4️⃣ Run the game
 python main.py
 ```
 
-**Alternative (no Git):**  
-Download the latest release ZIP from the *Releases* page, extract it, and run `python -m pip install -r requirements.txt` inside the extracted folder.
+*If you prefer a pre‑built binary, download the latest release from the **Releases** page and execute the platform‑specific executable.*
 
 ---
 
 ## Configuration
-All configurable options live in `config.json`. The file is loaded at startup, and any changes require a game restart.
+All configurable options live in `config.json`. Below is a sample with explanations.
 
-### Sample `config.json`
 ```json
 {
-  "game_speed": 1.0,               // 0.5 = half speed, 2.0 = double speed
-  "difficulty": "hard",            // easy | normal | hard | nightmare
-  "audio": {
-    "music_volume": 0.7,
-    "sfx_volume": 0.8
-  },
-  "display": {
-    "resolution": [1280, 720],
-    "fullscreen": false,
-    "vsync": true
-  },
-  "ai": {
-    "learning_rate": 0.03,
-    "max_improvement_points": 5000
-  }
+  "difficulty": "medium",          // Options: "easy", "medium", "hard"
+  "world_size": "large",           // Options: "small", "medium", "large"
+  "starting_population": 1500,    // Initial citizens at Day 1
+  "starting_treasury": 5000000,   // Gold at game start
+  "enable_random_events": true,   // Toggle random world events
+  "autosave_interval_days": 10,   // Autosave frequency
+  "audio_volume": 0.8,            // 0.0 (mute) – 1.0 (max)
+  "pixel_scale": 2                // 1 = native 16×16 tiles, 2 = 32×32, etc.
 }
 ```
 
-#### Commonly Tweaked Settings
-| Setting | Effect |
-|---------|--------|
-| `game_speed` | Controls how fast days progress. |
-| `difficulty` | Adjusts AI aggressiveness, resource scarcity, and event severity. |
-| `audio.*` | Volume levels for music and sound effects. |
-| `display.resolution` | Window size; must be a multiple of 32 for pixel‑perfect scaling. |
-| `ai.learning_rate` | Higher values make the AI adapt faster (may increase CPU usage). |
+**Changing a setting:**  
+Edit `config.json` with any text editor, save, then restart the game for changes to take effect.
 
 ---
 
 ## World State Variables
-The engine tracks a set of core variables that persist across saves. They are exposed to the UI, scripts, and the AI system.
+The engine tracks a set of global variables that can be inspected via the debug console (`~` key) or exported to `world_state.json`.
 
-| Variable | Type | Description |
-|----------|------|-------------|
-| `day` | Integer | Current day number (starts at 1). |
-| `population` | Integer | Total living citizens. |
-| `treasury` | Integer | Gold reserves (raw integer; displayed with commas). |
-| `morale` | Float (0‑1) | General happiness; influences productivity. |
-| `magic_flux` | Float (−1‑1) | Global magical stability; affects spell success rates. |
-| `food_stockpile` | Integer | Units of food stored. |
-| `improvement_points` | Integer | Points available for AI upgrades. |
-| `diplomacy_score` | Float (0‑100) | Reputation with neighboring factions. |
-| `threat_level` | Integer | Current external danger rating (0 = none, 5 = apocalypse). |
+| Variable | Type | Current Value | Description |
+|----------|------|---------------|-------------|
+| `day` | Integer | **77729** | In‑game day count (starts at 1). |
+| `population` | Integer | **9581** | Total living citizens (includes workers, soldiers, scholars). |
+| `treasury` | Integer | **68 361 284 799** | Gold reserves available for construction, research, and trade. |
+| `food_stock` | Integer | 2 340 112 | Units of food stored in granaries. |
+| `mana_pool` | Integer | 1 024 500 | Magical energy used for spells and enchantments. |
+| `morale` | Float (0‑1) | 0.73 | Overall citizen happiness; influences growth rate. |
+| `tech_tier` | Integer | 2 | Current AI improvement tier (1‑4). |
+| `active_events` | List | ["Solar Eclipse", "Bandit Raid"] | Ongoing world events affecting gameplay. |
 
-**Access Example (Python):**
-```python
-from engine.world import WorldState
-
-ws = WorldState.instance()
-print(f"Day {ws.day}, Population {ws.population}, Treasury {ws.treasury}")
-```
+*Developers can add custom variables by editing `world_state_schema.json` and the corresponding Python class.*
 
 ---
 
 ## AI Improvement System
-The AI is not a static opponent; it evolves using a point‑based improvement system that reacts to the world state and player actions.
+The AI improvement system is a **tiered research tree** that evolves as the civilization ages. Each tier unlocks a set of **Research Nodes**; completing a node grants permanent bonuses.
 
-### How It Works
-1. **Improvement Points (IP)** are generated each day based on `improvement_points` variable, which is influenced by:
-   - Population growth
-   - Treasury surplus
-   - Successful research
-2. **Upgrade Trees** – Three primary branches:
-   - **Military** – Better units, tactical AI, siege tactics.
-   - **Economic** – Tax efficiency, trade routes, resource extraction.
-   - **Arcane** – Spell potency, magical defenses, rune crafting.
-3. **Prerequisites** – Certain upgrades require a minimum level of a related world variable (e.g., `magic_flux` > 0.2 for high‑level Arcane upgrades).
-4. **Dynamic Re‑balancing** – The AI may re‑allocate IPs if a branch becomes under‑utilized, ensuring it stays competitive.
+### Tier Overview
+| Tier | Unlock Condition | Core Benefits |
+|------|------------------|---------------|
+| **Tier 1 – Foundations** | Reach Day 30 **or** Population ≥ 2 000 | Basic resource extraction, simple housing, early military units. |
+| **Tier 2 – Expansion** | Treasury ≥ 10 000 000 **or** complete all Tier 1 nodes | Advanced production buildings, trade routes, basic magical wards. |
+| **Tier 3 – Ascendancy** | Research **All** Tier 2 nodes **and** achieve Morale ≥ 0.8 | High‑level spells, elite units, city‑wide buffs, unique wonders. |
+| **Tier 4 – Apotheosis** (Endgame) | Complete Tier 3, survive a **Cataclysm** event | World‑shaping powers, permanent victory conditions, optional “god‑mode”. |
 
-### Example Upgrade Path (Military)
-| Level | Cost (IP) | Effect |
-|-------|-----------|--------|
-| **Militia Training** | 100 | +5% infantry attack |
-| **Siege Engineering** | 300 | Unlocks catapult unit |
-| **War Council** | 600 | AI can form temporary alliances |
-| **Blood‑Rite Tactics** | 1200 | Critical hit chance +10% |
+### Sample Research Nodes (Tier 2)
+| Node | Cost (Gold) | Time (Days) | Effect |
+|------|-------------|-------------|--------|
+| **Improved Iron Smelting** | 2 500 000 | 12 | +15 % iron output, unlocks “Steel Sword” unit. |
+| **Arcane Library** | 3 200 000 | 15 | +10 % mana regeneration, unlocks “Research: Runic Binding”. |
+| **River Dykes** | 1 800 000 | 10 | Reduces flood damage by 80 %, +5 % food yield near rivers. |
 
-### Using the System (In‑Game UI)
-1. Open **“Civics → AI Improvements”**.  
-2. Hover over each node to see cost, prerequisites, and description.  
-3. Click **“Research”** to spend available IPs.  
-4. Upgrades apply instantly and are reflected in the AI’s behavior.
+### How to Use
+1. Open the **Research Panel** (`R` key).  
+2. Hover over a node to view prerequisites, cost, and benefits.  
+3. Click **Research** – gold is deducted instantly, and a progress bar shows remaining days.  
+4. Upon completion, the bonus is applied globally.
+
+*The AI system also adapts: if a player neglects a tier for >30 days, research costs increase by 10 % to simulate stagnation.*
 
 ---
 
 ## Troubleshooting & FAQ
 ### The game crashes on startup
-- **Check Python version** – Must be ≥ 3.8. Run `python --version`.  
-- **Missing dependencies** – Re‑run `pip install -r requirements.txt`.  
-- **Graphics driver** – Update your GPU driver; Pygame relies on SDL2.
+1. Verify you are using **Python 3.10+**.  
+2. Run `pip install -r requirements.txt` again to ensure all dependencies are present.  
+3. Check the console for a traceback – common culprits are missing `SDL2` libraries on Linux. Install via your package manager (`sudo apt-get install libsdl2-dev`).
 
-### Audio is silent or distorted
-- Verify your system’s volume mixer isn’t muting the Python process.  
-- In `config.json`, set `"audio": {"music_volume": 0.5, "sfx_volume": 0.5}` and restart.
+### My save file won’t load / “Corrupt save data”
+- Delete `save.json` (or rename it) and start a new game.  
+- If you need to recover, open `save.json` in a text editor and look for malformed JSON (missing commas, stray brackets). Fix manually and retry.
 
-### Performance is low (FPS < 30)
-- Lower `game_speed` or switch to a lower resolution in `config.json`.  
-- Disable VSync (`"vsync": false`).  
+### Audio is silent
+- Ensure your system volume isn’t muted.  
+- In `config.json`, set `"audio_volume": 1.0`.  
+- On Windows, verify that the **DirectSound** driver is selected in the audio settings menu (`Esc → Settings → Audio`).
+
+### How do I change the day counter to start at a different number?
+Edit `world_state.json` (or use the debug console):
+```python
+world_state["day"] = 1   # or any starting day you prefer
+```
+Save and restart.
+
+### I want to add my own custom building or unit.
+1. Create a new JSON entry in `data/buildings.json` or `data/units.json`.  
+2. Define sprites, costs, and effects following the existing schema.  
+3. Add the asset files to `assets/sprites/`.  
+4. Restart the game – the new content will appear in the build menu.
+
+### The game runs very slowly on my laptop.
+- Lower the `pixel_scale` in `config.json` to `1`.  
+- Disable **random events** (`"enable_random_events": false`).  
 - Close other CPU‑intensive applications.
-
-### Save files become corrupted
-- Ensure you have write permission to the `saves/` directory.  
-- Use the **“Export Save”** feature to create a backup before major changes.
-
-### How do I reset the world state?
-Delete (or rename) the `saves/autosave.json` file. The next launch will start a fresh game.
-
-### Modding – where do I add new content?
-- **Sprites & Tiles** – Place PNG files in `assets/sprites/`.  
-- **Data files** – JSON files in `data/` (e.g., `buildings.json`, `events.json`).  
-- **Scripts** – Python modules in `mods/`; they are auto‑loaded if they expose a `register()` function.
-
----
-
-## Current Game State
-> **Day:** **76291**  
-> **Population:** **9 350**  
-> **Treasury:** **64 912 320 667**  
-
-These numbers are displayed in the UI and can be accessed via the WorldState API for debugging or mod scripts.
 
 ---
 
 ## Contributing
-We welcome community contributions! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
+We welcome community contributions! Please read our **CONTRIBUTING.md** for guidelines on:
 
-- Reporting bugs (use the GitHub Issues tab).  
-- Submitting pull requests (follow the `dev` branch workflow).  
-- Adding new assets (respect the pixel‑art style guide).  
-- Writing documentation or translations.
+- Forking the repo and submitting pull requests.  
+- Adding new pixel‑art assets (follow the naming convention `*_32x32.png`).  
+- Writing lore entries or quest scripts (see `docs/quest_design.md`).  
+- Reporting bugs via the **Issues** tab (include OS, Python version, and a short log).
 
 ---
 
 ## License
-This project is licensed under the **MIT License** – see the [LICENSE](LICENSE) file for details.
+This project is released under the **MIT License**. See the `LICENSE` file for full terms.
 
 ---
 
-**Enjoy building your dark empire!** If you have any questions, feel free to open an issue or join our Discord community (link in the repository README).
+*Enjoy building your dark empire, and may the shadows favor your people!*
