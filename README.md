@@ -1,183 +1,273 @@
 # Dark Fantasy Pixel Art Civilization Game  
-*Comprehensive README*
 
----
+*Version: 1.0.0*  
 
-## Table of Contents
+---  
+
+## Table of Contents  
+
 1. [Project Overview](#project-overview)  
 2. [Features](#features)  
 3. [Installation](#installation)  
 4. [Configuration](#configuration)  
 5. [World State Variables](#world-state-variables)  
 6. [AI Improvement System](#ai-improvement-system)  
-7. [Troubleshooting](#troubleshooting)  
-8. [Current Game State](#current-game-state)  
-9. [Contributing](#contributing)  
-10. [License](#license)  
+7. [Troubleshooting & FAQ](#troubleshooting--faq)  
+8. [Contributing](#contributing)  
+9. [License](#license)  
 
----
+---  
 
-## Project Overview
-A dark‑fantasy, pixel‑art civilization simulator where you build, expand, and protect a fledgling realm against eldritch threats. The game blends classic city‑building mechanics with an AI‑driven “improvement system” that learns from player actions, delivering ever‑more challenging and emergent gameplay. It runs on Groq’s custom LPU hardware for ultra‑fast inference, but also works on standard CPUs (with reduced AI performance).
+## Project Overview  
 
----
+The **Dark Fantasy Pixel Art Civilization Game** is a strategic, turn‑based simulation set in a brooding, hand‑crafted pixel‑art world. Players guide a fledgling settlement through centuries of hardship, expanding territory, managing resources, and confronting supernatural threats.  
 
-## Features
-| Category | Details |
-|----------|---------|
-| **Pixel‑Art World** | Hand‑crafted 16‑bit style tiles, animated sprites, atmospheric lighting, and day/night cycles. |
-| **City‑Building** | Construct residential, military, magical, and resource structures; manage workers, research, and upgrades. |
-| **Dynamic Economy** | Treasury, taxes, trade routes, and resource stockpiles that react to population growth and AI events. |
-| **AI‑Improvement System** | Adaptive AI that evolves strategies, enemy behavior, and event generation based on player decisions. |
-| **World State Tracking** | Persistent variables (day, population, treasury, morale, etc.) saved each session. |
-| **Mod‑Friendly** | JSON‑based data files for assets, events, and AI parameters; easy to extend. |
-| **Cross‑Platform** | Windows, macOS, Linux (via Python 3.8+). |
-| **Performance** | Leveraging Groq LPU for real‑time AI inference; fallback CPU mode available. |
+Key design goals:  
 
----
+- **Immersive pixel‑art aesthetic** that evokes classic dark‑fantasy titles.  
+- **Deep civilization management** (population, treasury, technology, morale, etc.).  
+- **AI‑driven world dynamics** – the world reacts to player actions, and the AI itself evolves over time.  
+- **Scalable performance** – built to run on standard PCs and on Groq LPU hardware for accelerated AI inference.  
 
-## Installation
+**Current Game State (as of the latest save):**  
 
-### Prerequisites
-- **Python** ≥ 3.8 (recommended 3.10+)
-- **Git** (for cloning the repo)
-- **Groq LPU hardware** (optional but required for full AI speed)
-- **pip** (Python package manager)
+| Variable | Value |
+|----------|-------|
+| **Day** | **97260** |
+| **Population** | **12 705** |
+| **Treasury** | **128 788 030 891** (gold units) |
 
-### Steps
+---  
+
+## Features  
+
+| Feature | Description |
+|---------|-------------|
+| **Pixel‑Art World** | Hand‑drawn tiles, characters, and UI elements with a dark‑fantasy palette. |
+| **Civilization Management** | Build structures, research technologies, manage food, morale, and military. |
+| **Dynamic AI** | NPC factions, monsters, and environmental events are driven by a learning AI model. |
+| **AI Improvement System** | The AI refines its decision‑making based on player interactions and internal metrics. |
+| **Modular Architecture** | Core engine, UI, AI, and data layers are loosely coupled for easy extension. |
+| **Cross‑Platform** | Runs on Windows, macOS, Linux; optional Groq LPU acceleration for heavy AI workloads. |
+| **Save/Load System** | Persistent world state stored in JSON; supports multiple save slots. |
+| **Rich Lore** | In‑game codex with lore entries, quests, and hidden secrets. |
+
+---  
+
+## Installation  
+
+### Prerequisites  
+
+- **Python 3.9+** (recommended: 3.11)  
+- **Git** (for cloning the repo)  
+- **Optional – Groq LPU hardware** (for accelerated AI inference)  
+
+### Step‑by‑Step  
+
 ```bash
-# 1. Clone the repository
-git clone https://github.com/groq/dark-fantasy-pixel-civ.git
-cd dark-fantasy-pixel-civ
+# 1️⃣ Clone the repository
+git clone https://github.com/groq/dark-fantasy-pixel-art-civilization-game.git
+cd dark-fantasy-pixel-art-civilization-game
 
-# 2. Create a virtual environment (optional but recommended)
-python -m venv venv
-source venv/bin/activate   # On Windows: venv\Scripts\activate
+# 2️⃣ Create a virtual environment (highly recommended)
+python -m venv .venv
+# Activate:
+#   Windows: .venv\Scripts\activate
+#   macOS/Linux: source .venv/bin/activate
 
-# 3. Install Python dependencies
+# 3️⃣ Install Python dependencies
 pip install -r requirements.txt
 
-# 4. (Optional) Install Groq SDK for LPU acceleration
-pip install groq-sdk   # Only needed if you have the hardware
+# 4️⃣ (Optional) Install Groq LPU drivers if you have the hardware
+# Follow the official Groq guide: https://console.groq.com/docs/lpu-setup
 
-# 5. Run the game
+# 5️⃣ Run the game
 python main.py
 ```
 
-**Note:** If you do not have a Groq LPU, the game will automatically fall back to CPU inference, though AI decisions may be slower.
+> **Tip:** The first launch will generate a default `config.json` and a starter save file (`save_001.json`).  
 
----
+---  
 
-## Configuration
-All configurable options live in `config.json`. Below is a sample with explanations:
+## Configuration  
+
+All runtime options are stored in **`config.json`** at the project root. Below is a sample with explanations.
 
 ```json
 {
-  "difficulty": "medium",               // Options: "easy", "medium", "hard"
-  "ai_improvement_rate": 0.03,          // Fractional increase per 1000 in‑game days (0‑1)
+  "game_title": "Dark Fantasy Pixel Art Civilization",
+  "difficulty": "medium",                     // easy | medium | hard
   "starting_day": 1,
   "starting_population": 500,
   "starting_treasury": 1000000,
-  "enable_day_night_cycle": true,
-  "graphics_scale": 2,                  // Pixel scaling factor (1 = native)
-  "log_level": "INFO",                  // "DEBUG", "INFO", "WARNING", "ERROR"
-  "use_groq_lpu": true                  // Set false to force CPU mode
+  "ai_improvement_rate": 0.02,                // % increase in AI skill per 10,000 days
+  "max_population_cap": 500000,
+  "treasury_interest_rate": 0.001,            // Daily interest applied to treasury
+  "enable_lpu_acceleration": true,
+  "log_level": "INFO",                        // DEBUG, INFO, WARN, ERROR
+  "save_directory": "saves/",
+  "autosave_interval_days": 30
 }
 ```
 
-- **difficulty** – Influences enemy aggression, resource scarcity, and AI learning speed.  
-- **ai_improvement_rate** – Controls how quickly the AI “levels up”. Higher values make the AI adapt faster.  
-- **enable_day_night_cycle** – Toggles visual day/night effects.  
-- **graphics_scale** – Adjusts pixel size for high‑DPI displays.  
+### Important Keys  
 
-After editing, restart the game for changes to take effect.
+| Key | Purpose | Typical Values |
+|-----|---------|----------------|
+| `difficulty` | Sets baseline AI aggressiveness and resource scarcity. | `easy`, `medium`, `hard` |
+| `ai_improvement_rate` | Controls how fast the AI learns from experience. | `0.01`–`0.05` (1–5 % per 10k days) |
+| `enable_lpu_acceleration` | Toggles hardware‑accelerated inference. | `true` / `false` |
+| `log_level` | Verbosity of console/file logs. | `DEBUG`, `INFO`, `WARN`, `ERROR` |
 
----
+After editing `config.json`, restart the game for changes to take effect.  
 
-## World State Variables
-The engine maintains a set of persistent variables that can be inspected (via the debug console) or saved/loaded with each session.
+---  
+
+## World State Variables  
+
+The game’s persistent state is stored in a JSON save file (e.g., `saves/save_001.json`). Core variables include:
 
 | Variable | Type | Description |
 |----------|------|-------------|
-| `day` | integer | Current in‑game day (starts at 1). |
+| `day` | integer | Current in‑game day counter. |
 | `population` | integer | Total number of citizens alive. |
-| `treasury` | integer | Gold/coins available for spending. |
+| `treasury` | integer | Gold reserves (raw integer; UI formats with commas). |
 | `food_stockpile` | integer | Units of food stored. |
-| `morale` | float (0‑1) | Overall citizen happiness; affects growth rate. |
-| `military_strength` | integer | Combined combat power of all units. |
-| `magic_resonance` | float (0‑1) | Strength of magical infrastructure; influences spell casting and AI magical events. |
-| `enemy_threat_level` | integer | Scales with AI‑generated invasions. |
-| `ai_version` | string | Current version of the AI model in use. |
+| `morale` | float (0‑1) | Overall citizen happiness; influences productivity. |
+| `technology_tree` | object | Keys are tech IDs, values are booleans (`true` = researched). |
+| `buildings` | list of objects | Each entry contains `type`, `level`, `position`, `status`. |
+| `military_units` | list of objects | Details of each unit (type, health, location). |
+| `ai_state` | object | Internal AI metrics (experience points, skill level, last‑update timestamp). |
+| `events_log` | array | Chronological list of major world events (for debugging / lore). |
 
-These variables are automatically serialized to `savegames/<timestamp>.json` when you save, and loaded on game start.
+**Example snippet** (truncated):
 
----
-
-## AI Improvement System
-The AI system is the heart of the game’s emergent challenge. It consists of three interacting components:
-
-1. **Strategic Planner** – Generates high‑level goals (e.g., “raid a border town”, “trigger a famine”).  
-2. **Tactical Engine** – Executes the plan using a reinforcement‑learning policy that evaluates the current world state.  
-3. **Learning Loop** – After each major event, the AI receives a reward signal based on player response (e.g., how quickly the player repelled an invasion). The reward updates the policy via on‑device gradient descent.
-
-### How It Works
-- **Initialization** – At launch, the AI loads a baseline model (`models/ai_base.pt`).  
-- **Improvement Cycle** – Every **N** in‑game days (default `N = 1000 * ai_improvement_rate`), the AI runs a short training epoch on recent gameplay data, producing an updated model (`models/ai_vX.pt`).  
-- **Versioning** – The `ai_version` variable is incremented, allowing you to roll back if needed.  
-- **Persistence** – Updated models are saved under `models/` and automatically loaded on the next start.
-
-### Tweaking the System
-- **Faster Learning** – Increase `ai_improvement_rate` (e.g., `0.05`).  
-- **Slower Learning** – Decrease it (e.g., `0.01`).  
-- **Disable Learning** – Set `ai_improvement_rate` to `0`. The AI will stay at its baseline level.
-
----
-
-## Troubleshooting
-
-| Symptom | Possible Cause | Fix |
-|---------|----------------|-----|
-| **Game fails to start** | Missing Python version or dependencies | Verify `python --version >= 3.8` and run `pip install -r requirements.txt`. |
-| **AI does not improve** | `ai_improvement_rate` set to `0` or `use_groq_lpu` disabled on a system without fallback CPU support | Set a non‑zero `ai_improvement_rate` and ensure `use_groq_lpu` matches your hardware. |
-| **Graphics look blurry** | `graphics_scale` set incorrectly for your monitor | Adjust `graphics_scale` to `1` (native) or `2` for high‑DPI. |
-| **Performance lag** | Running on CPU with large AI model | Enable Groq LPU (`use_groq_lpu: true`) or lower `ai_improvement_rate` to reduce model size. |
-| **Save files corrupted** | Unexpected shutdown during save | Delete the last `savegames/*.json` file and reload an earlier save. |
-| **Error: `groq-sdk` not found** | SDK not installed or virtual environment not activated | Run `pip install groq-sdk` inside the active venv. |
-
-### Debug Mode
-Run the game with extra logging:
-```bash
-python main.py --log-level DEBUG --verbose
+```json
+{
+  "day": 97260,
+  "population": 12705,
+  "treasury": 128788030891,
+  "food_stockpile": 84213,
+  "morale": 0.73,
+  "technology_tree": {
+    "agriculture": true,
+    "blacksmithing": true,
+    "dark_rituals": false
+  },
+  "buildings": [
+    {"type":"town_hall","level":4,"position":[12,8],"status":"operational"},
+    {"type":"barracks","level":2,"position":[13,9],"status":"operational"}
+  ],
+  "military_units": [
+    {"type":"swordsman","health":100,"location":[13,9]},
+    {"type":"shadow_mage","health":80,"location":[14,10]}
+  ],
+  "ai_state": {
+    "skill_level": 3,
+    "experience_points": 458920,
+    "last_update": "97258"
+  },
+  "events_log": [
+    {"day":97255,"event":"Orc raid repelled"},
+    {"day":97258,"event":"Discovered ancient rune"}
+  ]
+}
 ```
-Log output is written to `logs/game_<timestamp>.log`.
 
----
+---  
 
-## Current Game State
-> **Day:** 96 329  
-> **Population:** 12 557  
-> **Treasury:** 125 406 726 188  
+## AI Improvement System  
 
-These numbers are automatically displayed on the main HUD and are stored in the world‑state file `savegames/latest.json`.
+The AI that governs NPC factions, random events, and world‑reaction logic is **self‑optimizing**. Its improvement pipeline consists of three stages:
 
----
+1. **Experience Accumulation**  
+   - Every in‑game day the AI records outcomes of its decisions (e.g., success of raids, resource allocation efficiency).  
+   - These outcomes are converted into **experience points (XP)** using a weighted scoring function.  
 
-## Contributing
-We welcome community contributions! To get started:
+2. **Skill Level Advancement**  
+   - When XP crosses a threshold (`XP_THRESHOLD = 100 000 * current_skill_level`), the AI’s **skill level** increments by 1.  
+   - Skill level directly influences:  
+     - Decision‑making depth (more look‑ahead steps).  
+     - Probability of generating novel events.  
+     - Adaptation speed to player strategies.  
 
-1. Fork the repository.  
-2. Create a feature branch (`git checkout -b feature/awesome‑feature`).  
-3. Follow the existing code style (PEP 8, docstrings, type hints).  
-4. Add or update unit tests in `tests/`.  
-5. Submit a Pull Request with a clear description of changes.
+3. **Model Fine‑Tuning (Optional LPU)**  
+   - If `enable_lpu_acceleration` is `true`, the system periodically exports a batch of recent gameplay traces to the LPU, where a lightweight transformer model is fine‑tuned.  
+   - The updated model weights are hot‑swapped without restarting the game, giving the AI **real‑time learning**.  
 
-Please see `CONTRIBUTING.md` for detailed guidelines, code of conduct, and the roadmap.
+### Configurable Parameters  
 
----
+| Parameter | Effect | Default |
+|-----------|--------|---------|
+| `ai_improvement_rate` | % increase in skill per 10 k days (if XP thresholds are met). | `0.02` (2 %) |
+| `xp_decay_factor` | Daily decay applied to old XP to prevent runaway growth. | `0.999` |
+| `max_skill_level` | Upper bound for AI skill (prevents infinite scaling). | `10` |
 
-## License
-This project is released under the **MIT License**. See the `LICENSE` file for full terms.
+### Monitoring AI Progress  
 
----
+The UI includes an **“AI Dashboard”** (accessible via the pause menu) showing:  
 
-*Happy building, and may your realm thrive amidst the shadows!*
+- Current skill level  
+- Total XP earned  
+- Days until next level (estimated)  
+- Recent decision‑outcome statistics  
+
+Developers can also inspect `ai_state` in the save file or enable `log_level: "DEBUG"` to write detailed logs to `logs/ai_debug.log`.  
+
+---  
+
+## Troubleshooting & FAQ  
+
+### The game won’t start / crashes immediately  
+
+| Possible Cause | Fix |
+|----------------|-----|
+| **Missing Python version** | Verify `python --version` ≥ 3.9. Install the correct version from python.org. |
+| **Groq LPU driver not installed** (when `enable_lpu_acceleration` is true) | Either install the driver per the Groq docs or set `"enable_lpu_acceleration": false` in `config.json`. |
+| **Corrupted `config.json`** | Delete/rename the file; the game will regenerate a default config on next launch. |
+| **Dependency mismatch** | Run `pip install -r requirements.txt` again; consider recreating the virtual environment. |
+
+### AI isn’t improving (skill level stays at 1)  
+
+1. Check `config.json` → `ai_improvement_rate`. A value of `0` disables growth.  
+2. Ensure the save file’s `ai_state.experience_points` is increasing (open the JSON or view the AI Dashboard).  
+3. If using LPU acceleration, verify the hardware is recognized (`groq-lpu status` command).  
+
+### My treasury shows a massive number (e.g., 128 788 030 891) and overflows UI  
+
+- The UI formats numbers with commas but does not cap display length.  
+- You can enable a **compact view** by editing `config.json`: `"treasury_display_mode": "compact"` (options: `full`, `compact`).  
+
+### Game runs slowly on a standard laptop (no LPU)  
+
+- Lower the difficulty (`"difficulty": "easy"`).  
+- Reduce the AI improvement rate (`"ai_improvement_rate": 0.01`).  
+- Turn off background AI logging: `"log_level": "WARN"`.  
+
+### I want to reset the world to day 1  
+
+Delete or move the `saves/` folder (or rename the specific save file). The next launch will create a fresh save with the starting parameters defined in `config.json`.  
+
+---  
+
+## Contributing  
+
+We welcome community contributions!  
+
+1. **Fork** the repository.  
+2. Create a feature branch: `git checkout -b feature/awesome-feature`.  
+3. Make your changes, ensuring they pass existing tests (`pytest -q`).  
+4. Update documentation (README, docstrings).  
+5. Submit a **Pull Request** with a clear description of the change.  
+
+Please read `CONTRIBUTING.md` for coding standards, branch naming conventions, and the review process.  
+
+---  
+
+## License  
+
+This project is released under the **MIT License**. See the full text in `LICENSE`.  
+
+---  
+
+*Happy world‑building, and may your pixel‑crafted empire endure the darkness!*
