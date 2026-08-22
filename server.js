@@ -507,8 +507,8 @@ function runSimulationTick() {
         generateAIEvents();
     }
 
-    // IMPROVE NEXT FILE IN SEQUENCE every 100 days
-    if (worldState.day % 100 === 0 && worldState.day > aiMemory.lastImprovementDay) {
+    // IMPROVE NEXT FILE IN SEQUENCE every 611 days (40.7 minutes)
+    if (worldState.day % 611 === 0 && worldState.day > aiMemory.lastImprovementDay) {
         improveNextFile().catch(err => console.error(err.message));
         aiMemory.lastImprovementDay = worldState.day;
         saveAIMemory();
@@ -953,7 +953,7 @@ SERVER.listen(PORT, () => {
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
     console.log("🤖 AI Model: groq/compound");
     console.log("🧠 AI Memory: " + aiMemory.filesImproved.length + "/" + PROJECT_FILES.length + " files improved");
-    console.log("⏱️ Events: every 300 days | File Improvement: every 100 days | Rate: 600s");
+    console.log("⏱️ Events: every 300 days | File Improvement: every 611 days | Rate: 600s");
     console.log("🔒 AI Lock: 10 minute wait between requests");
     console.log("📁 AI improves files one by one with memory");
     
