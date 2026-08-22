@@ -22,10 +22,10 @@ const WSS = new WebSocket.Server({ server: SERVER, perMessageDeflate: false });
 const STATE_FILE = path.join(__dirname, 'worldState.json');
 const IMPROVEMENT_MEMORY_FILE = path.join(__dirname, 'ai_memory.json');
 
-// Rate limiter - 600 seconds (10 minutes)
+// Rate limiter - OPTIMIZED: 900 seconds (15 minutes) for free tier
 const rateLimiter = {
     lastCallTime: 0,
-    minInterval: 600000,
+    minInterval: 900000,
     
     async waitForSlot() {
         const now = Date.now();
@@ -168,7 +168,8 @@ function addLog(msg) {
 }
 
 /**
- * GROQ AI - WITH GLOBAL LOCK (10 MINUTES WAIT)
+ * GROQ AI - OPTIMIZED FOR FREE TIER
+ * Reduced tokens, temperature, and wait times
  */
 async function queryAI(prompt, taskType) {
     if (!GROQ_API_KEY) {
@@ -177,15 +178,15 @@ async function queryAI(prompt, taskType) {
     }
 
     while (isAIRequestInProgress) {
-        console.log("⏳ Another AI request in progress - waiting 600s...");
-        await new Promise(resolve => setTimeout(resolve, 600000));
+        console.log("⏳ Another AI request in progress - waiting...");
+        await new Promise(resolve => setTimeout(resolve, 900000));
     }
     
     isAIRequestInProgress = true;
 
     console.log("┌─────────────────────────────────────");
-    console.log("│ 🤖 GROQ AI - " + taskType);
-    console.log("│ 🧠 Model: groq/compound");
+    console.log("│ 🤖 GROQ AI FREE TIER - " + taskType);
+    console.log("│ 🧠 Model: groq/compound (optimized)");
     console.log("└─────────────────────────────────────");
     
     try {
@@ -206,8 +207,11 @@ async function queryAI(prompt, taskType) {
                 body: JSON.stringify({
                     model: 'groq/compound',
                     messages: [{ role: 'user', content: prompt }],
-                    temperature: 0.7,
-                    max_tokens: 2048,
+                    temperature: 0.3,        // REDUCED for free tier
+                    max_tokens: 512,          // REDUCED from 2048
+                    top_p: 0.9,
+                    frequency_penalty: 0.0,
+                    presence_penalty: 0.0,
                 }),
                 signal: controller.signal
             });
@@ -290,7 +294,6 @@ async function pushToGitHub(type, day, specificFile = null) {
         await executeGitCommand('git config user.name "AI Auto-Improver"');
         
         if (specificFile) {
-            // Only push the specific improved file
             const relativePath = path.relative(__dirname, specificFile);
             const destPath = path.join('/tmp/repo', relativePath);
             const destDir = path.dirname(destPath);
@@ -302,7 +305,6 @@ async function pushToGitHub(type, day, specificFile = null) {
             fs.copyFileSync(specificFile, destPath);
             await executeGitCommand(`git add ${relativePath}`);
         } else {
-            // Push all files
             const filesToCopy = ['server.js', 'worldState.json', 'package.json', 'README.md', 'ai_memory.json'];
             
             filesToCopy.forEach(file => {
@@ -312,7 +314,6 @@ async function pushToGitHub(type, day, specificFile = null) {
                 }
             });
             
-            // Copy public folder
             const publicDir = path.join(__dirname, 'public');
             if (fs.existsSync(publicDir)) {
                 const publicDest = path.join('/tmp/repo', 'public');
@@ -345,14 +346,14 @@ async function pushToGitHub(type, day, specificFile = null) {
 }
 
 /**
- * AI Events
+ * AI Events - OPTIMIZED PROMPT
  */
 async function generateAIEvents() {
     const treasury = worldState.treasury;
     
     console.log("\n🎲 GENERATING AI EVENT...");
     
-    const prompt = `Dark fantasy event JSON. Day ${worldState.day}, Pop ${worldState.population}, Gold ${treasury}. Format: {"event":"text","goldImpact":-0.1,"happinessImpact":5,"techImpact":0.2,"visualEffect":"storm","duration":30}`;
+    const prompt = `Dark fantasy event. Day ${worldState.day}. Return JSON: {"event":"text","goldImpact":-0.1,"happinessImpact":5,"techImpact":0.2,"visualEffect":"storm","duration":30}`;
     
     const aiResult = await queryAI(prompt, "EVENT GENERATION");
     
@@ -535,11 +536,9 @@ async function improveNextFile() {
     console.log("│ 📁 Memory: " + aiMemory.filesImproved.length + "/" + PROJECT_FILES.length + " files improved");
     console.log("└─────────────────────────────────────");
     
-    // Find the next file to improve
     let nextFileIndex = aiMemory.currentFileIndex % PROJECT_FILES.length;
     let nextFile = PROJECT_FILES[nextFileIndex];
     
-    // Skip files that don't exist yet
     while (!fs.existsSync(nextFile.path) && nextFile.name !== 'README.md') {
         console.log(`⏭️ Skipping ${nextFile.name} - doesn't exist yet`);
         aiMemory.currentFileIndex++;
@@ -557,7 +556,6 @@ async function improveNextFile() {
         const improved = await improveSpecificFile(nextFile);
         
         if (improved) {
-            // Update memory
             aiMemory.filesImproved.push({
                 fileName: nextFile.name,
                 day: worldState.day,
@@ -568,7 +566,6 @@ async function improveNextFile() {
             aiMemory.totalImprovements++;
             aiMemory.currentFileIndex++;
             
-            // Track history
             if (!aiMemory.fileHistory[nextFile.name]) {
                 aiMemory.fileHistory[nextFile.name] = [];
             }
@@ -579,7 +576,6 @@ async function improveNextFile() {
             
             saveAIMemory();
             
-            // Push to GitHub
             await pushToGitHub("File Improvement", worldState.day, nextFile.path);
             
             console.log(`✅ ${nextFile.name} improved and pushed to GitHub`);
@@ -600,7 +596,7 @@ async function improveNextFile() {
 }
 
 /**
- * IMPROVE SPECIFIC FILE
+ * IMPROVE SPECIFIC FILE - OPTIMIZED PROMPTS FOR FREE TIER
  */
 async function improveSpecificFile(fileInfo) {
     console.log(`\n📄 Processing: ${fileInfo.name}`);
@@ -613,96 +609,39 @@ async function improveSpecificFile(fileInfo) {
     const currentContent = fs.readFileSync(fileInfo.path, 'utf8');
     console.log(`📄 Current size: ${currentContent.length} characters`);
     
-    // Limit size for prompt
-    const maxSize = fileInfo.type === 'html' ? 30000 : 15000;
+    // OPTIMIZED: Much smaller prompts for free tier
+    const maxSize = 4000; // REDUCED from 15000-30000
     const contentPreview = currentContent.substring(0, maxSize);
     
-    // Generate prompt based on file type
     let prompt = '';
     
     switch(fileInfo.type) {
         case 'javascript':
-            prompt = `Improve this dark fantasy civilization game server code (${fileInfo.name}).
-            
-Focus on:
-1. Better game mechanics and balance
-2. Enhanced economy system
-3. More interesting events
-4. Performance optimizations
-5. Error handling
-
-IMPORTANT:
-- Keep all existing functionality
-- Keep WebSocket implementation
-- Maintain dark fantasy theme
-- Add improvements, don't remove features
-
-Current code:
-\`\`\`javascript
-${contentPreview}
-\`\`\`
-
-Return the complete improved JavaScript code.`;
+            prompt = `Improve this game server code. Keep WebSocket and all functions. Return only improved code:\n\`\`\`javascript\n${contentPreview}\n\`\`\``;
             break;
             
         case 'html':
-            prompt = `Enhance this dark fantasy pixel art game interface (${fileInfo.name}).
-
-Focus on:
-1. Better pixel art graphics
-2. Atmospheric effects
-3. More detailed buildings
-4. Improved UI/UX
-5. Particle effects
-
-IMPORTANT:
-- Keep all existing HTML IDs and functions
-- Keep WebSocket functionality
-- Keep canvas rendering
-- Maintain dark fantasy atmosphere
-- Use pixel art style
-
-Current HTML:
-\`\`\`html
-${contentPreview}
-\`\`\`
-
-Return the complete improved HTML.`;
+            prompt = `Improve this game HTML. Keep all IDs and WebSocket. Return only improved HTML:\n\`\`\`html\n${contentPreview}\n\`\`\``;
             break;
             
         case 'json':
-            prompt = `Optimize this JSON configuration file (${fileInfo.name}).
-            
-Keep all existing fields and add any useful improvements while maintaining valid JSON format.
-
-Current JSON:
-\`\`\`json
-${contentPreview}
-\`\`\`
-
-Return the complete improved JSON.`;
+            prompt = `Optimize this JSON. Return only improved JSON:\n\`\`\`json\n${contentPreview}\n\`\`\``;
             break;
             
         case 'markdown':
-            prompt = `Improve this documentation file (${fileInfo.name}).
-            
-Make it more comprehensive and clear while maintaining accurate information about this dark fantasy civilization game.
-
-Current content:
-${contentPreview}
-
-Return the complete improved markdown documentation.`;
+            prompt = `Improve this README. Return only markdown:\n${contentPreview}`;
             break;
     }
     
+    console.log(`📝 Prompt size: ${prompt.length} chars`);
+    
     const aiResponse = await queryAI(prompt, `FILE: ${fileInfo.name}`);
     
-    if (!aiResponse || aiResponse.length < 100) {
+    if (!aiResponse || aiResponse.length < 50) {
         console.log(`⚠️ AI response too short for ${fileInfo.name}`);
         return false;
     }
     
-    // Extract content based on file type
     let newContent = aiResponse;
     
     const codePatterns = {
@@ -720,7 +659,6 @@ Return the complete improved markdown documentation.`;
         }
     }
     
-    // Validate content
     if (fileInfo.type === 'json') {
         try {
             JSON.parse(newContent);
@@ -737,12 +675,10 @@ Return the complete improved markdown documentation.`;
         }
     }
     
-    // Create backup
     const backupPath = fileInfo.path + '.backup_' + worldState.day;
     fs.writeFileSync(backupPath, currentContent);
     console.log(`💾 Backup created: ${backupPath}`);
     
-    // Save improved version
     fs.writeFileSync(fileInfo.path, newContent);
     console.log(`✅ ${fileInfo.name} improved (${currentContent.length} → ${newContent.length} chars)`);
     
@@ -951,10 +887,10 @@ function getCleanHTML() {
 SERVER.listen(PORT, () => {
     console.log("🚀 Dark Fantasy Civilization active on port " + PORT);
     console.log("📊 Day:", worldState.day, "| Population:", worldState.population);
-    console.log("🤖 AI Model: groq/compound");
+    console.log("🤖 AI Model: groq/compound (FREE TIER OPTIMIZED)");
     console.log("🧠 AI Memory: " + aiMemory.filesImproved.length + "/" + PROJECT_FILES.length + " files improved");
-    console.log("⏱️ Events: every 300 days | File Improvement: every 611 days | Rate: 600s");
-    console.log("🔒 AI Lock: 10 minute wait between requests");
+    console.log("⏱️ Events: every 300 days | File Improvement: every 611 days | Rate: 900s");
+    console.log("🔒 AI Lock: 15 minute wait between requests");
     console.log("📁 AI improves files one by one with memory");
     
     addLog("[SYSTEM] Simulation started with file-by-file AI improvement.");
