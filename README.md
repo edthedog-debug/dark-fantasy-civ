@@ -1,16 +1,20 @@
 # Dark Fantasy Pixel Art Civilization Game  
-*Version 1.0.0*  
+
+*Version: 1.0.0*  
+*Author: Your Name / Team*  
+*License: MIT*  
 
 ---  
 
-## Table of Contents
+## Table of Contents  
+
 1. [Project Overview](#project-overview)  
 2. [Features](#features)  
 3. [Installation](#installation)  
 4. [Configuration](#configuration)  
 5. [World State Variables](#world-state-variables)  
 6. [AI Improvement System](#ai-improvement-system)  
-7. [Troubleshooting & Debugging](#troubleshooting--debugging)  
+7. [Troubleshooting & FAQ](#troubleshooting--faq)  
 8. [Current Game State](#current-game-state)  
 9. [Contributing](#contributing)  
 10. [License](#license)  
@@ -18,7 +22,14 @@
 ---  
 
 ## Project Overview  
-This **dark fantasy pixel‑art civilization** game puts you in charge of a fledgling realm steeped in gloom, myth, and ancient magic. You must balance resource management, city building, research, and diplomacy while confronting an ever‑evolving AI that adapts to your strategies. The game runs in real‑time (or turn‑based, depending on speed settings) and persists an extensive world state that can be saved and re‑loaded at any time.
+
+The **Dark Fantasy Pixel Art Civilization Game** is a strategy‑city‑builder set in a brooding, hand‑crafted pixel‑art world. Players assume the role of a fledgling ruler tasked with guiding a nascent civilization through centuries of hardship, magic, and war.  
+
+- **Atmosphere:** Dark fantasy aesthetics, moody lighting, and a haunting soundtrack.  
+- **Gameplay Loop:** Gather resources → Build & upgrade structures → Manage population → Expand territory → Research ancient magics → Defend against supernatural threats.  
+- **Goal:** Achieve a thriving, self‑sustaining empire while uncovering the hidden lore of the world.  
+
+The game is built with **Python** (core logic) and **Pygame** (rendering), making it easy to extend, mod, or embed in other projects.  
 
 ---  
 
@@ -26,14 +37,16 @@ This **dark fantasy pixel‑art civilization** game puts you in charge of a fled
 
 | Category | Description |
 |----------|-------------|
-| **Pixel‑Art Aesthetic** | Hand‑crafted 16‑bit style sprites, tilesets, and UI elements that evoke classic dark‑fantasy titles. |
-| **Deep Civilization Management** | Build districts, manage food, gold, mana, and morale; enact edicts, research magical technologies, and recruit heroes. |
-| **Dynamic AI Opponents** | Multiple AI factions with distinct personalities (e.g., *Necromancer Empire*, *Dwarven Forge‑clan*). AI learns from your actions via the **AI Improvement System**. |
-| **Procedural World Generation** | Randomly generated continents, biomes, and resource nodes each new game. |
-| **Persistent World State** | Day counter, population, treasury, and dozens of hidden variables are saved in a JSON save file. |
-| **Mod‑Friendly Architecture** | All data (units, buildings, events) are defined in external JSON/YAML files, making it easy to add new content. |
-| **Configurable Game Speed & Difficulty** | Adjust the tick rate, AI difficulty, and UI scaling via a single `config.json`. |
-| **Debug & Profiling Tools** | Built‑in console, FPS overlay, and state dump for developers and power‑users. |
+| **Pixel‑Art Graphics** | 32‑bit color palette, animated sprites, tile‑based maps, and dynamic weather effects. |
+| **City‑Building Mechanics** | Construct residential, military, magical, and economic buildings; each with unique upgrades. |
+| **Resource Management** | Wood, stone, iron, mana, and gold. Resources are produced, stored, and consumed in real time. |
+| **Population System** | Citizens have age, health, and skill attributes that affect productivity and morale. |
+| **Exploration & Fog‑of‑War** | Send scouts to reveal new tiles, encounter random events, and discover ancient ruins. |
+| **AI Improvement System** | A modular AI that learns from player actions, offering suggestions and automating routine tasks. |
+| **Research Tree** | Unlock new technologies, spells, and building types by investing treasury and mana. |
+| **Dynamic World State** | Day counter, population, treasury, and other variables persist across sessions. |
+| **Mod‑Friendly Architecture** | JSON‑based data files, plugin hooks, and a clear separation between engine and content. |
+| **Cross‑Platform** | Runs on Windows, macOS, and Linux (via Python & Pygame). |
 
 ---  
 
@@ -41,195 +54,198 @@ This **dark fantasy pixel‑art civilization** game puts you in charge of a fled
 
 ### Prerequisites  
 
-| Tool | Minimum Version |
-|------|-----------------|
-| **Python** | 3.8+ |
-| **Pygame** | 2.0+ (installed via pip) |
-| **Git** | Any recent version (optional, for cloning) |
-| **Optional** | `ffmpeg` (for recording gameplay) |
+- **Python 3.10+** (recommended: 3.11)  
+- **Git** (optional, for cloning)  
+- **Pygame 2.5+** (installed automatically via `requirements.txt`)  
 
 ### Steps  
 
-```bash
-# 1️⃣ Clone the repository
-git clone https://github.com/your-username/dark-fantasy-civilization-game.git
-cd dark-fantasy-civilization-game
+1. **Clone the repository**  
+   ```bash
+   git clone https://github.com/your-username/dark-fantasy-pixel-civ.git
+   cd dark-fantasy-pixel-civ
+   ```
 
-# 2️⃣ Create a virtual environment (recommended)
-python -m venv venv
-source venv/bin/activate   # On Windows: venv\Scripts\activate
+2. **Create a virtual environment (highly recommended)**  
+   ```bash
+   python -m venv venv
+   source venv/bin/activate   # On Windows: venv\Scripts\activate
+   ```
 
-# 3️⃣ Install dependencies
-pip install -r requirements.txt
+3. **Install dependencies**  
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-# 4️⃣ Run the game
-python main.py
-```
+4. **Run the game**  
+   ```bash
+   python main.py
+   ```
 
-*If you prefer Docker:*  
-
-```dockerfile
-# Dockerfile (provided in repo)
-FROM python:3.11-slim
-WORKDIR /app
-COPY . .
-RUN pip install -r requirements.txt
-CMD ["python", "main.py"]
-```
-
-```bash
-docker build -t dark-fantasy-civ .
-docker run -it --rm -p 8000:8000 dark-fantasy-civ
-```
+> **Tip:** If you encounter `pygame` import errors, ensure you have the appropriate SDL libraries for your OS (e.g., `libsdl2-dev` on Ubuntu).  
 
 ---  
 
 ## Configuration  
 
-All runtime options live in **`config.json`** (generated on first launch). Below is a commented example:
+All configurable options live in **`config.json`** at the project root. The file is loaded at startup and can be edited while the game is not running.
+
+### Example `config.json`
 
 ```json
 {
-  "game_speed": 1.0,               // 0.5 = half‑speed, 2.0 = double‑speed
-  "ai_difficulty": "hard",         // options: "easy", "normal", "hard", "nightmare"
-  "ui_scale": 1.0,                 // UI scaling factor for high‑DPI displays
-  "debug_mode": false,             // Enables console overlay & state dumps
-  "autosave_interval_minutes": 10,
-  "max_population_cap": 500000,
-  "starting_day": 1,
-  "seed": null                     // Set a number for reproducible world generation
+  "graphics": {
+    "resolution": [1280, 720],
+    "fullscreen": false,
+    "scale_factor": 2,
+    "vsync": true
+  },
+  "gameplay": {
+    "starting_day": 1,
+    "starting_population": 100,
+    "starting_treasury": 5000,
+    "difficulty": "normal",          // options: easy, normal, hard, nightmare
+    "ai_autolearn": true,
+    "autosave_interval_minutes": 10
+  },
+  "audio": {
+    "master_volume": 0.8,
+    "music_volume": 0.6,
+    "sfx_volume": 0.7
+  },
+  "paths": {
+    "save_folder": "saves/",
+    "mods_folder": "mods/",
+    "assets_folder": "assets/"
+  }
 }
 ```
 
-**Changing a setting while the game is running:**  
-1. Open the in‑game console (`~` key).  
-2. Type `config set <key> <value>` (e.g., `config set game_speed 2.0`).  
-3. The change takes effect immediately and is persisted to `config.json`.
+#### Key Sections  
+
+| Section | Purpose |
+|---------|---------|
+| `graphics` | Screen resolution, scaling, fullscreen toggle, VSync. |
+| `gameplay` | Starting conditions, difficulty scaling, AI learning toggle, autosave frequency. |
+| `audio` | Volume controls for music, sound effects, and overall master volume. |
+| `paths` | Where the engine looks for saves, mods, and asset files. |
+
+After editing, **restart the game** for changes to take effect.  
 
 ---  
 
 ## World State Variables  
 
-The engine maintains a **`world_state.json`** file (auto‑saved each autosave). Key variables include:
+The engine tracks a set of persistent variables that define the current state of the world. These are saved in the active **save file** (`*.json`) and can be inspected via the debug console (`F12`).
 
-| Variable | Type | Description |
-|----------|------|-------------|
-| `day` | integer | Current day counter (starts at `starting_day`). |
-| `population` | integer | Total number of citizens across all cities. |
-| `treasury` | integer | Gold reserves (can be negative if you’re in debt). |
-| `mana_reserve` | integer | Magical energy used for spells & research. |
-| `food_stockpile` | integer | Days of food remaining before starvation. |
-| `morale` | float (0‑1) | Overall citizen happiness; affects growth rate. |
-| `technology_progress` | dict | `{ "tech_name": percent_complete }`. |
-| `diplomacy` | dict | Relations with AI factions (`{ "faction_id": reputation }`). |
-| `events_log` | list | Chronological list of major events (used for replay). |
-| `ai_adaptation_score` | float | Internal metric the AI uses to gauge how much it has learned from the player. |
+| Variable | Type | Description | Example |
+|----------|------|-------------|---------|
+| `day` | `int` | Current in‑game day count. Increments each 24‑hour cycle. | `99979` |
+| `population` | `int` | Total number of living citizens (including children, workers, soldiers). | `13141` |
+| `treasury` | `int` | Gold reserves available for spending. Large numbers are displayed with commas for readability. | `139,079,563,622` |
+| `resources` | `dict` | Quantities of each raw material (`wood`, `stone`, `iron`, `mana`). | `{ "wood": 45231, "stone": 17890, ... }` |
+| `happiness` | `float` (0‑1) | Overall citizen morale; influences productivity and birth rate. | `0.73` |
+| `research_progress` | `dict` | Percentage completion of each research node. | `{ "alchemy": 0.42, "siege_engineering": 0.09 }` |
+| `ai_level` | `int` | Current AI improvement tier (0 = none, 5 = master). | `3` |
 
-> **Tip:** You can inspect the full schema in `docs/world_state_schema.md`.
+These variables can be **displayed** in the UI via the “Statistics” panel, and they are also used by the AI improvement system to decide which upgrades are most beneficial.  
 
 ---  
 
 ## AI Improvement System  
 
-### Overview  
-The AI is not static; it employs a **reinforcement‑learning‑inspired adaptation loop** that runs every **`ai_adaptation_interval`** (default: 30 in‑game days). The loop evaluates three signals:
+The AI system is designed to **assist** the player by automating repetitive tasks, suggesting optimal builds, and gradually learning from the player’s style. It consists of three layers:
 
-1. **Strategic Success** – Victory points earned (territory, technology, military).  
-2. **Player Counter‑Strategies** – Frequency of player actions that directly thwart AI plans (e.g., ambushes, trade embargoes).  
-3. **Resource Efficiency** – How well the AI converts gold/mana into useful assets.
+1. **Rule‑Based Engine** – Handles basic automation (e.g., auto‑assign idle workers to the nearest resource node).  
+2. **Statistical Learner** – Collects data on player decisions (building choices, resource allocation) and builds probability models.  
+3. **Neural‑Network Advisor** *(optional, enabled when `ai_autolearn` is true)* – A lightweight feed‑forward network that predicts the most beneficial next action based on the current world state.
 
-Based on these signals, the AI adjusts weights in its decision‑making tree (e.g., “prioritize naval expansion” vs. “focus on magical research”).  
+### How to Interact  
 
-### How It Works (Simplified)
+| Action | UI Location | Effect |
+|--------|-------------|--------|
+| **Enable/Disable AI** | Settings → Gameplay → “AI Autolearn” | Turns the learning component on or off. |
+| **Set AI Level** | Settings → Gameplay → “AI Level” (0‑5) | Higher levels unlock more aggressive automation and deeper suggestions. |
+| **View AI Recommendations** | Bottom‑right “Advisor” panel | Shows a list of up‑to‑three recommended actions (e.g., “Build a Mana Well”, “Research Alchemy”). |
+| **Accept/Reject** | Click the recommendation or dismiss it. | Accepted actions are queued automatically; rejected actions are logged for future learning. |
 
-```text
-Every ai_adaptation_interval:
-    1. Gather metrics → M = {success, counter, efficiency}
-    2. Compute reward R = w1*success - w2*counter + w3*efficiency
-    3. Update policy weights via gradient ascent:
-           weight_new = weight_old + α * R * ∂logπ/∂weight
-    4. Persist updated weights to ai_policy.json
-```
+### Benefits of Raising AI Level  
 
-* `α` (learning_rate) is configurable in `config.json` under `ai_learning_rate`.  
-* The system is deterministic for a given seed, making it reproducible for testing.
+| Level | Unlocks |
+|-------|---------|
+| **0 – Off** | No automation; pure manual play. |
+| **1 – Helper** | Auto‑assign idle workers, basic resource balancing. |
+| **2 – Planner** | Suggests optimal building placement based on terrain. |
+| **3 – Strategist** | Recommends research paths and population growth policies. |
+| **4 – Overseer** | Auto‑queues construction of high‑impact buildings when resources allow. |
+| **5 – Master** | Full‑auto mode (optional) – the AI can run the civilization with minimal player input, ideal for “sandbox” or “watch‑only” modes. |
 
-### Player‑Facing Effects  
+### Extending the AI  
 
-| AI Behavior | Trigger | In‑Game Manifestation |
-|-------------|---------|-----------------------|
-| **Aggressive Expansion** | High reward from territorial gains | More frequent raids, faster city founding |
-| **Defensive Posture** | Frequent heavy losses | Fortified borders, increased scouting |
-| **Technological Rush** | High mana efficiency | Rapid research of magical tech, spawning of spell‑casters |
-| **Economic Sabotage** | High gold‑theft reward | Trade embargoes, market price manipulation |
-
-### Modding the AI  
-
-- Edit `ai_policy.json` to manually set initial weights.  
-- Add new decision nodes in `ai/decision_tree.yaml`.  
-- Use the `ai_debug` console command to print current weights.
+Developers can add new decision rules by editing `ai/rules.py` or plug in a custom model via the `mods/` folder. The API is documented in `docs/ai_api.md`.  
 
 ---  
 
-## Troubleshooting & Debugging  
+## Troubleshooting & FAQ  
 
-| Symptom | Likely Cause | Fix |
-|---------|--------------|-----|
-| **Game crashes on start** | Missing `pygame` or incompatible Python version | Verify `python --version` ≥ 3.8 and run `pip install -r requirements.txt`. |
-| **Black screen / no graphics** | GPU driver issues or missing SDL libraries | Install system SDL2 (`apt-get install libsdl2-2.0-0` on Linux) or update graphics drivers. |
-| **Performance drops below 30 FPS** | High `game_speed` + many active entities | Lower `game_speed` in `config.json` or enable `debug_mode: false`. |
-| **AI never adapts** | `ai_learning_rate` set to 0 or `ai_adaptation_interval` too high | Set `"ai_learning_rate": 0.05` and `"ai_adaptation_interval": 30`. |
-| **Save file corrupted** | Unexpected shutdown while writing `world_state.json` | Delete the last backup (`world_state.backup.json`) and restart; the game will load the previous autosave. |
-| **Audio missing** | `pygame.mixer` not initialized (common on headless servers) | Ensure you have a working audio device or set `"audio_enabled": false` in `config.json`. |
+### The game crashes on startup  
 
-### Enabling Debug Mode  
+1. **Check Python version** – Must be 3.10+. Run `python --version`.  
+2. **Missing SDL libraries** – On Linux, install `libsdl2-dev`, `libsdl2-image-dev`, `libsdl2-mixer-dev`.  
+3. **Corrupt save file** – Delete or rename the most recent file in `saves/`. The game will start a new session.  
 
-1. Open `config.json`.  
-2. Set `"debug_mode": true`.  
-3. Restart the game.  
+### Graphics look distorted / pixelated  
 
-You will now see:  
+- Verify `scale_factor` in `config.json`. A value of `2` or `3` works best for 1280×720 resolution.  
+- Ensure `vsync` is enabled to prevent tearing.  
 
-- FPS counter in the top‑right corner.  
-- Real‑time values for `ai_adaptation_score`, `morale`, and `population growth rate`.  
-- Press **F12** to open the in‑game console (type `help` for commands).  
+### Audio is silent  
 
-### Common Console Commands  
+- Confirm your system volume and that the `master_volume` in `config.json` is > 0.  
+- On Windows, make sure the `pygame.mixer` module loaded correctly (check console for “mixer init” messages).  
 
-| Command | Description |
-|---------|-------------|
-| `save` | Immediately writes a new save file. |
-| `load <slot>` | Loads a specific save slot. |
-| `config set <key> <value>` | Change a config option on the fly. |
-| `ai dump` | Prints current AI policy weights. |
-| `world dump` | Outputs the full `world_state.json` to the console. |
-| `log level <debug|info|warn|error>` | Adjusts logging verbosity. |
+### AI recommendations are nonsensical  
+
+- The AI learns from the last **10,000** actions. If you have just started a new game, it may not have enough data.  
+- Try increasing the `ai_level` to 2 or 3, or manually reset the AI memory by deleting `ai/learned_state.json`.  
+
+### My population is stuck at a low number  
+
+- Check **happiness** (displayed in the Statistics panel). Low morale reduces birth rates.  
+- Ensure you have enough **housing** (residential buildings) and **food** (farms, hunting lodges).  
+
+### I want to mod the game  
+
+1. Create a folder inside `mods/` (e.g., `mods/my_mod`).  
+2. Add a `mod.json` manifest describing your assets and any new data tables.  
+3. Place PNG sprites in `assets/` and reference them in the manifest.  
+4. Restart the game – the mod loader will automatically detect and load your content.  
+
+For a full guide, see `docs/modding_guide.md`.  
 
 ---  
 
 ## Current Game State  
 
-| Metric | Value |
-|--------|-------|
-| **Day** | **99 359** |
-| **Population** | **13 041** |
-| **Treasury** | **136 359 847 504** gold |
+> **Day:** `99979`  
+> **Population:** `13,141`  
+> **Treasury:** `139,079,563,622`  
 
-These numbers are automatically loaded from `world_state.json` at launch.  
+These numbers are automatically loaded from the latest save file (`saves/slot_01.json`).  
 
 ---  
 
 ## Contributing  
 
-We welcome contributions of any kind—code, art, music, documentation, or balance tweaks.
+We welcome contributions of any kind—bug reports, feature requests, code, art, or documentation.  
 
 1. **Fork** the repository.  
-2. Create a **feature branch** (`git checkout -b feature/awesome‑feature`).  
-3. Follow the **PEP‑8** style guide for Python and keep pixel‑art assets at **16 × 16** tiles unless a larger size is justified.  
-4. Add or update **unit tests** in `tests/`.  
-5. Submit a **Pull Request** with a clear description of changes.  
+2. Create a **feature branch** (`git checkout -b feature/awesome-feature`).  
+3. Make your changes, ensuring the code follows the existing style (PEP‑8 for Python).  
+4. Run the test suite: `pytest tests/`. All tests must pass.  
+5. Submit a **Pull Request** with a clear description of what you changed and why.  
 
-See `CONTRIBUTING.md` for detailed guidelines, code of conduct, and the release process.
+Please read `CONTRIBUTING.md` for detailed guidelines, coding standards, and the roadmap.  
 
 ---  
 
@@ -239,4 +255,4 @@ This project is licensed under the **MIT License**. See the `LICENSE` file for t
 
 ---  
 
-*Happy world‑building, and may your darkness be ever‑lasting!*  
+*Enjoy building your dark empire, and may the shadows guide you!*  
