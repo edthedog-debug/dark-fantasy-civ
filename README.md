@@ -1,248 +1,240 @@
 # Dark Fantasy Pixel Art Civilization Game  
+*Comprehensive README*
 
-*Version: 1.0.0*  
-*License: MIT*  
+---
 
----  
-
-## Table of Contents  
-
+## Table of Contents
 1. [Project Overview](#project-overview)  
 2. [Features](#features)  
 3. [Installation](#installation)  
 4. [Configuration](#configuration)  
 5. [World State Variables](#world-state-variables)  
 6. [AI Improvement System](#ai-improvement-system)  
-7. [Troubleshooting](#troubleshooting)  
-8. [Current Game State](#current-game-state)  
-9. [Contributing](#contributing)  
-10. [Contact & Support](#contact--support)  
+7. [Troubleshooting & FAQ](#troubleshooting--faq)  
+8. [Contributing](#contributing)  
+9. [License](#license)  
 
----  
+---
 
-## Project Overview  
+## Project Overview
+The **Dark Fantasy Pixel Art Civilization Game** is a strategy‑simulation title that blends classic city‑building mechanics with a gritty, atmospheric dark‑fantasy setting rendered entirely in pixel art. Players guide a fledgling settlement from a humble hamlet to a sprawling empire while contending with hostile forces, supernatural events, and an ever‑evolving AI that learns from their decisions.
 
-Welcome to **Dark Fantasy Pixel Art Civilization**, a strategy‑simulation game that blends classic city‑building mechanics with a brooding, hand‑crafted pixel‑art world. You command a fledgling settlement in a realm of ancient magic, cursed forests, and lurking monsters.  
+Key design goals:
 
-- **Pixel‑art aesthetic** – Dark, atmospheric tiles and sprites that evoke a grim fantasy vibe.  
-- **Dynamic world** – Day/night cycles, weather, and random events that affect resource flow and citizen morale.  
-- **Deep management** – Balance food, gold, mana, and population while expanding your territory and defending against threats.  
-- **AI assistants** – Train AI “advisors” that gradually take over routine tasks, research technologies, and uncover hidden lore.  
+- **Immersive pixel‑art world** – hand‑crafted sprites, tilesets, and UI that evoke a moody, medieval fantasy vibe.  
+- **Deep management loops** – resource production, population growth, happiness, military recruitment, and diplomacy.  
+- **Dynamic world state** – a living world whose variables (day count, population, treasury, weather, etc.) affect gameplay in real time.  
+- **Adaptive AI** – an opponent system that improves over time, offering a fresh challenge on each playthrough.
 
-The game is built with **Python 3.11**, **Pygame** for rendering, and a lightweight JSON‑based save system, making it easy to extend or mod.  
+Current in‑game snapshot (as of the latest save):
+- **Day:** 104 479  
+- **Population:** 13 860  
+- **Treasury:** 157 495 836 436 gold  
 
----  
+---
 
-## Features  
+## Features
+| Category | Description |
+|----------|-------------|
+| **Pixel‑Art Graphics** | 32‑bit style sprites, animated tiles, day/night lighting, weather effects. |
+| **City‑Building & Management** | Build structures, assign workers, manage food, wood, stone, magic crystals, and gold. |
+| **Exploration & Map Generation** | Procedurally generated continents, hidden ruins, resource nodes, and random events. |
+| **Diplomacy & Warfare** | Form alliances, trade routes, declare war, recruit heroes, and command armies. |
+| **AI Improvement System** | Machine‑learning‑driven AI that tracks player tactics, adjusts strategies, and unlocks new behaviors. |
+| **World State Variables** | Persistent variables (day, population, treasury, morale, climate) that influence events and AI decisions. |
+| **Modding Support** | JSON‑based data files, scriptable events, and a simple plugin API for community extensions. |
+| **Save/Load & Cloud Sync** | Automatic backups, manual saves, and optional cloud synchronization. |
+| **Accessibility Options** | Color‑blind palettes, UI scaling, subtitles, and remappable controls. |
 
-| Feature | Description |
-|---------|-------------|
-| **Pixel‑art world** | Hand‑drawn tiles, animated sprites, day‑night lighting, weather effects (rain, fog, aurora). |
-| **City‑building** | Construct homes, farms, workshops, temples, and defensive structures. Each building influences multiple world variables. |
-| **Resource management** | Four core resources: **Food**, **Gold**, **Mana**, **Stone**. Resources are produced, stored, and consumed each turn. |
-| **Population dynamics** | Birth, death, migration, and morale are simulated. Population growth unlocks new building tiers. |
-| **AI Improvement System** | Hire AI advisors (e.g., *Logistics*, *Research*, *Military*). Advisors gain experience, unlock new actions, and can be assigned to specific tasks. |
-| **World state variables** | Global variables (Day, Population, Treasury, etc.) are persisted in `save.json`. They can be inspected or modified via the debug console. |
-| **Event engine** | Random and scripted events (plagues, raids, festivals) that modify world variables and trigger story moments. |
-| **Mod‑friendly** | All game data (buildings, events, AI skills) lives in JSON/YAML files, allowing community extensions without code changes. |
-| **Save/Load** | Automatic checkpoint every 10 days, manual save slots, and cloud‑sync (optional). |
+---
 
----  
+## Installation
 
-## Installation  
+### Prerequisites
+- **Operating System:** Windows 10/11, macOS 12+, or any modern Linux distribution.  
+- **Python:** 3.9 or newer (recommended 3.11).  
+- **Graphics:** GPU supporting OpenGL 3.3 or higher.  
+- **Optional:** Git (for source checkout) and virtual‑environment tools (`venv`, `conda`).
 
-### Prerequisites  
+### Steps
 
-* **Python 3.11+** – https://www.python.org/downloads/  
-* **Git** – for cloning the repository (optional, you can download a zip).  
+1. **Clone the repository**  
+   ```bash
+   git clone https://github.com/your-org/dark-fantasy-civilization-game.git
+   cd dark-fantasy-civilization-game
+   ```
 
-### Steps  
+2. **Create a virtual environment (recommended)**  
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate   # On Windows: .venv\Scripts\activate
+   ```
 
-```bash
-# 1. Clone the repository
-git clone https://github.com/your-username/dark-fantasy-pixel-civ.git
-cd dark-fantasy-pixel-civ
+3. **Install dependencies**  
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-# 2. Create a virtual environment (recommended)
-python -m venv venv
-source venv/bin/activate   # On Windows: venv\Scripts\activate
+4. **Run the game**  
+   ```bash
+   python main.py
+   ```
 
-# 3. Install required packages
-pip install -r requirements.txt
+5. **(Optional) Build a standalone executable**  
+   ```bash
+   pyinstaller --onefile --windowed main.py
+   ```
 
-# 4. Run the game
-python main.py
-```
+   The generated binary will appear in the `dist/` folder.
 
-**Optional:** To build a standalone executable (Windows/macOS/Linux) use PyInstaller:
+---
 
-```bash
-pip install pyinstaller
-pyinstaller --onefile --windowed main.py
-```
+## Configuration
 
-The generated binary will appear in the `dist/` folder.
-
----  
-
-## Configuration  
-
-All configurable options are stored in `config.json`. Below is a sample with explanations:
-
-```json
-{
-  "difficulty": "medium",               // Options: "easy", "medium", "hard"
-  "ai_improvement_rate": 1.2,           // Multiplier for AI experience gain per day
-  "resource_gathering_rate": 1.0,       // Global multiplier for all resource production
-  "starting_population": 500,
-  "starting_treasury": 100000,
-  "enable_weather": true,
-  "enable_day_night_cycle": true,
-  "autosave_interval_days": 10,
-  "debug_mode": false
-}
-```
-
-* **difficulty** – Influences resource scarcity, enemy aggression, and event severity.  
-* **ai_improvement_rate** – Higher values make AI advisors level up faster, but may reduce the challenge.  
-* **resource_gathering_rate** – Useful for testing or custom scenarios.  
-* **enable_weather / enable_day_night_cycle** – Turn visual effects on/off for low‑end hardware.  
-
-After editing `config.json`, restart the game for changes to take effect.
-
----  
-
-## World State Variables  
-
-The core state of the simulation is stored in `save.json`. Below is a description of each top‑level variable:
-
-| Variable | Type | Meaning |
-|----------|------|---------|
-| `day` | integer | Current in‑game day (starts at 1). |
-| `population` | integer | Number of living citizens. |
-| `treasury` | integer | Gold reserves (used for building, hiring, research). |
-| `food_stock` | integer | Amount of stored food. |
-| `mana_reserve` | integer | Magical energy used for spells and special buildings. |
-| `stone_stock` | integer | Building material for walls, roads, etc. |
-| `morale` | float (0‑1) | Overall citizen happiness; affects birth rate and productivity. |
-| `ai_advisors` | list of objects | Each advisor has `type`, `level`, `experience`, and `assigned_task`. |
-| `events_log` | list of strings | Chronological record of events that have occurred. |
-
-### Example snippet from `save.json`
+All configurable options live in `config.json` (generated on first launch). Below is a concise overview; full schema is documented in `docs/config_schema.md`.
 
 ```json
 {
-  "day": 103859,
-  "population": 13761,
-  "treasury": 154706487588,
-  "food_stock": 842312,
-  "mana_reserve": 12500,
-  "stone_stock": 43789,
-  "morale": 0.78,
-  "ai_advisors": [
-    {"type":"Logistics","level":4,"experience":3420,"assigned_task":"resource_distribution"},
-    {"type":"Research","level":3,"experience":2100,"assigned_task":"alchemy"}
-  ],
-  "events_log": [
-    "Day 103850 – Harvest Festival increased morale by 0.05.",
-    "Day 103855 – Minor goblin raid caused 12 casualties."
-  ]
+  "graphics": {
+    "resolution": "1920x1080",
+    "fullscreen": false,
+    "vsync": true,
+    "pixel_scale": 2
+  },
+  "audio": {
+    "master_volume": 0.85,
+    "music_volume": 0.70,
+    "sfx_volume": 0.80,
+    "mute": false
+  },
+  "gameplay": {
+    "difficulty": "hard",          // easy | normal | hard | nightmare
+    "ai_learning_rate": 0.03,      // 0 = static AI, 1 = maximal adaptation
+    "starting_day": 1,
+    "starting_population": 150,
+    "starting_treasury": 5000
+  },
+  "controls": {
+    "move_up": "W",
+    "move_down": "S",
+    "move_left": "A",
+    "move_right": "D",
+    "open_menu": "Esc"
+  },
+  "mods": {
+    "enabled": [],
+    "mod_folder": "mods"
+  }
 }
 ```
 
----  
+- **Changing values**: Edit the JSON file with any text editor and restart the game for changes to take effect.  
+- **Mod loading**: Drop a folder containing a `mod.json` manifest into the `mods/` directory and list its name under `enabled`.  
 
-## AI Improvement System  
+---
 
-### Overview  
+## World State Variables
 
-AI advisors act as semi‑autonomous managers that can take over repetitive tasks, research new technologies, or provide strategic recommendations. They start at **Level 1** and gain **experience** each day based on the amount of work they perform.
+The engine maintains a set of **global variables** that persist across saves and influence both gameplay mechanics and AI decision‑making.
 
-### Advisor Types  
+| Variable | Type | Description | Example (Current) |
+|----------|------|-------------|-------------------|
+| `day` | Integer | Number of days elapsed since the world’s creation. | **104 479** |
+| `population` | Integer | Total number of citizens under the player’s rule. | **13 860** |
+| `treasury` | Integer (64‑bit) | Gold reserves available for construction, recruitment, and trade. | **157 495 836 436** |
+| `morale` | Float (0‑1) | Overall happiness; affects productivity and rebellion risk. | 0.73 |
+| `climate` | Enum (`sunny`, `rain`, `storm`, `snow`) | Current weather; modifies resource yields. | `storm` |
+| `global_event_counter` | Integer | Tracks how many world‑wide events have occurred (e.g., plagues, invasions). | 27 |
+| `ai_difficulty_modifier` | Float | Dynamic multiplier applied to AI aggression based on player performance. | 1.12 |
 
-| Type | Primary Role | Unlocks at |
-|------|--------------|------------|
-| **Logistics** | Optimizes resource distribution, reduces waste. | Day 30 |
-| **Construction** | Speeds up building times, reduces material cost. | Day 45 |
-| **Research** | Unlocks new technologies, spells, and building upgrades. | Day 60 |
-| **Military** | Improves defense, trains militia, predicts raids. | Day 80 |
-| **Mystic** | Harnesses mana for city‑wide buffs, summons. | Day 120 |
+These variables are stored in `save/<save_name>/world_state.json` and can be inspected or edited manually for debugging or modding purposes.
 
-### Experience & Leveling  
+---
 
-* **Experience gain** = `base_gain × ai_improvement_rate × task_complexity`.  
-* **Level thresholds** (cumulative XP): 0 → 1, 500 → 2, 1500 → 3, 3500 → 4, 7000 → 5.  
-* Upon leveling up, advisors unlock a new **skill** (e.g., “Efficient Harvesting” for Logistics).  
+## AI Improvement System
 
-### Assigning Tasks  
+### Overview
+The AI is built on a **reinforcement‑learning loop** that runs in‑game (lightweight, no external server required). It observes player actions, evaluates outcomes, and updates a policy table that guides future decisions.
 
-In the **Advisor Panel** you can drag an advisor onto a task slot (e.g., “Food Production”, “Research Alchemy”). The UI shows:
+### Core Components
+1. **State Representation** – Encodes the current world state (day, population, treasury, morale, recent events, etc.) into a fixed‑size vector.  
+2. **Action Space** – Includes diplomatic offers, troop movements, resource raids, technology research, and special events.  
+3. **Reward Function** – Rewards the AI for:
+   - Gaining territory or resources.
+   - Reducing player morale.
+   - Successfully defending against player attacks.
+   - Achieving long‑term strategic goals (e.g., controlling a magical nexus).  
+4. **Learning Rate (`ai_learning_rate`)** – Adjustable via `config.json`. Higher values make the AI adapt faster but can lead to instability.  
 
-* **Current task**  
-* **Progress bar** (experience toward next level)  
-* **Skill tooltip** (what the advisor contributes)  
+### How It Works (Simplified)
+```text
+while game_running:
+    observe current_state
+    choose action = policy(state)   # epsilon‑greedy selection
+    execute action in world
+    receive reward based on outcome
+    update policy using Q‑learning (or SARSA) with learning_rate
+```
 
-### Example Workflow  
+### Player Interaction
+- **Transparency**: Players can view the AI’s “thought process” in the debug console (`--debug-ai` flag).  
+- **Control**: Setting `ai_learning_rate` to `0` disables learning, making the AI deterministic (useful for speedruns or testing).  
 
-1. **Hire** a Logistics advisor (cost: 10,000 gold).  
-2. **Assign** it to “Resource Distribution”.  
-3. Each day it reduces food waste by **5 %** and adds **30 XP**.  
-4. After 5 days, the advisor reaches **Level 2**, unlocking “Advanced Routing” (+10 % efficiency).  
+### Future Enhancements (Roadmap)
+- Introduce **neural‑network‑based policy** for more nuanced strategies.  
+- Add **AI personality profiles** (e.g., “Aggressive War‑lord”, “Cautious Trader”).  
+- Enable **cross‑save learning** where AI retains knowledge between separate play sessions.
 
-### Modding the AI  
+---
 
-All advisor definitions live in `data/ai_advisors.json`. You can add new types, adjust XP curves, or create custom skills without touching the source code.
+## Troubleshooting & FAQ
 
----  
+| Symptom | Likely Cause | Fix |
+|---------|--------------|-----|
+| **Game crashes on startup** | Missing or incompatible OpenGL driver. | Update graphics drivers; ensure GPU supports OpenGL 3.3+. |
+| **Missing textures / pixelated UI** | `assets/` folder not found or corrupted. | Verify that the `assets/` directory exists in the root and contains subfolders `sprites/`, `tiles/`, `ui/`. Re‑clone the repo if necessary. |
+| **AI does not improve** | `ai_learning_rate` set to `0` or `debug_mode` disables learning. | Open `config.json` and set `"ai_learning_rate"` to a value > 0 (e.g., `0.05`). |
+| **Save file won’t load** | Version mismatch after an update. | Delete the `save/` folder (or back it up) and start a new game; the new version may require migration scripts. |
+| **Performance drops on large maps** | Excessive draw calls / unoptimized tile rendering. | Enable `vsync: false` and lower `pixel_scale` in `config.json`. Consider using the `--low-graphics` launch flag. |
+| **Mod crashes the game** | Mod manifest missing required fields. | Check `mods/<mod_name>/mod.json` against the schema in `docs/mod_schema.md`. |
 
-## Troubleshooting  
+### Getting Help
+1. **Read the Wiki** – https://github.com/your-org/dark-fantasy-civilization-game/wiki  
+2. **Search Issues** – https://github.com/your-org/dark-fantasy-civilization-game/issues  
+3. **Open a New Issue** – Provide:
+   - OS, Python version, and GPU details.  
+   - Steps to reproduce.  
+   - Relevant log excerpts (`logs/latest.log`).  
 
-| Symptom | Possible Cause | Fix |
-|---------|----------------|-----|
-| **Game crashes on launch** | Missing/incorrect Python version or dependencies. | Verify you are using Python 3.11+. Run `pip install -r requirements.txt` again. |
-| **Graphics are garbled / FPS very low** | `enable_day_night_cycle` or `enable_weather` on low‑end hardware. | Set both to `false` in `config.json`. |
-| **AI advisors do not gain experience** | `ai_improvement_rate` set to `0` or `debug_mode` interfering. | Ensure `"ai_improvement_rate"` > 0 and `debug_mode` is `false`. |
-| **Resources stop accumulating** | `resource_gathering_rate` set to `0` or a building has been disabled. | Reset `"resource_gathering_rate"` to `1.0`. Check building status in the UI. |
-| **Save file corrupted / cannot load** | Unexpected shutdown while writing `save.json`. | Delete the most recent `save.json` and load the previous autosave (`save_autosave_*.json`). |
-| **Event log spams the console** | `debug_mode` enabled. | Set `"debug_mode": false` in `config.json`. |
-| **Audio missing** | Pygame mixer not initialized (common on Linux without ALSA). | Install `libsdl2-mixer-2.0-0` (or the equivalent for your distro). |
+---
 
-If none of the above resolves your issue, please open an issue on the GitHub repository with:
+## Contributing
 
-* A short description of the problem.  
-* Your OS, Python version, and steps to reproduce.  
-* Relevant log output (found in `logs/debug.log`).  
+We welcome community contributions! Follow these steps:
 
----  
+1. **Fork** the repository.  
+2. **Create a feature branch** (`git checkout -b feature/awesome‑feature`).  
+3. **Write code** adhering to PEP‑8 (Python) and the project's style guide (`docs/style_guide.md`).  
+4. **Add tests** in `tests/` (use `pytest`).  
+5. **Run the test suite**: `pytest`.  
+6. **Submit a Pull Request** with a clear description of changes.
 
-## Current Game State  
+Please read `CONTRIBUTING.md` for detailed guidelines on code standards, commit messages, and review process.
 
-> **Day:** **103 859**  
-> **Population:** **13 761** citizens  
-> **Treasury:** **154 706 487 588** gold  
+---
 
-These values are stored in `save.json` and will be updated automatically each in‑game day.
+## License
 
----  
+This project is licensed under the **MIT License**. See the full text in `LICENSE`:
 
-## Contributing  
+```
+MIT License
 
-We welcome contributions! Please follow these steps:
+Copyright (c) 2026 ...
 
-1. Fork the repository.  
-2. Create a feature branch (`git checkout -b feature/awesome-feature`).  
-3. Write code and **add unit tests** under `tests/`.  
-4. Ensure the test suite passes: `pytest`.  
-5. Submit a Pull Request with a clear description of changes.  
+Permission is hereby granted, free of charge, to any person obtaining a copy...
+```
 
-See `CONTRIBUTING.md` for detailed guidelines, coding style, and asset licensing.
+---
 
----  
-
-## Contact & Support  
-
-* **GitHub Issues:** https://github.com/your-username/dark-fantasy-pixel-civ/issues  
-* **Discord Community:** https://discord.gg/your-invite-code  
-* **Email:** support@darkfantasyciv.dev  
-
-Thank you for playing and helping shape this dark, pixel‑perfect world!  
+*Happy building, and may your empire thrive in the shadows!*
