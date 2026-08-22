@@ -1,56 +1,39 @@
 # Dark Fantasy Pixel Art Civilization Game  
-
-*Version: 1.0.0*  
+*Version 1.0.0*  
 
 ---  
 
-## Table of Contents  
-
+## Table of Contents
 1. [Project Overview](#project-overview)  
 2. [Features](#features)  
 3. [Installation](#installation)  
 4. [Configuration](#configuration)  
 5. [World State Variables](#world-state-variables)  
 6. [AI Improvement System](#ai-improvement-system)  
-7. [Troubleshooting & FAQ](#troubleshooting--faq)  
-8. [Contributing](#contributing)  
-9. [License](#license)  
+7. [Troubleshooting & Debugging](#troubleshooting--debugging)  
+8. [Current Game State](#current-game-state)  
+9. [Contributing](#contributing)  
+10. [License](#license)  
 
 ---  
 
 ## Project Overview  
-
-The **Dark Fantasy Pixel Art Civilization Game** is a strategic, turn‑based simulation set in a brooding, hand‑crafted pixel‑art world. Players guide a fledgling settlement through centuries of hardship, expanding territory, managing resources, and confronting supernatural threats.  
-
-Key design goals:  
-
-- **Immersive pixel‑art aesthetic** that evokes classic dark‑fantasy titles.  
-- **Deep civilization management** (population, treasury, technology, morale, etc.).  
-- **AI‑driven world dynamics** – the world reacts to player actions, and the AI itself evolves over time.  
-- **Scalable performance** – built to run on standard PCs and on Groq LPU hardware for accelerated AI inference.  
-
-**Current Game State (as of the latest save):**  
-
-| Variable | Value |
-|----------|-------|
-| **Day** | **97260** |
-| **Population** | **12 705** |
-| **Treasury** | **128 788 030 891** (gold units) |
+This **dark fantasy pixel‑art civilization** game puts you in charge of a fledgling realm steeped in gloom, myth, and ancient magic. You must balance resource management, city building, research, and diplomacy while confronting an ever‑evolving AI that adapts to your strategies. The game runs in real‑time (or turn‑based, depending on speed settings) and persists an extensive world state that can be saved and re‑loaded at any time.
 
 ---  
 
 ## Features  
 
-| Feature | Description |
-|---------|-------------|
-| **Pixel‑Art World** | Hand‑drawn tiles, characters, and UI elements with a dark‑fantasy palette. |
-| **Civilization Management** | Build structures, research technologies, manage food, morale, and military. |
-| **Dynamic AI** | NPC factions, monsters, and environmental events are driven by a learning AI model. |
-| **AI Improvement System** | The AI refines its decision‑making based on player interactions and internal metrics. |
-| **Modular Architecture** | Core engine, UI, AI, and data layers are loosely coupled for easy extension. |
-| **Cross‑Platform** | Runs on Windows, macOS, Linux; optional Groq LPU acceleration for heavy AI workloads. |
-| **Save/Load System** | Persistent world state stored in JSON; supports multiple save slots. |
-| **Rich Lore** | In‑game codex with lore entries, quests, and hidden secrets. |
+| Category | Description |
+|----------|-------------|
+| **Pixel‑Art Aesthetic** | Hand‑crafted 16‑bit style sprites, tilesets, and UI elements that evoke classic dark‑fantasy titles. |
+| **Deep Civilization Management** | Build districts, manage food, gold, mana, and morale; enact edicts, research magical technologies, and recruit heroes. |
+| **Dynamic AI Opponents** | Multiple AI factions with distinct personalities (e.g., *Necromancer Empire*, *Dwarven Forge‑clan*). AI learns from your actions via the **AI Improvement System**. |
+| **Procedural World Generation** | Randomly generated continents, biomes, and resource nodes each new game. |
+| **Persistent World State** | Day counter, population, treasury, and dozens of hidden variables are saved in a JSON save file. |
+| **Mod‑Friendly Architecture** | All data (units, buildings, events) are defined in external JSON/YAML files, making it easy to add new content. |
+| **Configurable Game Speed & Difficulty** | Adjust the tick rate, AI difficulty, and UI scaling via a single `config.json`. |
+| **Debug & Profiling Tools** | Built‑in console, FPS overlay, and state dump for developers and power‑users. |
 
 ---  
 
@@ -58,216 +41,202 @@ Key design goals:
 
 ### Prerequisites  
 
-- **Python 3.9+** (recommended: 3.11)  
-- **Git** (for cloning the repo)  
-- **Optional – Groq LPU hardware** (for accelerated AI inference)  
+| Tool | Minimum Version |
+|------|-----------------|
+| **Python** | 3.8+ |
+| **Pygame** | 2.0+ (installed via pip) |
+| **Git** | Any recent version (optional, for cloning) |
+| **Optional** | `ffmpeg` (for recording gameplay) |
 
-### Step‑by‑Step  
+### Steps  
 
 ```bash
 # 1️⃣ Clone the repository
-git clone https://github.com/groq/dark-fantasy-pixel-art-civilization-game.git
-cd dark-fantasy-pixel-art-civilization-game
+git clone https://github.com/your-username/dark-fantasy-civilization-game.git
+cd dark-fantasy-civilization-game
 
-# 2️⃣ Create a virtual environment (highly recommended)
-python -m venv .venv
-# Activate:
-#   Windows: .venv\Scripts\activate
-#   macOS/Linux: source .venv/bin/activate
+# 2️⃣ Create a virtual environment (recommended)
+python -m venv venv
+source venv/bin/activate   # On Windows: venv\Scripts\activate
 
-# 3️⃣ Install Python dependencies
+# 3️⃣ Install dependencies
 pip install -r requirements.txt
 
-# 4️⃣ (Optional) Install Groq LPU drivers if you have the hardware
-# Follow the official Groq guide: https://console.groq.com/docs/lpu-setup
-
-# 5️⃣ Run the game
+# 4️⃣ Run the game
 python main.py
 ```
 
-> **Tip:** The first launch will generate a default `config.json` and a starter save file (`save_001.json`).  
+*If you prefer Docker:*  
+
+```dockerfile
+# Dockerfile (provided in repo)
+FROM python:3.11-slim
+WORKDIR /app
+COPY . .
+RUN pip install -r requirements.txt
+CMD ["python", "main.py"]
+```
+
+```bash
+docker build -t dark-fantasy-civ .
+docker run -it --rm -p 8000:8000 dark-fantasy-civ
+```
 
 ---  
 
 ## Configuration  
 
-All runtime options are stored in **`config.json`** at the project root. Below is a sample with explanations.
+All runtime options live in **`config.json`** (generated on first launch). Below is a commented example:
 
 ```json
 {
-  "game_title": "Dark Fantasy Pixel Art Civilization",
-  "difficulty": "medium",                     // easy | medium | hard
-  "starting_day": 1,
-  "starting_population": 500,
-  "starting_treasury": 1000000,
-  "ai_improvement_rate": 0.02,                // % increase in AI skill per 10,000 days
+  "game_speed": 1.0,               // 0.5 = half‑speed, 2.0 = double‑speed
+  "ai_difficulty": "hard",         // options: "easy", "normal", "hard", "nightmare"
+  "ui_scale": 1.0,                 // UI scaling factor for high‑DPI displays
+  "debug_mode": false,             // Enables console overlay & state dumps
+  "autosave_interval_minutes": 10,
   "max_population_cap": 500000,
-  "treasury_interest_rate": 0.001,            // Daily interest applied to treasury
-  "enable_lpu_acceleration": true,
-  "log_level": "INFO",                        // DEBUG, INFO, WARN, ERROR
-  "save_directory": "saves/",
-  "autosave_interval_days": 30
+  "starting_day": 1,
+  "seed": null                     // Set a number for reproducible world generation
 }
 ```
 
-### Important Keys  
-
-| Key | Purpose | Typical Values |
-|-----|---------|----------------|
-| `difficulty` | Sets baseline AI aggressiveness and resource scarcity. | `easy`, `medium`, `hard` |
-| `ai_improvement_rate` | Controls how fast the AI learns from experience. | `0.01`–`0.05` (1–5 % per 10k days) |
-| `enable_lpu_acceleration` | Toggles hardware‑accelerated inference. | `true` / `false` |
-| `log_level` | Verbosity of console/file logs. | `DEBUG`, `INFO`, `WARN`, `ERROR` |
-
-After editing `config.json`, restart the game for changes to take effect.  
+**Changing a setting while the game is running:**  
+1. Open the in‑game console (`~` key).  
+2. Type `config set <key> <value>` (e.g., `config set game_speed 2.0`).  
+3. The change takes effect immediately and is persisted to `config.json`.
 
 ---  
 
 ## World State Variables  
 
-The game’s persistent state is stored in a JSON save file (e.g., `saves/save_001.json`). Core variables include:
+The engine maintains a **`world_state.json`** file (auto‑saved each autosave). Key variables include:
 
 | Variable | Type | Description |
 |----------|------|-------------|
-| `day` | integer | Current in‑game day counter. |
-| `population` | integer | Total number of citizens alive. |
-| `treasury` | integer | Gold reserves (raw integer; UI formats with commas). |
-| `food_stockpile` | integer | Units of food stored. |
-| `morale` | float (0‑1) | Overall citizen happiness; influences productivity. |
-| `technology_tree` | object | Keys are tech IDs, values are booleans (`true` = researched). |
-| `buildings` | list of objects | Each entry contains `type`, `level`, `position`, `status`. |
-| `military_units` | list of objects | Details of each unit (type, health, location). |
-| `ai_state` | object | Internal AI metrics (experience points, skill level, last‑update timestamp). |
-| `events_log` | array | Chronological list of major world events (for debugging / lore). |
+| `day` | integer | Current day counter (starts at `starting_day`). |
+| `population` | integer | Total number of citizens across all cities. |
+| `treasury` | integer | Gold reserves (can be negative if you’re in debt). |
+| `mana_reserve` | integer | Magical energy used for spells & research. |
+| `food_stockpile` | integer | Days of food remaining before starvation. |
+| `morale` | float (0‑1) | Overall citizen happiness; affects growth rate. |
+| `technology_progress` | dict | `{ "tech_name": percent_complete }`. |
+| `diplomacy` | dict | Relations with AI factions (`{ "faction_id": reputation }`). |
+| `events_log` | list | Chronological list of major events (used for replay). |
+| `ai_adaptation_score` | float | Internal metric the AI uses to gauge how much it has learned from the player. |
 
-**Example snippet** (truncated):
-
-```json
-{
-  "day": 97260,
-  "population": 12705,
-  "treasury": 128788030891,
-  "food_stockpile": 84213,
-  "morale": 0.73,
-  "technology_tree": {
-    "agriculture": true,
-    "blacksmithing": true,
-    "dark_rituals": false
-  },
-  "buildings": [
-    {"type":"town_hall","level":4,"position":[12,8],"status":"operational"},
-    {"type":"barracks","level":2,"position":[13,9],"status":"operational"}
-  ],
-  "military_units": [
-    {"type":"swordsman","health":100,"location":[13,9]},
-    {"type":"shadow_mage","health":80,"location":[14,10]}
-  ],
-  "ai_state": {
-    "skill_level": 3,
-    "experience_points": 458920,
-    "last_update": "97258"
-  },
-  "events_log": [
-    {"day":97255,"event":"Orc raid repelled"},
-    {"day":97258,"event":"Discovered ancient rune"}
-  ]
-}
-```
+> **Tip:** You can inspect the full schema in `docs/world_state_schema.md`.
 
 ---  
 
 ## AI Improvement System  
 
-The AI that governs NPC factions, random events, and world‑reaction logic is **self‑optimizing**. Its improvement pipeline consists of three stages:
+### Overview  
+The AI is not static; it employs a **reinforcement‑learning‑inspired adaptation loop** that runs every **`ai_adaptation_interval`** (default: 30 in‑game days). The loop evaluates three signals:
 
-1. **Experience Accumulation**  
-   - Every in‑game day the AI records outcomes of its decisions (e.g., success of raids, resource allocation efficiency).  
-   - These outcomes are converted into **experience points (XP)** using a weighted scoring function.  
+1. **Strategic Success** – Victory points earned (territory, technology, military).  
+2. **Player Counter‑Strategies** – Frequency of player actions that directly thwart AI plans (e.g., ambushes, trade embargoes).  
+3. **Resource Efficiency** – How well the AI converts gold/mana into useful assets.
 
-2. **Skill Level Advancement**  
-   - When XP crosses a threshold (`XP_THRESHOLD = 100 000 * current_skill_level`), the AI’s **skill level** increments by 1.  
-   - Skill level directly influences:  
-     - Decision‑making depth (more look‑ahead steps).  
-     - Probability of generating novel events.  
-     - Adaptation speed to player strategies.  
+Based on these signals, the AI adjusts weights in its decision‑making tree (e.g., “prioritize naval expansion” vs. “focus on magical research”).  
 
-3. **Model Fine‑Tuning (Optional LPU)**  
-   - If `enable_lpu_acceleration` is `true`, the system periodically exports a batch of recent gameplay traces to the LPU, where a lightweight transformer model is fine‑tuned.  
-   - The updated model weights are hot‑swapped without restarting the game, giving the AI **real‑time learning**.  
+### How It Works (Simplified)
 
-### Configurable Parameters  
+```text
+Every ai_adaptation_interval:
+    1. Gather metrics → M = {success, counter, efficiency}
+    2. Compute reward R = w1*success - w2*counter + w3*efficiency
+    3. Update policy weights via gradient ascent:
+           weight_new = weight_old + α * R * ∂logπ/∂weight
+    4. Persist updated weights to ai_policy.json
+```
 
-| Parameter | Effect | Default |
-|-----------|--------|---------|
-| `ai_improvement_rate` | % increase in skill per 10 k days (if XP thresholds are met). | `0.02` (2 %) |
-| `xp_decay_factor` | Daily decay applied to old XP to prevent runaway growth. | `0.999` |
-| `max_skill_level` | Upper bound for AI skill (prevents infinite scaling). | `10` |
+* `α` (learning_rate) is configurable in `config.json` under `ai_learning_rate`.  
+* The system is deterministic for a given seed, making it reproducible for testing.
 
-### Monitoring AI Progress  
+### Player‑Facing Effects  
 
-The UI includes an **“AI Dashboard”** (accessible via the pause menu) showing:  
+| AI Behavior | Trigger | In‑Game Manifestation |
+|-------------|---------|-----------------------|
+| **Aggressive Expansion** | High reward from territorial gains | More frequent raids, faster city founding |
+| **Defensive Posture** | Frequent heavy losses | Fortified borders, increased scouting |
+| **Technological Rush** | High mana efficiency | Rapid research of magical tech, spawning of spell‑casters |
+| **Economic Sabotage** | High gold‑theft reward | Trade embargoes, market price manipulation |
 
-- Current skill level  
-- Total XP earned  
-- Days until next level (estimated)  
-- Recent decision‑outcome statistics  
+### Modding the AI  
 
-Developers can also inspect `ai_state` in the save file or enable `log_level: "DEBUG"` to write detailed logs to `logs/ai_debug.log`.  
+- Edit `ai_policy.json` to manually set initial weights.  
+- Add new decision nodes in `ai/decision_tree.yaml`.  
+- Use the `ai_debug` console command to print current weights.
 
 ---  
 
-## Troubleshooting & FAQ  
+## Troubleshooting & Debugging  
 
-### The game won’t start / crashes immediately  
+| Symptom | Likely Cause | Fix |
+|---------|--------------|-----|
+| **Game crashes on start** | Missing `pygame` or incompatible Python version | Verify `python --version` ≥ 3.8 and run `pip install -r requirements.txt`. |
+| **Black screen / no graphics** | GPU driver issues or missing SDL libraries | Install system SDL2 (`apt-get install libsdl2-2.0-0` on Linux) or update graphics drivers. |
+| **Performance drops below 30 FPS** | High `game_speed` + many active entities | Lower `game_speed` in `config.json` or enable `debug_mode: false`. |
+| **AI never adapts** | `ai_learning_rate` set to 0 or `ai_adaptation_interval` too high | Set `"ai_learning_rate": 0.05` and `"ai_adaptation_interval": 30`. |
+| **Save file corrupted** | Unexpected shutdown while writing `world_state.json` | Delete the last backup (`world_state.backup.json`) and restart; the game will load the previous autosave. |
+| **Audio missing** | `pygame.mixer` not initialized (common on headless servers) | Ensure you have a working audio device or set `"audio_enabled": false` in `config.json`. |
 
-| Possible Cause | Fix |
-|----------------|-----|
-| **Missing Python version** | Verify `python --version` ≥ 3.9. Install the correct version from python.org. |
-| **Groq LPU driver not installed** (when `enable_lpu_acceleration` is true) | Either install the driver per the Groq docs or set `"enable_lpu_acceleration": false` in `config.json`. |
-| **Corrupted `config.json`** | Delete/rename the file; the game will regenerate a default config on next launch. |
-| **Dependency mismatch** | Run `pip install -r requirements.txt` again; consider recreating the virtual environment. |
+### Enabling Debug Mode  
 
-### AI isn’t improving (skill level stays at 1)  
+1. Open `config.json`.  
+2. Set `"debug_mode": true`.  
+3. Restart the game.  
 
-1. Check `config.json` → `ai_improvement_rate`. A value of `0` disables growth.  
-2. Ensure the save file’s `ai_state.experience_points` is increasing (open the JSON or view the AI Dashboard).  
-3. If using LPU acceleration, verify the hardware is recognized (`groq-lpu status` command).  
+You will now see:  
 
-### My treasury shows a massive number (e.g., 128 788 030 891) and overflows UI  
+- FPS counter in the top‑right corner.  
+- Real‑time values for `ai_adaptation_score`, `morale`, and `population growth rate`.  
+- Press **F12** to open the in‑game console (type `help` for commands).  
 
-- The UI formats numbers with commas but does not cap display length.  
-- You can enable a **compact view** by editing `config.json`: `"treasury_display_mode": "compact"` (options: `full`, `compact`).  
+### Common Console Commands  
 
-### Game runs slowly on a standard laptop (no LPU)  
+| Command | Description |
+|---------|-------------|
+| `save` | Immediately writes a new save file. |
+| `load <slot>` | Loads a specific save slot. |
+| `config set <key> <value>` | Change a config option on the fly. |
+| `ai dump` | Prints current AI policy weights. |
+| `world dump` | Outputs the full `world_state.json` to the console. |
+| `log level <debug|info|warn|error>` | Adjusts logging verbosity. |
 
-- Lower the difficulty (`"difficulty": "easy"`).  
-- Reduce the AI improvement rate (`"ai_improvement_rate": 0.01`).  
-- Turn off background AI logging: `"log_level": "WARN"`.  
+---  
 
-### I want to reset the world to day 1  
+## Current Game State  
 
-Delete or move the `saves/` folder (or rename the specific save file). The next launch will create a fresh save with the starting parameters defined in `config.json`.  
+| Metric | Value |
+|--------|-------|
+| **Day** | **99 359** |
+| **Population** | **13 041** |
+| **Treasury** | **136 359 847 504** gold |
+
+These numbers are automatically loaded from `world_state.json` at launch.  
 
 ---  
 
 ## Contributing  
 
-We welcome community contributions!  
+We welcome contributions of any kind—code, art, music, documentation, or balance tweaks.
 
 1. **Fork** the repository.  
-2. Create a feature branch: `git checkout -b feature/awesome-feature`.  
-3. Make your changes, ensuring they pass existing tests (`pytest -q`).  
-4. Update documentation (README, docstrings).  
-5. Submit a **Pull Request** with a clear description of the change.  
+2. Create a **feature branch** (`git checkout -b feature/awesome‑feature`).  
+3. Follow the **PEP‑8** style guide for Python and keep pixel‑art assets at **16 × 16** tiles unless a larger size is justified.  
+4. Add or update **unit tests** in `tests/`.  
+5. Submit a **Pull Request** with a clear description of changes.  
 
-Please read `CONTRIBUTING.md` for coding standards, branch naming conventions, and the review process.  
+See `CONTRIBUTING.md` for detailed guidelines, code of conduct, and the release process.
 
 ---  
 
 ## License  
 
-This project is released under the **MIT License**. See the full text in `LICENSE`.  
+This project is licensed under the **MIT License**. See the `LICENSE` file for the full text.  
 
 ---  
 
-*Happy world‑building, and may your pixel‑crafted empire endure the darkness!*
+*Happy world‑building, and may your darkness be ever‑lasting!*  
